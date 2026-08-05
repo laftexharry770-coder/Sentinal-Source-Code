@@ -639,11 +639,14 @@
     const image = $('#spinFrame');
     if (!stage || !image || frames.length < 2) return null;
 
+    const MS_PER_FRAME = 90;      // how fast the product turns, in real time
     let index = 0;
     let dragging = false;
     let startX = 0;
     let startIndex = 0;
-    let timer = null;
+    let raf = 0;
+    let previous = 0;
+    let carried = 0;              // time left over between frames
 
     // Preload so dragging doesn't flicker on the first turn.
     frames.forEach((src) => { const img = new Image(); img.src = src; });
@@ -654,16 +657,39 @@
     };
 
     const stop = () => {
-      if (!timer) return;
-      clearInterval(timer);
-      timer = null;
+      if (!raf) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      previous = 0;
+      carried = 0;
       stage.classList.remove('playing');
     };
-    const play = () => {
-      if (timer) return;
-      stage.classList.add('playing');
-      timer = setInterval(() => show(index + 1), 90);
+
+    /* Advance by elapsed time, not by frames drawn: the product turns at the
+       same speed on a 60Hz phone, a 120Hz tablet and a 144Hz monitor. */
+    const tick = (now) => {
+      if (!previous) previous = now;
+      let elapsed = now - previous;
+      previous = now;
+      // A backgrounded tab, or a slow frame, must not send it spinning.
+      if (elapsed > 250) elapsed = MS_PER_FRAME;
+      carried += elapsed;
+      let steps = Math.floor(carried / MS_PER_FRAME);
+      carried -= steps * MS_PER_FRAME;
+      if (steps > 0) show(index + Math.min(steps, 4));
+      raf = requestAnimationFrame(tick);
     };
+
+    const play = () => {
+      if (raf) return;
+      stage.classList.add('playing');
+      previous = 0;
+      carried = 0;
+      raf = requestAnimationFrame(tick);
+    };
+
+    const onVisibility = () => { if (document.hidden) stop(); };
+    document.addEventListener('visibilitychange', onVisibility);
 
     const onDown = (e) => {
       dragging = true;
@@ -698,14 +724,15 @@
     document.addEventListener('keydown', onKey);
 
     const playBtn = $('#spinPlay');
-    if (playBtn) playBtn.addEventListener('click', () => (timer ? stop() : play()));
+    if (playBtn) playBtn.addEventListener('click', () => (raf ? stop() : play()));
 
     play();
     // One full turn to show it moves, then hand control to the customer.
-    setTimeout(stop, frames.length * 90 + 200);
+    setTimeout(stop, frames.length * MS_PER_FRAME + 200);
 
     return function teardown() {
       stop();
+      document.removeEventListener('visibilitychange', onVisibility);
       stage.removeEventListener('mousedown', onDown);
       stage.removeEventListener('touchstart', onDown);
       window.removeEventListener('mousemove', onMove);
@@ -1918,6 +1945,53 @@
     }
   }
 
+  /* ── Refresh rate ──────────────────────────────────────────────────────────
+     Every animation on the site is described in time, not in frames — CSS
+     transitions and keyframes interpolate by the clock, and the 360° spinner
+     advances on elapsed milliseconds. So a 60Hz phone, a 90Hz mid-range, a
+     120Hz tablet and a 144Hz monitor all show the same thing at the same
+     speed; the faster screen simply draws more steps in between.
+
+     What still differs is whether a device can KEEP that rate. This samples
+     real frame times once the page has settled and, if the device is missing
+     its own target, drops the expensive decoration rather than stuttering.
+     ------------------------------------------------------------------------ */
+  function initFrameWatchdog() {
+    if (!window.requestAnimationFrame) return;
+
+    const override = new URLSearchParams(location.search).get('lite');
+    if (override === '1') { document.documentElement.classList.add('lite'); return; }
+    if (override === '0') return;
+
+    const samples = [];
+    let previous = 0;
+
+    const sample = (now) => {
+      if (previous) samples.push(now - previous);
+      previous = now;
+      if (samples.length < 45) { requestAnimationFrame(sample); return; }
+
+      const sorted = samples.slice().sort((a, b) => a - b);
+      const median = sorted[Math.floor(sorted.length / 2)];
+
+      // Whatever rate this screen is actually delivering, noted for debugging.
+      document.documentElement.dataset.hz = String(Math.round(1000 / median));
+
+      /* One plain threshold rather than anything clever. Below about 42
+         frames a second the page reads as janky whatever the cause — an old
+         phone missing a 60Hz target, or a screen that only refreshes 30 times
+         a second in the first place. Either way the answer is the same: keep
+         the layout and the content, drop the blur and the decoration. */
+      if (median > 24) document.documentElement.classList.add('lite');
+    };
+
+    // Wait for load and layout to settle so start-up work isn't mistaken for
+    // a slow device.
+    const begin = () => setTimeout(() => requestAnimationFrame(sample), 1200);
+    if (document.readyState === 'complete') begin();
+    else window.addEventListener('load', begin);
+  }
+
   /** Cards, buttons and glass panes light up where the cursor is. */
   function initPointerFX() {
     if (calmRequested()) return;
@@ -1992,6 +2066,7 @@
     paintAttached();
     paintCompareBar();
     initScroll();
+    initFrameWatchdog();
     initPointerFX();
     initInstall();
     initServiceWorker();

@@ -81,7 +81,7 @@ const SITE = {
      data.js is uploaded, which needs your hosting login. That upload — not
      this code — is what actually keeps the site yours.                     */
   manageKey: 'homcom',
-  managePin: '2468'
+  managePin: '1754'
 };
 
 /* ── 2. Repairs ──────────────────────────────────────────────────────────── */

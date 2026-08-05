@@ -1859,32 +1859,104 @@
     });
   }
 
-  /* ── Scroll behaviour ──────────────────────────────────────────────────── */
+  /* ── Motion ────────────────────────────────────────────────────────────────
+     Everything here is decoration: if the browser is asked to reduce motion,
+     or there's no real cursor, it simply doesn't run.
+     ------------------------------------------------------------------------ */
+  const calmRequested = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function initScroll() {
     const header = $('.site-header');
+    const progress = $('.scroll-progress');
     const sections = ['catalogue', 'repairs', 'contact'].map((id) => $('#' + id)).filter(Boolean);
+    let ticking = false;
 
-    const onScroll = () => {
-      header.classList.toggle('scrolled', window.scrollY > 8);
+    const paintScroll = () => {
+      ticking = false;
+      const y = window.scrollY;
+      header.classList.toggle('scrolled', y > 8);
+
+      if (progress) {
+        const height = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.setProperty('--progress', height > 0 ? Math.min(y / height, 1).toFixed(4) : 0);
+      }
+
       let current = '';
       sections.forEach((section) => {
-        if (window.scrollY >= section.offsetTop - 120) current = section.id;
+        if (y >= section.offsetTop - 120) current = section.id;
       });
       $$('.nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === '#' + current));
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+
+    window.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(paintScroll);
+    }, { passive: true });
+    paintScroll();
 
     if ('IntersectionObserver' in window) {
       const io = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) { entry.target.classList.add('in'); io.unobserve(entry.target); }
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
         });
       }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
-      $$('.reveal').forEach((el) => io.observe(el));
+
+      // Things that arrive together arrive one after another, not all at once.
+      const groups = {};
+      $$('.reveal').forEach((el) => {
+        const parent = el.parentElement;
+        const key = parent ? (parent.dataset.revealGroup || (parent.dataset.revealGroup = Math.random())) : 'x';
+        groups[key] = (groups[key] || 0) + 1;
+        el.style.setProperty('--delay', Math.min((groups[key] - 1) * 70, 350) + 'ms');
+        io.observe(el);
+      });
     } else {
       $$('.reveal').forEach((el) => el.classList.add('in'));
     }
+  }
+
+  /** Cards, buttons and glass panes light up where the cursor is. */
+  function initPointerFX() {
+    if (calmRequested()) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const LIT = '.card, .feature, .service, .contact-card, .glass, .search-row, .btn, .map-block';
+    const hero = $('.hero');
+    const glow = $('.hero-glow');
+    let queued = null;
+    let frame = 0;
+
+    const apply = () => {
+      frame = 0;
+      const event = queued;
+      if (!event) return;
+
+      const target = event.target.closest ? event.target.closest(LIT) : null;
+      if (target) {
+        const box = target.getBoundingClientRect();
+        target.style.setProperty('--mx', (((event.clientX - box.left) / box.width) * 100).toFixed(1) + '%');
+        target.style.setProperty('--my', (((event.clientY - box.top) / box.height) * 100).toFixed(1) + '%');
+      }
+
+      // The hero's coloured haze drifts against the pointer, a parallax hint.
+      if (glow && hero) {
+        const box = hero.getBoundingClientRect();
+        if (box.bottom > 0 && box.top < window.innerHeight) {
+          glow.style.setProperty('--px', (((event.clientX / window.innerWidth) - .5) * -1).toFixed(3));
+          glow.style.setProperty('--py', (((event.clientY / window.innerHeight) - .5) * -1).toFixed(3));
+        }
+      }
+    };
+
+    document.addEventListener('pointermove', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      queued = event;
+      if (frame) return;
+      frame = requestAnimationFrame(apply);
+    }, { passive: true });
   }
 
   /* ── Deep links ────────────────────────────────────────────────────────── */
@@ -1920,6 +1992,7 @@
     paintAttached();
     paintCompareBar();
     initScroll();
+    initPointerFX();
     initInstall();
     initServiceWorker();
     if (unlocked()) { const chip = $('#manageChip'); if (chip) chip.hidden = false; }

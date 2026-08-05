@@ -356,6 +356,34 @@ python3 -m http.server 8000
 
 ---
 
+## Look and feel
+
+The search bar is "liquid glass": a translucent pane that blurs whatever is
+behind it, with a bright top edge, a highlight that follows the cursor and a
+slow glint drifting across. The search overlay and the header search button use
+the same treatment. It's built from three CSS custom properties near the top of
+`styles.css` — `--glass-bg`, `--glass-brd`, `--glass-blur` — with separate
+values for light and dark, so you can dial the frostiness up or down in one
+place.
+
+Motion is deliberately small: a reading-progress line under the header, cards
+that lift and light up under the cursor, product images that ease in slightly,
+a sweep of light across buttons on hover, springy feedback when a filter or a
+product is picked, sections that fade up in sequence as you scroll, and the
+hero's colour haze drifting against the pointer.
+
+Three rules keep it from becoming a nuisance:
+
+- **Nothing important moves on its own.** The search bar rises into place once
+  and then holds still — a permanently drifting button is annoying to hit.
+- **Touch devices skip the cursor effects entirely** — they cost battery and
+  nobody sees them.
+- **"Reduce motion" is obeyed.** If a visitor's phone or computer is set to
+  reduce motion, every animation switches off and the pointer tracking never
+  starts. The site still works exactly the same.
+
+---
+
 ## Housekeeping
 
 - **Prices change.** The footer marks them indicative, but keep them current.

@@ -64,7 +64,7 @@
       </nav>
 
       <div class="header-actions">
-        <button class="btn btn-ghost btn-small search-trigger" id="openSearch" type="button" aria-haspopup="dialog">
+        <button class="btn btn-ghost btn-small search-trigger glass" id="openSearch" type="button" aria-haspopup="dialog">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
           <span>Search</span>
           <kbd class="kbd-hint">/</kbd>
@@ -91,6 +91,7 @@
         </button>
       </div>
     </div>
+    <span class="scroll-progress" aria-hidden="true"></span>
   </header>
 
   <main>
@@ -104,11 +105,12 @@
           actually go with them — plus a workshop that fixes what you already own.
           Browse below, add what interests you to an inquiry, and send it over in one tap.
         </p>
-        <button class="hero-search reveal" type="button" id="heroSearch" aria-haspopup="dialog">
+        <button class="hero-search glass reveal" type="button" id="heroSearch" aria-haspopup="dialog">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
           <span>Search laptops, chargers, earphones, repairs…</span>
           <kbd class="kbd-hint">/</kbd>
         </button>
+        <div class="hero-search-shadow reveal" aria-hidden="true"></div>
 
         <div class="hero-cta reveal">
           <a class="btn btn-primary" href="#catalogue">Browse the catalogue</a>
@@ -483,7 +485,7 @@
   <!-- ───────────────────────── Search ───────────────────────── -->
   <div class="search-overlay" id="searchOverlay" hidden>
     <div class="modal-backdrop" data-close></div>
-    <div class="search-panel" role="dialog" aria-modal="true" aria-label="Search the shop">
+    <div class="search-panel glass" role="dialog" aria-modal="true" aria-label="Search the shop">
       <div class="search-bar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
         <input type="search" id="globalSearch" autocomplete="off" spellcheck="false"

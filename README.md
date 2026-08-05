@@ -108,7 +108,7 @@ then entering the code. Both are yours to change, at the bottom of `SITE`:
 
 ```js
 manageKey: 'homcom',      // the bit after #manage-
-managePin: '2468',        // the code it asks for
+managePin: '1754',        // the code it asks for
 ```
 
 **Change both before you go live.** Pick a key nobody would guess
@@ -409,6 +409,27 @@ Four rules keep it from becoming a nuisance:
 Measured on a full-page scroll: 16.7ms median frame, 17ms at the 95th
 percentile, nothing above 32ms — a steady 60fps, and that's on a machine with
 no graphics card at all.
+
+### Any screen, any refresh rate
+
+Every animation is described in time, not in frames. CSS transitions and
+keyframes interpolate by the clock, and the 360° spinner advances on elapsed
+milliseconds rather than on each frame drawn. So the site runs at the same
+speed on a 60Hz phone, a 90Hz mid-range, a 120Hz tablet and a 144Hz monitor —
+the faster screen just draws more steps in between. Verified by simulating all
+five rates: the spinner advanced exactly 22 frames in two seconds every time.
+
+What differs between devices is whether they can *keep* their own rate. About a
+second after the page settles, it measures real frame times; if the device is
+delivering under roughly 42 frames a second — an old phone missing its target,
+or a screen that only refreshes 30 times a second — it quietly drops the blur,
+the grain and the cursor effects and keeps everything else. Add `?lite=1` to
+the web address to force that mode, or `?lite=0` to force it off. Screens that
+redraw slowly by nature, like e-ink, are detected by CSS (`update: slow`) and
+get no animation at all.
+
+If a spinning product is left in a background tab, it stops until the tab is
+looked at again.
 
 ---
 

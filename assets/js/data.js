@@ -1,14 +1,15 @@
 /* ==========================================================================
-   data.js — the file that holds everything about your business.
+   data.js — everything about your business lives here.
 
-   You can edit this by hand, OR use the "Manage catalogue" panel on the site
-   (link at the bottom of the page) to add products, change prices and flip
-   stock without touching code — then export a fresh copy of this file.
+   You can edit this file by hand, OR use the Manage panel on the site
+   (see "Getting into the Manage panel" in README.md) to add products,
+   photos, 360° spins, offers and whole new categories — then export a fresh
+   copy of this file to publish.
 
-   1. SITE      → name, phones, email, address, opening hours
-   2. SERVICES  → the repairs you offer
-   3. PRODUCTS  → everything in the catalogue
-   4. CATEGORIES→ the filter buttons
+   1. SITE       → name, contacts, opening hours, contact hours, address
+   2. SERVICES   → the repairs you offer
+   3. CATEGORIES → the filter buttons
+   4. PRODUCTS   → everything in the catalogue
    ========================================================================== */
 
 /* ── 1. Your business ────────────────────────────────────────────────────── */
@@ -16,29 +17,40 @@ const SITE = {
   brand:   'HOMCOM Technologies',
   tagline: 'Computers, phones, accessories and repairs — done properly.',
 
-  /* Phone numbers. Full international format, digits only, no "+" and no
-     spaces: 0724 359 797 becomes 254724359797.
-     The first one is the main line; `whatsapp` picks which one receives
-     WhatsApp messages from the site. */
+  /* SALES contacts. Phone numbers in full international format: digits only,
+     no "+" and no spaces. 0724 359 797 becomes 254724359797.
+     The first is the main line; `whatsapp` picks which one takes chats. */
   phones: [
     { number: '254724359797', label: 'Main line' },
     { number: '254738715271', label: 'Second line' }
   ],
   whatsapp: '254724359797',
-
   email:    'kariukilucy244@gmail.com',
-  location: 'Nairobi, Kenya',
 
-  /* Google Maps. `mapQuery` is what gets searched — coordinates are the most
-     accurate ("-1.286389,36.817223"), a full address works fine too.
-     `address` is the human-readable line printed under the map. */
-  mapQuery: 'Nairobi CBD, Nairobi, Kenya',   // ← CHANGE ME to your exact spot
-  address:  'Nairobi CBD, Nairobi',          // ← CHANGE ME
-  mapNote:  'Walk-ins welcome. Ring the main line when you arrive.',
+  /* REPAIRS desk — a separate line and inbox, used by everything in the
+     Repairs section so repair jobs don't get mixed up with sales. */
+  repairs: {
+    label:    'Repair desk',
+    phone:    '254751851228',
+    whatsapp: '254751851228',
+    email:    'mwangiherbert225@gmail.com'
+  },
 
-  /* Opening hours. 24-hour clock, "HH:MM". Use null for a day you're closed.
-     The site works out whether you're open right now from these, in your own
-     timezone — so it stays right for customers browsing from anywhere. */
+  /* When calls, texts and emails are actually answered — every day.
+     Shown as a live "Answering now / Outside contact hours" badge.
+     This is separate from the shop's opening hours below. */
+  contactHours: ['08:00', '20:00'],
+  contactNote:  'Calls, texts, WhatsApp and emails are answered between 8am and 8pm, every day. Messages sent outside those hours are answered first thing.',
+
+  /* Where you are. `mapQuery` is what Google Maps searches for — coordinates
+     are the most accurate; right-click your shop in Google Maps and click the
+     numbers to copy them, then paste here as '-1.2841,36.8265'. */
+  location: 'Tom Mboya Street, Nairobi',
+  mapQuery: 'Rasulmal House, Tom Mboya Street, Nairobi, Kenya',
+  address:  'Rasulmal House, ground floor, first shop — Tom Mboya Street, Nairobi',
+  mapNote:  'Opposite Imenti House, near Odeon. Ground floor, first shop on your right.',
+
+  /* Opening hours. 24-hour clock, "HH:MM". null for a day you are closed. */
   timezone: 'Africa/Nairobi',
   hours: {
     mon: ['07:00', '22:00'],
@@ -55,15 +67,21 @@ const SITE = {
   locale:   'en-KE',      // number formatting
 
   /* Optional: a Formspree (or similar) endpoint so the inquiry form also
-     emails you in the background. Leave '' to rely on WhatsApp / email only.
-     Get one free at https://formspree.io — paste the URL here. */
+     emails you in the background. Get one free at https://formspree.io. */
   formEndpoint: '',
 
-  /* Optional 4-digit code asked for before the Manage catalogue panel opens.
-     This keeps a curious customer out of it — it is NOT real security, since
-     anyone can read this file. Their edits only ever affect their own browser
-     anyway. Leave '' for no code. */
-  managePin: ''
+  /* ── Getting into the Manage panel ──────────────────────────────────────
+     There is no visible link to it — you reach it by adding
+        #manage-<manageKey>
+     to the end of the web address, then entering managePin if you set one.
+     Change both of these to something only you know.
+
+     Worth understanding: whatever anyone types here only ever changes what
+     THEY see in THEIR OWN browser. The live site changes only when a new
+     data.js is uploaded, which needs your hosting login. That upload — not
+     this code — is what actually keeps the site yours.                     */
+  manageKey: 'homcom',
+  managePin: '2468'
 };
 
 /* ── 2. Repairs ──────────────────────────────────────────────────────────── */
@@ -127,18 +145,38 @@ const SERVICES = [
   }
 ];
 
-/* ── 3. Products ─────────────────────────────────────────────────────────────
-   Copy any block to add a product. Fields:
+/* ── 3. Category filters ─────────────────────────────────────────────────────
+   Add as many as you like — the Manage panel can create them for you, or add
+   a line here. `key` must be unique and lowercase-with-hyphens; `label` is
+   what customers see. 'all' is built in and always comes first.
+   ------------------------------------------------------------------------- */
+const CATEGORIES = [
+  { key: 'all',                  label: 'Everything' },
+  { key: 'computers',            label: 'Computers' },
+  { key: 'computer-accessories', label: 'Computer accessories' },
+  { key: 'phones',               label: 'Phones' },
+  { key: 'phone-accessories',    label: 'Phone accessories' },
+  { key: 'other-tech',           label: 'Other tech' }
+];
 
+/* ── 4. Products ─────────────────────────────────────────────────────────────
+   Fields:
      id        unique short slug — it's what a product's shareable link uses
      name      product name shown on the card
-     category  one of: computers | computer-accessories | phones | phone-accessories
-     price     number only, no commas, no currency symbol. null = "Price on request"
+     category  any `key` from CATEGORIES above
+     price     what you charge now. Number only. null = "Price on request"
+     wasPrice  optional. The old price. Set it and the card shows the saving,
+               a struck-through old price and an "On offer" badge
      desc      one or two lines shown on the card
      specs     { label: value } — any number of rows, shown in the pop-up
-     tag       optional badge: 'New' | 'Best seller' | 'Refurbished' | 'Deal' | ''
+     tag       optional badge: 'New' | 'Best seller' | 'Refurbished' | ''
+               (an offer badge is added automatically from wasPrice)
      stock     'in' | 'low' | 'out'
-     image     optional photo — 'assets/img/my-photo.jpg'. '' uses the icon art.
+     images    array of photos, first one is the main picture. Either
+               'assets/img/mouse.jpg' paths, or uploads made in the Manage
+               panel. Leave [] to use the built-in line art.
+     spin      array of frames for the 360° viewer, in rotation order.
+               2 or more turns the viewer on. Leave [] for none.
    ------------------------------------------------------------------------- */
 const PRODUCTS = [
   /* ── Computers ─────────────────────────────────────────────────────────── */
@@ -147,6 +185,7 @@ const PRODUCTS = [
     name: 'Lenovo ThinkPad T14 Gen 3',
     category: 'computers',
     price: 84500,
+    wasPrice: null,
     desc: 'The dependable work laptop. Intel i7, 16GB RAM and a keyboard you can type on all day.',
     specs: {
       Processor: 'Intel Core i7-1255U',
@@ -158,13 +197,15 @@ const PRODUCTS = [
     },
     tag: 'Best seller',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'mba-m2-13',
     name: 'MacBook Air 13" (M2)',
     category: 'computers',
     price: 149000,
+    wasPrice: null,
     desc: 'Silent, light and fast. The one to buy if you edit, design or simply want it to last.',
     specs: {
       Chip: 'Apple M2, 8-core',
@@ -176,13 +217,15 @@ const PRODUCTS = [
     },
     tag: 'New',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'hp-840-g8',
     name: 'HP EliteBook 840 G8',
     category: 'computers',
-    price: 62000,
+    price: 56000,
+    wasPrice: 62000,
     desc: 'Ex-UK, tested and cleaned. Best value per shilling for office work and study.',
     specs: {
       Processor: 'Intel Core i5-1135G7',
@@ -194,13 +237,15 @@ const PRODUCTS = [
     },
     tag: 'Refurbished',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'hp-250-g9',
     name: 'HP 250 G9 Student Laptop',
     category: 'computers',
     price: 45000,
+    wasPrice: null,
     desc: 'Coursework, research and Zoom without the drama. The sensible campus machine.',
     specs: {
       Processor: 'Intel Core i3-1215U',
@@ -212,13 +257,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'dell-opti-7090',
     name: 'Dell OptiPlex 7090 Desktop',
     category: 'computers',
     price: 58000,
+    wasPrice: null,
     desc: 'Small-form desktop for the shop counter, the front desk or a cyber setup.',
     specs: {
       Processor: 'Intel Core i5-10500',
@@ -230,13 +277,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'low',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'gaming-rig-rtx',
     name: 'Custom Gaming PC — RTX 4060',
     category: 'computers',
     price: 185000,
+    wasPrice: null,
     desc: 'Built to order in-house. 1080p ultra, 1440p high. Cable-managed and stress-tested.',
     specs: {
       Processor: 'AMD Ryzen 5 7600',
@@ -248,7 +297,8 @@ const PRODUCTS = [
     },
     tag: 'Built to order',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
 
   /* ── Computer accessories ──────────────────────────────────────────────── */
@@ -257,6 +307,7 @@ const PRODUCTS = [
     name: 'Logitech M170 Wireless Mouse',
     category: 'computer-accessories',
     price: 1800,
+    wasPrice: null,
     desc: 'Plug the tiny receiver in and forget about it. A year of battery, no fuss.',
     specs: {
       Connection: '2.4GHz USB receiver',
@@ -265,15 +316,17 @@ const PRODUCTS = [
       Compatible: 'Windows, macOS, Linux, Chrome OS',
       Warranty: '12 months'
     },
-    tag: 'Deal',
+    tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'mouse-mx-master',
     name: 'Logitech MX Master 3S Mouse',
     category: 'computer-accessories',
     price: 12500,
+    wasPrice: null,
     desc: 'Near-silent clicks, a scroll wheel that flies, and pairing for three machines.',
     specs: {
       Connection: 'Bluetooth + Logi Bolt',
@@ -285,13 +338,15 @@ const PRODUCTS = [
     },
     tag: 'Best seller',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'kb-mk270',
     name: 'Logitech MK270 Keyboard & Mouse Combo',
     category: 'computer-accessories',
     price: 3500,
+    wasPrice: null,
     desc: 'Full-size wireless keyboard and mouse on one receiver. The office standard.',
     specs: {
       Connection: '2.4GHz USB receiver (one for both)',
@@ -302,13 +357,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'kb-mech-rgb',
     name: 'Mechanical Gaming Keyboard (RGB)',
     category: 'computer-accessories',
-    price: 6500,
+    price: 5200,
+    wasPrice: 6500,
     desc: 'Blue switches, per-key lighting and a metal top plate. Loud, in a good way.',
     specs: {
       Switches: 'Blue mechanical, hot-swappable',
@@ -320,13 +377,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'lg-27-monitor',
     name: 'LG 27" IPS Monitor (75Hz)',
     category: 'computer-accessories',
     price: 24500,
+    wasPrice: null,
     desc: 'Slim-bezel FHD panel with HDMI and VESA mounting. Easy on the eyes for long shifts.',
     specs: {
       Size: '27 inch',
@@ -338,13 +397,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'ext-4way',
     name: '4-Way Power Extension with Surge Protection',
     category: 'computer-accessories',
     price: 2200,
+    wasPrice: null,
     desc: 'Protects the machine from the spikes that come with our power. 3-metre cable.',
     specs: {
       Sockets: '4 universal',
@@ -355,13 +416,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'ext-6way-usb',
     name: '6-Socket Extension Cable + USB Ports',
     category: 'computer-accessories',
     price: 3200,
+    wasPrice: null,
     desc: 'Six sockets plus four USB ports, so the desk stops fighting over chargers.',
     specs: {
       Sockets: '6 universal + 4 USB-A',
@@ -371,15 +434,17 @@ const PRODUCTS = [
       Mounting: 'Wall-mountable',
       Warranty: '6 months'
     },
-    tag: 'Deal',
+    tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'usbc-hub-8n1',
     name: '8-in-1 USB-C Docking Hub',
     category: 'computer-accessories',
     price: 5200,
+    wasPrice: null,
     desc: 'HDMI 4K, gigabit ethernet, card readers and 100W pass-through charging in one plug.',
     specs: {
       Ports: 'HDMI 4K30, RJ45, 3× USB-A, USB-C PD, SD, microSD',
@@ -391,13 +456,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'ssd-1tb-ext',
     name: 'SanDisk Extreme 1TB Portable SSD',
     category: 'computer-accessories',
     price: 13800,
+    wasPrice: null,
     desc: 'Pocket-size, rubberised and quick. Backs up a full laptop in a few minutes.',
     specs: {
       Capacity: '1TB',
@@ -409,13 +476,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'laptop-charger-65w',
     name: 'Universal 65W Laptop Charger',
     category: 'computer-accessories',
     price: 3500,
+    wasPrice: null,
     desc: 'One charger, eight tips — HP, Dell, Lenovo, Asus and USB-C machines.',
     specs: {
       Output: '65W, auto-voltage 18.5–20V',
@@ -426,13 +495,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'ups-1000va',
     name: 'APC 1000VA UPS Backup',
     category: 'computer-accessories',
     price: 18500,
+    wasPrice: null,
     desc: 'Rides out the blackouts. Around 20 minutes for a desktop and monitor.',
     specs: {
       Capacity: '1000VA / 600W',
@@ -443,7 +514,8 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'low',
-    image: ''
+    images: [],
+    spin: []
   },
 
   /* ── Phones ────────────────────────────────────────────────────────────── */
@@ -452,6 +524,7 @@ const PRODUCTS = [
     name: 'Apple iPhone 15 (128GB)',
     category: 'phones',
     price: 118000,
+    wasPrice: null,
     desc: 'USB-C at last, a 48MP main camera and the Dynamic Island. Sealed and unlocked.',
     specs: {
       Display: '6.1" Super Retina XDR',
@@ -463,13 +536,15 @@ const PRODUCTS = [
     },
     tag: 'New',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'sam-a55',
     name: 'Samsung Galaxy A55 5G',
     category: 'phones',
-    price: 46500,
+    price: 42000,
+    wasPrice: 46500,
     desc: 'The sweet spot in the mid-range: bright AMOLED, four years of updates, solid camera.',
     specs: {
       Display: '6.6" Super AMOLED 120Hz',
@@ -481,13 +556,30 @@ const PRODUCTS = [
     },
     tag: 'Best seller',
     stock: 'in',
-    image: ''
+    images: [],
+    /* A demo 360° spin so you can see how it works — replace these frames with
+       photos of your own stock (see README section 5). */
+    spin: [
+      'assets/img/demo-360/frame-01.svg', 'assets/img/demo-360/frame-02.svg',
+      'assets/img/demo-360/frame-03.svg', 'assets/img/demo-360/frame-04.svg',
+      'assets/img/demo-360/frame-05.svg', 'assets/img/demo-360/frame-06.svg',
+      'assets/img/demo-360/frame-07.svg', 'assets/img/demo-360/frame-08.svg',
+      'assets/img/demo-360/frame-09.svg', 'assets/img/demo-360/frame-10.svg',
+      'assets/img/demo-360/frame-11.svg', 'assets/img/demo-360/frame-12.svg',
+      'assets/img/demo-360/frame-13.svg', 'assets/img/demo-360/frame-14.svg',
+      'assets/img/demo-360/frame-15.svg', 'assets/img/demo-360/frame-16.svg',
+      'assets/img/demo-360/frame-17.svg', 'assets/img/demo-360/frame-18.svg',
+      'assets/img/demo-360/frame-19.svg', 'assets/img/demo-360/frame-20.svg',
+      'assets/img/demo-360/frame-21.svg', 'assets/img/demo-360/frame-22.svg',
+      'assets/img/demo-360/frame-23.svg', 'assets/img/demo-360/frame-24.svg'
+    ]
   },
   {
     id: 'pixel-8a',
     name: 'Google Pixel 8a',
     category: 'phones',
     price: 62000,
+    wasPrice: null,
     desc: 'The best point-and-shoot camera at this price, plus seven years of Android updates.',
     specs: {
       Display: '6.1" OLED 120Hz',
@@ -499,13 +591,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'tecno-spark-20',
     name: 'Tecno Spark 20 Pro',
     category: 'phones',
     price: 21000,
+    wasPrice: null,
     desc: 'Big screen, big battery, small price. A sensible first smartphone or a spare line.',
     specs: {
       Display: '6.78" 120Hz',
@@ -515,15 +609,17 @@ const PRODUCTS = [
       Battery: '5000mAh, 33W',
       Warranty: '12 months'
     },
-    tag: 'Deal',
+    tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'infinix-hot-40i',
     name: 'Infinix Hot 40i',
     category: 'phones',
     price: 15500,
+    wasPrice: null,
     desc: 'Two-day battery and a screen that stays readable in the sun, for very little money.',
     specs: {
       Display: '6.6" 90Hz',
@@ -535,7 +631,8 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
 
   /* ── Phone accessories ─────────────────────────────────────────────────── */
@@ -544,6 +641,7 @@ const PRODUCTS = [
     name: 'Clear Case + Tempered Glass Bundle',
     category: 'phone-accessories',
     price: 1500,
+    wasPrice: null,
     desc: 'Shock-absorbing corners and 9H glass, fitted for you in the shop. Most models stocked.',
     specs: {
       Case: 'Anti-yellow TPU, raised lip',
@@ -552,15 +650,17 @@ const PRODUCTS = [
       Models: 'iPhone, Samsung, Tecno, Infinix and more',
       Warranty: 'Replacement if it cracks on fitting'
     },
-    tag: 'Deal',
+    tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'case-flip-wallet',
     name: 'Leather Flip Wallet Case',
     category: 'phone-accessories',
     price: 1200,
+    wasPrice: null,
     desc: 'Covers the screen when it drops face-down, and holds two cards and a note.',
     specs: {
       Material: 'PU leather with soft inner lining',
@@ -571,13 +671,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'gan-65w',
     name: '65W GaN Fast Charger',
     category: 'phone-accessories',
     price: 3900,
+    wasPrice: null,
     desc: 'One small brick that charges a phone, tablet and laptop. Replaces three chargers.',
     specs: {
       Output: '65W total — 2× USB-C, 1× USB-A',
@@ -588,13 +690,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'charger-20w',
     name: '20W USB-C Fast Charger',
     category: 'phone-accessories',
     price: 1800,
+    wasPrice: null,
     desc: 'Half a charge in half an hour on most phones. The one to keep by the bed.',
     specs: {
       Output: '20W USB-C Power Delivery',
@@ -604,13 +708,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'cable-usbc-braided',
     name: 'Braided USB-C Charging Cable (2m)',
     category: 'phone-accessories',
     price: 800,
+    wasPrice: null,
     desc: 'Nylon braid and reinforced ends — the bit that usually frays first.',
     specs: {
       Length: '2 metres',
@@ -621,13 +727,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'cable-lightning-mfi',
     name: 'MFi Lightning Cable (1m)',
     category: 'phone-accessories',
     price: 1500,
+    wasPrice: null,
     desc: 'Apple-certified, so no "accessory not supported" nonsense after an update.',
     specs: {
       Length: '1 metre',
@@ -638,13 +746,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'anker-20k',
     name: 'Anker 20,000mAh Power Bank (22.5W)',
     category: 'phone-accessories',
     price: 6800,
+    wasPrice: null,
     desc: 'Four full phone charges. Fast enough to top a laptop up in a pinch.',
     specs: {
       Capacity: '20,000mAh',
@@ -655,13 +765,15 @@ const PRODUCTS = [
     },
     tag: 'Best seller',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'airpods-pro-2',
     name: 'Apple AirPods Pro (2nd gen)',
     category: 'phone-accessories',
     price: 32000,
+    wasPrice: null,
     desc: 'The noise cancelling everyone compares the rest to. Sealed, with USB-C case.',
     specs: {
       ANC: 'Active, with Transparency mode',
@@ -672,13 +784,15 @@ const PRODUCTS = [
     },
     tag: 'New',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'buds-anc',
     name: 'Wireless Earbuds with ANC',
     category: 'phone-accessories',
-    price: 7500,
+    price: 6200,
+    wasPrice: 7500,
     desc: 'Active noise cancelling for matatu rides and open-plan offices. 30 hrs with the case.',
     specs: {
       Type: 'True wireless, in-ear',
@@ -690,13 +804,15 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'earphones-wired',
     name: 'Wired Earphones with Mic',
     category: 'phone-accessories',
     price: 600,
+    wasPrice: null,
     desc: 'No charging, no pairing, no losing one down the seat. USB-C or 3.5mm.',
     specs: {
       Connector: '3.5mm or USB-C — say which you need',
@@ -705,15 +821,17 @@ const PRODUCTS = [
       Cable: '1.2m tangle-resistant',
       Warranty: '3 months'
     },
-    tag: 'Deal',
+    tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'smartwatch-fit',
     name: 'Fitness Smartwatch (AMOLED)',
     category: 'phone-accessories',
     price: 9800,
+    wasPrice: null,
     desc: 'Calls, steps, sleep and SpO₂ on a bright always-on screen. A week per charge.',
     specs: {
       Display: '1.43" AMOLED always-on',
@@ -725,33 +843,108 @@ const PRODUCTS = [
     },
     tag: '',
     stock: 'in',
-    image: ''
+    images: [],
+    spin: []
   },
   {
     id: 'apple-watch-se',
     name: 'Apple Watch SE (40mm, GPS)',
     category: 'phone-accessories',
     price: 34000,
+    wasPrice: null,
     desc: 'Crash and fall detection, proper workout tracking, and it just works with an iPhone.',
     specs: {
       Display: '40mm Retina',
       Chip: 'S8 SiP',
-      Features: 'Crash detection, fall detection, ECG-free heart alerts',
+      Features: 'Crash detection, fall detection, heart alerts',
       Battery: 'Up to 18 hrs',
       Rating: '50m water resistant',
       Warranty: '12 months'
     },
     tag: '',
     stock: 'low',
-    image: ''
-  }
-];
+    images: [],
+    spin: []
+  },
 
-/* ── 4. Category filters — edit the labels, keep the keys. ────────────────── */
-const CATEGORIES = [
-  { key: 'all',                  label: 'Everything' },
-  { key: 'computers',            label: 'Computers' },
-  { key: 'computer-accessories', label: 'Computer accessories' },
-  { key: 'phones',               label: 'Phones' },
-  { key: 'phone-accessories',    label: 'Phone accessories' }
+  /* ── Other tech ────────────────────────────────────────────────────────── */
+  {
+    id: 'router-ac1200',
+    name: 'Dual-Band Wi-Fi Router (AC1200)',
+    category: 'other-tech',
+    price: 6500,
+    wasPrice: null,
+    desc: 'Covers a three-bedroom house or a small office. Four antennas, easy phone setup.',
+    specs: {
+      Speed: '1200Mbps (300 + 867)',
+      Bands: '2.4GHz and 5GHz',
+      Antennas: '4 × 5dBi',
+      Ports: '4 LAN + 1 WAN',
+      Setup: 'Phone app or browser',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'in',
+    images: [],
+    spin: []
+  },
+  {
+    id: 'printer-hp-2320',
+    name: 'HP DeskJet 2320 All-in-One Printer',
+    category: 'other-tech',
+    price: 12500,
+    wasPrice: null,
+    desc: 'Print, scan and copy for the house or the shop. Cartridges always in stock here.',
+    specs: {
+      Functions: 'Print, scan, copy',
+      Speed: '7.5 ppm black, 5.5 ppm colour',
+      Connection: 'USB',
+      Paper: '60-sheet input tray',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'in',
+    images: [],
+    spin: []
+  },
+  {
+    id: 'cctv-4cam-kit',
+    name: '4-Camera CCTV Kit with DVR',
+    category: 'other-tech',
+    price: 38000,
+    wasPrice: 42000,
+    desc: 'Night vision, phone viewing from anywhere, and we install it for you.',
+    specs: {
+      Cameras: '4 × 1080p, weatherproof',
+      Recorder: '4-channel DVR, 1TB drive',
+      'Night vision': 'Up to 20 metres',
+      Viewing: 'Phone app, anywhere',
+      Installation: 'Quoted separately',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'in',
+    images: [],
+    spin: []
+  },
+  {
+    id: 'projector-hd',
+    name: 'HD Mini Projector (1080p support)',
+    category: 'other-tech',
+    price: 17500,
+    wasPrice: null,
+    desc: 'Film nights, church and presentations. HDMI, USB and phone mirroring.',
+    specs: {
+      Resolution: '1280 × 720 native, 1080p supported',
+      Brightness: '6000 lumens',
+      'Screen size': '40" to 200"',
+      Inputs: 'HDMI, USB, AV, phone mirroring',
+      Speaker: 'Built-in stereo',
+      Warranty: '6 months'
+    },
+    tag: '',
+    stock: 'low',
+    images: [],
+    spin: []
+  }
 ];

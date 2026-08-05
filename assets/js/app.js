@@ -1,6 +1,6 @@
 /* ==========================================================================
-   app.js — behaviour. You shouldn't need to edit this file to run the shop;
-   everything you change day to day lives in data.js.
+   app.js — behaviour. Everything you change day to day lives in data.js,
+   or in the "Manage catalogue" panel on the site itself.
    ========================================================================== */
 (function () {
   'use strict';
@@ -13,6 +13,8 @@
   const esc = (value) => String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  const clone = (value) => JSON.parse(JSON.stringify(value));
 
   const money = (amount) => {
     if (amount == null || amount === '') return 'Price on request';
@@ -28,15 +30,18 @@
     return found ? found.label : key;
   };
 
-  const prettyPhone = (digits) => {
-    const d = String(digits || '').replace(/\D/g, '');
+  const digits = (value) => String(value || '').replace(/\D/g, '');
+
+  const prettyPhone = (value) => {
+    const d = digits(value);
     if (d.length === 12) return '+' + d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6, 9) + ' ' + d.slice(9);
     return '+' + d;
   };
 
-  const waLink  = (text) => 'https://wa.me/' + String(SITE.phone).replace(/\D/g, '') +
-                            (text ? '?text=' + encodeURIComponent(text) : '');
-  const telLink = () => 'tel:+' + String(SITE.phone).replace(/\D/g, '');
+  const waNumber = () => digits(SITE.whatsapp || (SITE.phones && SITE.phones[0] && SITE.phones[0].number));
+
+  const waLink  = (text) => 'https://wa.me/' + waNumber() + (text ? '?text=' + encodeURIComponent(text) : '');
+  const telLink = (value) => 'tel:+' + digits(value || (SITE.phones && SITE.phones[0] && SITE.phones[0].number));
   const mailLink = (subject, body) =>
     'mailto:' + SITE.email +
     '?subject=' + encodeURIComponent(subject || ('Inquiry — ' + SITE.brand)) +
@@ -56,60 +61,69 @@
     ? '<img src="' + esc(product.image) + '" alt="' + esc(product.name) + '" loading="lazy" />'
     : '<div class="' + (className || 'ph') + '">' + art(product) + '</div>';
 
+  const SERVICE_ICONS = {
+    computer: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20M10 16h4"/></svg>',
+    phone: '<svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
+    drive: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
+    network: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12M12 12L6.5 16.5M12 12l5.5 4.5"/></svg>',
+    fallback: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 1 5 5l-8.4 8.4a2.8 2.8 0 0 1-4-4z"/><path d="M6 6l3 3"/></svg>'
+  };
+
   const STOCK = {
     in:  { text: 'In stock',         cls: '',    label: 'In stock' },
     low: { text: 'Low stock',        cls: 'low', label: 'Low stock' },
     out: { text: 'Order on request', cls: 'out', label: 'Out of stock' }
   };
 
-  /* ── State ─────────────────────────────────────────────────────────────── */
-  const STORE_KEY   = 'sentinal-inquiry';
-  const STOCK_KEY   = 'sentinal-stock';
+  /* ── Storage ───────────────────────────────────────────────────────────── */
+  const CAT_KEY     = 'homcom-catalogue';
+  const INQUIRY_KEY = 'homcom-inquiry';
   const MAX_COMPARE = 4;
+
+  /** The live catalogue: your saved edits if there are any, else data.js. */
+  let catalogue = loadCatalogue();
+
+  function loadCatalogue() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CAT_KEY) || 'null');
+      if (Array.isArray(saved) && saved.length) return saved;
+    } catch (e) {}
+    return clone(PRODUCTS);
+  }
+  function saveCatalogue() {
+    try { localStorage.setItem(CAT_KEY, JSON.stringify(catalogue)); } catch (e) {}
+  }
+  function isEdited() {
+    try { return localStorage.getItem(CAT_KEY) != null; } catch (e) { return false; }
+  }
+  function byId(id) { return catalogue.find((p) => p.id === id); }
 
   const state = {
     category: 'all',
     query: '',
     sort: 'featured',
-    inquiry: load(STORE_KEY, []),
+    inquiry: loadInquiry(),
     compare: [],
-    overrides: load(STOCK_KEY, {})
+    editing: null            // product id being edited in the manage panel, or 'new'
   };
 
-  function load(key, fallback) {
+  function loadInquiry() {
     try {
-      const raw = JSON.parse(localStorage.getItem(key) || 'null');
-      if (raw == null) return fallback;
-      if (Array.isArray(fallback)) {
-        // Drop ids that no longer exist in the catalogue.
-        return Array.isArray(raw) ? raw.filter((id) => PRODUCTS.some((p) => p.id === id)) : fallback;
-      }
-      return typeof raw === 'object' ? raw : fallback;
-    } catch (e) { return fallback; }
+      const raw = JSON.parse(localStorage.getItem(INQUIRY_KEY) || '[]');
+      return Array.isArray(raw) ? raw.filter((id) => byId(id)) : [];
+    } catch (e) { return []; }
   }
-  function save() {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(state.inquiry));
-      localStorage.setItem(STOCK_KEY, JSON.stringify(state.overrides));
-    } catch (e) {}
+  function saveInquiry() {
+    try { localStorage.setItem(INQUIRY_KEY, JSON.stringify(state.inquiry)); } catch (e) {}
   }
 
-  /** Availability, most specific first: your browser → data.js overrides → the product. */
-  function stockOf(product) {
-    const overrides = typeof STOCK_OVERRIDES === 'object' && STOCK_OVERRIDES ? STOCK_OVERRIDES : {};
-    const key = state.overrides[product.id] || overrides[product.id] || product.stock || 'in';
-    return STOCK[key] ? key : 'in';
-  }
+  const stockOf = (product) => (STOCK[product.stock] ? product.stock : 'in');
 
   /** A shareable web address that opens straight onto one product. */
-  function productUrl(id) {
-    return location.origin + location.pathname + '#p=' + encodeURIComponent(id);
-  }
+  const productUrl = (id) => location.origin + location.pathname + '#p=' + encodeURIComponent(id);
 
   function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    }
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
     return new Promise((resolve, reject) => {
       const area = document.createElement('textarea');
       area.value = text;
@@ -122,22 +136,172 @@
     });
   }
 
-  /* ── Site details injected from data.js ────────────────────────────────── */
+  /* ── Opening hours ─────────────────────────────────────────────────────── */
+  const DAYS = [
+    { key: 'mon', name: 'Monday',    short: 'Mon' },
+    { key: 'tue', name: 'Tuesday',   short: 'Tue' },
+    { key: 'wed', name: 'Wednesday', short: 'Wed' },
+    { key: 'thu', name: 'Thursday',  short: 'Thu' },
+    { key: 'fri', name: 'Friday',    short: 'Fri' },
+    { key: 'sat', name: 'Saturday',  short: 'Sat' },
+    { key: 'sun', name: 'Sunday',    short: 'Sun' }
+  ];
+
+  const toMinutes = (hhmm) => {
+    const parts = String(hhmm || '').split(':');
+    return (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0);
+  };
+
+  const clockLabel = (hhmm) => {
+    const total = toMinutes(hhmm);
+    const hour = Math.floor(total / 60);
+    const minute = total % 60;
+    const suffix = hour >= 12 ? 'pm' : 'am';
+    const twelve = hour % 12 === 0 ? 12 : hour % 12;
+    return twelve + (minute ? ':' + String(minute).padStart(2, '0') : '') + suffix;
+  };
+
+  /** Today's weekday and the time, in the shop's own timezone. */
+  function shopNow() {
+    const options = { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false };
+    if (SITE.timezone) options.timeZone = SITE.timezone;
+    let parts;
+    try {
+      parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(new Date());
+    } catch (e) {
+      parts = new Intl.DateTimeFormat('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+        .formatToParts(new Date());
+    }
+    const get = (type) => (parts.find((p) => p.type === type) || {}).value;
+    const weekday = String(get('weekday') || '').slice(0, 3).toLowerCase();
+    const index = DAYS.findIndex((d) => d.key === weekday);
+    // Intl gives 24-hour clock here, but midnight can come back as "24".
+    const hour = Number(get('hour')) % 24;
+    return {
+      index: index < 0 ? 0 : index,
+      minutes: hour * 60 + Number(get('minute') || 0)
+    };
+  }
+
+  const rangeFor = (index) => {
+    const range = (SITE.hours || {})[DAYS[(index + 7) % 7].key];
+    return Array.isArray(range) && range.length === 2 ? range : null;
+  };
+
+  /** Are we open right now, and what's the next thing to happen? */
+  function openStatus() {
+    const now = shopNow();
+    const today = rangeFor(now.index);
+
+    if (today) {
+      const start = toMinutes(today[0]);
+      const end = toMinutes(today[1]);
+      if (now.minutes >= start && now.minutes < end) {
+        return { open: true, label: 'Open now', detail: 'Closes ' + clockLabel(today[1]) };
+      }
+      if (now.minutes < start) {
+        return { open: false, label: 'Closed', detail: 'Opens ' + clockLabel(today[0]) + ' today' };
+      }
+    }
+
+    for (let ahead = 1; ahead <= 7; ahead++) {
+      const range = rangeFor(now.index + ahead);
+      if (!range) continue;
+      const day = DAYS[(now.index + ahead) % 7];
+      const when = ahead === 1 ? 'tomorrow' : day.name;
+      return { open: false, label: 'Closed', detail: 'Opens ' + when + ' ' + clockLabel(range[0]) };
+    }
+    return { open: false, label: 'Closed', detail: '' };
+  }
+
+  /** "Mon – Fri 7:00am – 10:00pm" style rows, merging days that match. */
+  function hoursRows() {
+    const rows = [];
+    DAYS.forEach((day, i) => {
+      const range = (SITE.hours || {})[day.key];
+      const text = Array.isArray(range) && range.length === 2
+        ? clockLabel(range[0]) + ' – ' + clockLabel(range[1])
+        : 'Closed';
+      const last = rows[rows.length - 1];
+      if (last && last.text === text) {
+        last.to = day.short;
+        last.indexes.push(i);
+      } else {
+        rows.push({ from: day.short, to: null, text: text, indexes: [i] });
+      }
+    });
+    return rows.map((row) => ({
+      days: row.to ? row.from + ' – ' + row.to : row.from,
+      text: row.text,
+      indexes: row.indexes
+    }));
+  }
+
+  function paintHours() {
+    const status = openStatus();
+    const now = shopNow();
+
+    $$('[data-status-pill]').forEach((pill) => {
+      pill.classList.toggle('is-open', status.open);
+      pill.classList.toggle('is-closed', !status.open);
+      pill.innerHTML = '<span class="status-dot"></span><span class="status-text">' +
+        esc(status.label) + '</span>';
+      pill.title = status.label + (status.detail ? ' · ' + status.detail : '');
+    });
+
+    $$('[data-status-detail]').forEach((el) => { el.textContent = status.detail; });
+    $$('[data-status-label]').forEach((el) => { el.textContent = status.label; });
+    $$('[data-status-full]').forEach((el) => {
+      el.textContent = status.label + (status.detail ? ' · ' + status.detail.toLowerCase() : '');
+    });
+
+    const list = $('#hoursList');
+    if (list) {
+      list.innerHTML = hoursRows().map((row) =>
+        '<li' + (row.indexes.indexOf(now.index) > -1 ? ' class="today"' : '') + '>' +
+          '<span>' + esc(row.days) + '</span><span>' + esc(row.text) + '</span>' +
+        '</li>').join('');
+    }
+    const note = $('[data-site="holidayNote"]');
+    if (note) {
+      note.textContent = SITE.holidayNote || '';
+      note.hidden = !SITE.holidayNote;
+    }
+  }
+
+  /* ── Site details ──────────────────────────────────────────────────────── */
   function paintSite() {
-    document.title = SITE.brand + ' — Computers, Phones & Accessories';
+    document.title = SITE.brand + ' — Computers, Phones, Accessories & Repairs';
     $$('[data-site="brand"]').forEach((el) => { el.textContent = SITE.brand; });
     $$('[data-site="tagline"]').forEach((el) => { el.textContent = SITE.tagline; });
     $$('[data-site="email"]').forEach((el) => { el.textContent = SITE.email; });
     $$('[data-site="location"]').forEach((el) => { el.textContent = SITE.location; });
-    $$('[data-site="hours"]').forEach((el) => { el.textContent = SITE.hours; });
-    $$('[data-site="phoneDisplay"]').forEach((el) => { el.textContent = prettyPhone(SITE.phone); });
 
     const hello = 'Hi ' + SITE.brand + ', I saw your website and I have a question about ';
 
+    // Phone cards — one per number in data.js.
+    const phoneList = $('#phoneList');
+    if (phoneList) {
+      phoneList.innerHTML = (SITE.phones || []).map((phone, i) =>
+        '<a class="contact-card" href="' + esc(telLink(phone.number)) + '">' +
+          '<span class="contact-icon">' +
+            '<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>' +
+          '</span>' +
+          '<span class="contact-body">' +
+            '<strong>' + esc(phone.label || (i === 0 ? 'Call us' : 'Alternative line')) + '</strong>' +
+            '<span>' + esc(prettyPhone(phone.number)) + '</span>' +
+            '<em data-status-full></em>' +
+          '</span>' +
+          '<svg class="contact-arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg>' +
+        '</a>').join('');
+    }
+
     const wa = $('#cardWhatsapp');
-    if (wa) wa.href = waLink(hello + 'one of your products.');
-    const call = $('#cardCall');
-    if (call) call.href = telLink();
+    if (wa) {
+      wa.href = waLink(hello + 'one of your products.');
+      const number = $('[data-site="whatsappNumber"]');
+      if (number) number.textContent = prettyPhone(waNumber());
+    }
     const mail = $('#cardEmail');
     if (mail) mail.href = mailLink('Product inquiry', hello);
 
@@ -148,11 +312,15 @@
     const fMail = $('[data-site="linkEmail"]');
     if (fMail) fMail.href = mailLink('Product inquiry', hello);
 
+    const repairCta = $('#repairCta');
+    if (repairCta) repairCta.href = waLink('Hi ' + SITE.brand + ', I need a repair. My device is ');
+
     const year = $('#year');
     if (year) year.textContent = new Date().getFullYear();
     const stat = $('#statCount');
-    if (stat) stat.textContent = PRODUCTS.length;
+    if (stat) stat.textContent = catalogue.length;
 
+    paintHours();
     paintMap();
   }
 
@@ -179,11 +347,31 @@
     }
   }
 
+  /* ── Repairs ───────────────────────────────────────────────────────────── */
+  function paintServices() {
+    const wrap = $('#services');
+    if (!wrap || typeof SERVICES === 'undefined') return;
+
+    wrap.innerHTML = SERVICES.map((service) => {
+      const ask = 'Hi ' + SITE.brand + ', I need help with ' + service.name.toLowerCase() + '. My device is ';
+      return '<article class="service reveal">' +
+        '<span class="service-icon">' + (SERVICE_ICONS[service.icon] || SERVICE_ICONS.fallback) + '</span>' +
+        '<h3>' + esc(service.name) + '</h3>' +
+        '<p>' + esc(service.desc) + '</p>' +
+        '<ul>' + (service.items || []).map((item) =>
+          '<li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>' +
+          esc(item) + '</li>').join('') + '</ul>' +
+        (service.turnaround ? '<p class="service-turnaround">' + esc(service.turnaround) + '</p>' : '') +
+        '<a class="btn btn-ghost btn-small" target="_blank" rel="noopener" href="' + esc(waLink(ask)) + '">' +
+          'Ask about this repair</a>' +
+      '</article>';
+    }).join('');
+  }
+
   /* ── Filter chips ──────────────────────────────────────────────────────── */
   function paintChips() {
-    const chips = $('#chips');
-    chips.innerHTML = CATEGORIES.map((c) => {
-      const n = c.key === 'all' ? PRODUCTS.length : PRODUCTS.filter((p) => p.category === c.key).length;
+    $('#chips').innerHTML = CATEGORIES.map((c) => {
+      const n = c.key === 'all' ? catalogue.length : catalogue.filter((p) => p.category === c.key).length;
       return '<button type="button" class="chip" data-cat="' + esc(c.key) + '" aria-pressed="' +
         (state.category === c.key) + '">' + esc(c.label) +
         '<span class="chip-n">' + n + '</span></button>';
@@ -197,13 +385,14 @@
       '<option value="General question">General question</option>' +
       CATEGORIES.filter((c) => c.key !== 'all')
         .map((c) => '<option value="' + esc(c.label) + '">' + esc(c.label) + '</option>').join('') +
+      '<option value="Repair">A repair</option>' +
       '<option value="Something not listed">Something not listed</option>';
   }
 
   /* ── Catalogue ─────────────────────────────────────────────────────────── */
   function visibleProducts() {
     const q = state.query.trim().toLowerCase();
-    let list = PRODUCTS.filter((p) => {
+    let list = catalogue.filter((p) => {
       const inCat = state.category === 'all' || p.category === state.category;
       if (!inCat) return false;
       if (!q) return true;
@@ -276,13 +465,15 @@
     grid.hidden = list.length === 0;
 
     const total = state.category === 'all'
-      ? PRODUCTS.length
-      : PRODUCTS.filter((p) => p.category === state.category).length;
+      ? catalogue.length
+      : catalogue.filter((p) => p.category === state.category).length;
     $('#resultCount').textContent = list.length
       ? 'Showing ' + list.length + ' of ' + total + ' product' + (total === 1 ? '' : 's')
       : '';
 
     $('#clearSearch').hidden = !state.query;
+    const stat = $('#statCount');
+    if (stat) stat.textContent = catalogue.length;
   }
 
   /* ── Product modal ─────────────────────────────────────────────────────── */
@@ -290,7 +481,7 @@
   let lastFocused = null;
 
   function openModal(id) {
-    const p = PRODUCTS.find((x) => x.id === id);
+    const p = byId(id);
     if (!p) return;
     const stock = STOCK[stockOf(p)];
     const added = state.inquiry.includes(p.id);
@@ -382,9 +573,7 @@
     }
   }
 
-  function compareProducts() {
-    return state.compare.map((id) => PRODUCTS.find((p) => p.id === id)).filter(Boolean);
-  }
+  const compareProducts = () => state.compare.map(byId).filter(Boolean);
 
   function paintCompareBar() {
     const bar = $('#compareBar');
@@ -433,10 +622,9 @@
         '</span></th>').join('') + '</tr></thead>';
 
     const priceCells = items.map((p, i) =>
-      '<span class="price' + (prices[i] === cheapest && isFinite(cheapest) ? ' best' : '') + '">' +
-        esc(money(p.price)) + '</span>' +
+      '<span class="price">' + esc(money(p.price)) + '</span>' +
       (prices[i] === cheapest && isFinite(cheapest) && differs(prices)
-        ? ' <span class="tag soft" style="position:static;display:inline-block;margin-left:6px">Lowest</span>' : ''));
+        ? ' <span class="pill-lowest">Lowest</span>' : ''));
 
     const stockCells = items.map((p) => {
       const s = STOCK[stockOf(p)];
@@ -486,7 +674,7 @@
 
   function toggleInquiry(id) {
     const i = state.inquiry.indexOf(id);
-    const product = PRODUCTS.find((p) => p.id === id);
+    const product = byId(id);
     if (i > -1) {
       state.inquiry.splice(i, 1);
       toast(product ? product.name + ' removed' : 'Removed');
@@ -494,7 +682,7 @@
       state.inquiry.push(id);
       toast(product ? product.name + ' added to your inquiry' : 'Added');
     }
-    save();
+    saveInquiry();
     paintGrid();
     paintCount();
     paintAttached();
@@ -512,13 +700,9 @@
     badge.hidden = state.inquiry.length === 0;
   }
 
-  function inquiryProducts() {
-    return state.inquiry.map((id) => PRODUCTS.find((p) => p.id === id)).filter(Boolean);
-  }
-
-  function inquiryTotal() {
-    return inquiryProducts().reduce((sum, p) => sum + (p.price == null ? 0 : Number(p.price)), 0);
-  }
+  const inquiryProducts = () => state.inquiry.map(byId).filter(Boolean);
+  const inquiryTotal = () => inquiryProducts()
+    .reduce((sum, p) => sum + (p.price == null ? 0 : Number(p.price)), 0);
 
   function inquiryMessage(form) {
     const items = inquiryProducts();
@@ -589,66 +773,266 @@
     if (lastFocused) lastFocused.focus();
   }
 
-  /* ── Stock manager ─────────────────────────────────────────────────────── */
+  /* ── Manage catalogue ──────────────────────────────────────────────────────
+     Add, edit, reprice, restock and delete products. Changes apply to this
+     page immediately and are saved in this browser. "Download data.js" writes
+     a fresh file to upload, which is what makes them live for everyone.
+     ------------------------------------------------------------------------ */
   const manage = $('#manage');
+
+  const slug = (text) => String(text).toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'product';
+
+  function uniqueId(base, ignoreId) {
+    let id = slug(base);
+    let n = 2;
+    while (catalogue.some((p) => p.id === id && p.id !== ignoreId)) id = slug(base) + '-' + n++;
+    return id;
+  }
+
+  const specsToText = (specs) => Object.entries(specs || {})
+    .map(([k, v]) => k + ': ' + v).join('\n');
+
+  function textToSpecs(text) {
+    const specs = {};
+    String(text || '').split('\n').forEach((line) => {
+      const at = line.indexOf(':');
+      if (at < 1) return;
+      const key = line.slice(0, at).trim();
+      const value = line.slice(at + 1).trim();
+      if (key && value) specs[key] = value;
+    });
+    return specs;
+  }
 
   function paintManage() {
     const body = $('#manageBody');
-    const groups = CATEGORIES.filter((c) => c.key !== 'all');
 
-    body.innerHTML = groups.map((cat) => {
-      const items = PRODUCTS.filter((p) => p.category === cat.key);
+    if (state.editing) {
+      body.innerHTML = editorHTML(state.editing === 'new' ? null : byId(state.editing));
+      const first = $('#pName', body);
+      if (first) first.focus();
+      $('#manageFoot').hidden = true;
+      return;
+    }
+
+    $('#manageFoot').hidden = false;
+
+    const banner = isEdited()
+      ? '<div class="manage-banner edited">' +
+          '<strong>You have unpublished edits.</strong> They show on this device now. ' +
+          'Use <em>Download data.js</em> below, upload that file, and everyone sees them.' +
+        '</div>'
+      : '<div class="manage-banner">' +
+          'Showing the catalogue exactly as it is in <code>data.js</code>. ' +
+          'Any change you make here is saved on this device straight away.' +
+        '</div>';
+
+    const groups = CATEGORIES.filter((c) => c.key !== 'all').map((cat) => {
+      const items = catalogue.filter((p) => p.category === cat.key);
       if (!items.length) return '';
-      return '<section class="manage-group"><h3>' + esc(cat.label) + '</h3>' +
-        items.map((p) => {
-          const current = stockOf(p);
-          const edited = Object.prototype.hasOwnProperty.call(state.overrides, p.id);
-          return '<div class="manage-row">' +
+      return '<section class="manage-group"><h3>' + esc(cat.label) +
+        '<span class="group-n">' + items.length + '</span></h3>' +
+        items.map((p) =>
+          '<div class="manage-row">' +
             '<span class="line-media">' + media(p, 'ph') + '</span>' +
             '<span class="line-info">' +
-              '<strong>' + esc(p.name) +
-                (edited ? '<span class="manage-edited">edited</span>' : '') + '</strong>' +
-              '<span>' + esc(money(p.price)) + '</span>' +
+              '<strong>' + esc(p.name) + '</strong>' +
+              '<span class="manage-controls">' +
+                '<label class="price-field">' + esc(SITE.currency) +
+                  '<input type="number" min="0" step="1" value="' + (p.price == null ? '' : esc(p.price)) + '" ' +
+                    'data-price="' + esc(p.id) + '" placeholder="Ask" ' +
+                    'aria-label="Price for ' + esc(p.name) + '" />' +
+                '</label>' +
+                '<select data-stock="' + esc(p.id) + '" data-value="' + esc(stockOf(p)) + '" ' +
+                  'aria-label="Availability for ' + esc(p.name) + '">' +
+                  ['in', 'low', 'out'].map((key) =>
+                    '<option value="' + key + '"' + (key === stockOf(p) ? ' selected' : '') + '>' +
+                      STOCK[key].label + '</option>').join('') +
+                '</select>' +
+              '</span>' +
             '</span>' +
-            '<button type="button" class="copy-link" data-copy="' + esc(p.id) + '" ' +
-              'title="Copy this product\'s link" aria-label="Copy link to ' + esc(p.name) + '">' +
-              '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>' +
-              '<path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>' +
-            '</button>' +
-            '<select data-stock="' + esc(p.id) + '" data-value="' + esc(current) + '" ' +
-              'aria-label="Availability for ' + esc(p.name) + '">' +
-              ['in', 'low', 'out'].map((key) =>
-                '<option value="' + key + '"' + (key === current ? ' selected' : '') + '>' +
-                  STOCK[key].label + '</option>').join('') +
-            '</select>' +
-          '</div>';
-        }).join('') + '</section>';
+            '<span class="row-tools">' +
+              '<button type="button" class="tool-btn" data-copy="' + esc(p.id) + '" title="Copy this product\'s link" ' +
+                'aria-label="Copy link to ' + esc(p.name) + '">' +
+                '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>' +
+                '<path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>' +
+              '</button>' +
+              '<button type="button" class="tool-btn" data-edit="' + esc(p.id) + '" title="Edit everything" ' +
+                'aria-label="Edit ' + esc(p.name) + '">' +
+                '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' +
+              '</button>' +
+              '<button type="button" class="tool-btn danger" data-delete="' + esc(p.id) + '" title="Remove from the catalogue" ' +
+                'aria-label="Delete ' + esc(p.name) + '">' +
+                '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/></svg>' +
+              '</button>' +
+            '</span>' +
+          '</div>').join('') + '</section>';
     }).join('');
+
+    body.innerHTML = banner +
+      '<button type="button" class="btn btn-primary btn-block" id="addProduct">' +
+        '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Add a product</button>' +
+      groups;
+  }
+
+  function editorHTML(product) {
+    const p = product || { name: '', category: 'computers', price: '', desc: '', specs: {}, tag: '', stock: 'in', image: '' };
+    const tags = ['', 'New', 'Best seller', 'Deal', 'Refurbished', 'Built to order'];
+    return '<form class="editor" id="editor" data-id="' + esc(product ? product.id : '') + '">' +
+      '<h3>' + (product ? 'Edit product' : 'New product') + '</h3>' +
+      '<div class="field"><label for="pName">Name</label>' +
+        '<input id="pName" required value="' + esc(p.name) + '" placeholder="Logitech M170 Wireless Mouse" /></div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label for="pCategory">Category</label><select id="pCategory">' +
+          CATEGORIES.filter((c) => c.key !== 'all').map((c) =>
+            '<option value="' + esc(c.key) + '"' + (c.key === p.category ? ' selected' : '') + '>' +
+              esc(c.label) + '</option>').join('') +
+        '</select></div>' +
+        '<div class="field"><label for="pPrice">Price (' + esc(SITE.currency) + ')</label>' +
+          '<input id="pPrice" type="number" min="0" step="1" value="' + (p.price == null ? '' : esc(p.price)) + '" ' +
+            'placeholder="Leave empty for &quot;Price on request&quot;" /></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label for="pStock">Availability</label><select id="pStock">' +
+          ['in', 'low', 'out'].map((key) =>
+            '<option value="' + key + '"' + (key === p.stock ? ' selected' : '') + '>' +
+              STOCK[key].label + '</option>').join('') +
+        '</select></div>' +
+        '<div class="field"><label for="pTag">Badge</label><select id="pTag">' +
+          tags.map((t) => '<option value="' + esc(t) + '"' + (t === (p.tag || '') ? ' selected' : '') + '>' +
+            (t || 'No badge') + '</option>').join('') +
+        '</select></div>' +
+      '</div>' +
+      '<div class="field"><label for="pDesc">Short description</label>' +
+        '<textarea id="pDesc" rows="2" placeholder="One or two lines shown on the card.">' + esc(p.desc) + '</textarea></div>' +
+      '<div class="field"><label for="pSpecs">Specs — one per line, as <code>Label: value</code></label>' +
+        '<textarea id="pSpecs" rows="6" placeholder="Connection: 2.4GHz USB receiver&#10;Battery: Up to 12 months&#10;Warranty: 12 months">' +
+          esc(specsToText(p.specs)) + '</textarea></div>' +
+      '<div class="field"><label for="pImage">Photo (optional)</label>' +
+        '<input id="pImage" value="' + esc(p.image) + '" placeholder="assets/img/mouse.jpg" /></div>' +
+      '<div class="editor-actions">' +
+        '<button type="submit" class="btn btn-primary">' + (product ? 'Save changes' : 'Add to catalogue') + '</button>' +
+        '<button type="button" class="btn btn-ghost" id="cancelEdit">Cancel</button>' +
+      '</div>' +
+    '</form>';
+  }
+
+  function submitEditor(event) {
+    event.preventDefault();
+    const form = event.target;
+    const existingId = form.dataset.id;
+    const name = $('#pName').value.trim();
+    if (!name) { $('#pName').focus(); return; }
+
+    const priceRaw = $('#pPrice').value.trim();
+    const product = {
+      id: existingId || uniqueId(name),
+      name: name,
+      category: $('#pCategory').value,
+      price: priceRaw === '' ? null : Number(priceRaw),
+      desc: $('#pDesc').value.trim(),
+      specs: textToSpecs($('#pSpecs').value),
+      tag: $('#pTag').value,
+      stock: $('#pStock').value,
+      image: $('#pImage').value.trim()
+    };
+
+    if (existingId) {
+      const index = catalogue.findIndex((p) => p.id === existingId);
+      if (index > -1) catalogue[index] = product;
+      toast(product.name + ' updated');
+    } else {
+      catalogue.push(product);
+      toast(product.name + ' added to the catalogue');
+    }
+
+    saveCatalogue();
+    state.editing = null;
+    refreshCatalogueViews();
+    paintManage();
+  }
+
+  function deleteProduct(id) {
+    const product = byId(id);
+    if (!product) return;
+    if (!window.confirm('Remove "' + product.name + '" from the catalogue?')) return;
+
+    catalogue = catalogue.filter((p) => p.id !== id);
+    state.inquiry = state.inquiry.filter((x) => x !== id);
+    state.compare = state.compare.filter((x) => x !== id);
+    saveCatalogue();
+    saveInquiry();
+    refreshCatalogueViews();
+    paintManage();
+    toast(product.name + ' removed');
+  }
+
+  function setPrice(id, value) {
+    const product = byId(id);
+    if (!product) return;
+    const trimmed = String(value).trim();
+    product.price = trimmed === '' ? null : Number(trimmed);
+    saveCatalogue();
+    refreshCatalogueViews();
   }
 
   function setStock(id, value) {
-    const product = PRODUCTS.find((p) => p.id === id);
+    const product = byId(id);
     if (!product) return;
-    const fileValue = (typeof STOCK_OVERRIDES === 'object' && STOCK_OVERRIDES && STOCK_OVERRIDES[id]) || product.stock || 'in';
-    if (value === fileValue) delete state.overrides[id];
-    else state.overrides[id] = value;
-    save();
-    paintGrid();
-    paintManage();
-    if (!compareModal.hidden && state.compare.length > 1) paintCompareTable();
+    product.stock = value;
+    saveCatalogue();
+    refreshCatalogueViews();
+    const select = $('[data-stock="' + id + '"]');
+    if (select) select.dataset.value = value;
     toast(product.name + ' → ' + STOCK[value].label);
   }
 
-  function overridesSnippet() {
-    const merged = Object.assign({},
-      (typeof STOCK_OVERRIDES === 'object' && STOCK_OVERRIDES) || {}, state.overrides);
-    const lines = Object.keys(merged)
-      .filter((id) => PRODUCTS.some((p) => p.id === id))
-      .map((id) => "  '" + id + "': '" + merged[id] + "',");
-    return 'const STOCK_OVERRIDES = {\n' + lines.join('\n') + (lines.length ? '\n' : '') + '};';
+  /** Repaint everything that reads from the catalogue. */
+  function refreshCatalogueViews() {
+    paintChips();
+    paintGrid();
+    paintCount();
+    paintAttached();
+    paintCompareBar();
+    if (!drawer.hidden) paintDrawer();
+    if (!compareModal.hidden && state.compare.length > 1) paintCompareTable();
+  }
+
+  /** A complete, ready-to-upload data.js built from what's on screen now. */
+  function dataFileText() {
+    const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    return '/* ==========================================================================\n' +
+      '   data.js — exported from the Manage catalogue panel on ' + stamp + '.\n' +
+      '   Replace assets/js/data.js with this file and upload it to publish\n' +
+      '   these prices and stock levels to everyone.\n' +
+      '   ========================================================================== */\n\n' +
+      'const SITE = ' + JSON.stringify(SITE, null, 2) + ';\n\n' +
+      'const SERVICES = ' + JSON.stringify(typeof SERVICES === 'undefined' ? [] : SERVICES, null, 2) + ';\n\n' +
+      'const PRODUCTS = ' + JSON.stringify(catalogue, null, 2) + ';\n\n' +
+      'const CATEGORIES = ' + JSON.stringify(CATEGORIES, null, 2) + ';\n';
+  }
+
+  function downloadDataFile() {
+    const blob = new Blob([dataFileText()], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'data.js';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('data.js downloaded — put it in assets/js/ and upload');
   }
 
   function openManage() {
+    if (SITE.managePin) {
+      const entered = window.prompt('Enter your management code');
+      if (entered === null) return;
+      if (String(entered).trim() !== String(SITE.managePin)) { toast('Wrong code'); return; }
+    }
+    state.editing = null;
     paintManage();
     lastFocused = document.activeElement;
     manage.hidden = false;
@@ -659,6 +1043,7 @@
 
   function closeManage() {
     manage.hidden = true;
+    state.editing = null;
     document.body.classList.remove('no-scroll');
     if (history.replaceState && location.hash === '#manage') {
       history.replaceState(null, '', location.pathname + location.search);
@@ -689,7 +1074,7 @@
 
     const contact = form.fContact.value.trim();
     const looksEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact);
-    const looksPhone = contact.replace(/\D/g, '').length >= 9;
+    const looksPhone = digits(contact).length >= 9;
     ok = fieldError(form.fContact,
       !contact ? 'We need an email or phone number to reply to.'
                : (looksEmail || looksPhone ? '' : 'That doesn\'t look like an email or phone number.')) && ok;
@@ -750,13 +1135,13 @@
   function toggleTheme() {
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('sentinal-theme', next); } catch (e) {}
+    try { localStorage.setItem('homcom-theme', next); } catch (e) {}
   }
 
-  /* ── Scroll behaviour: header border, nav highlight, reveals ───────────── */
+  /* ── Scroll behaviour ──────────────────────────────────────────────────── */
   function initScroll() {
     const header = $('.site-header');
-    const sections = ['catalogue', 'why', 'contact'].map((id) => $('#' + id)).filter(Boolean);
+    const sections = ['catalogue', 'repairs', 'contact'].map((id) => $('#' + id)).filter(Boolean);
 
     const onScroll = () => {
       header.classList.toggle('scrolled', window.scrollY > 8);
@@ -788,12 +1173,12 @@
       .catch(() => toast('Copy failed — long-press the address to copy it'));
   }
 
-  /** #p=<id> opens that product; #manage opens the stock panel. */
+  /** #p=<id> opens that product; #manage opens the catalogue panel. */
   function openFromHash() {
     const hash = location.hash;
     if (hash.indexOf('#p=') === 0) {
       const id = decodeURIComponent(hash.slice(3));
-      if (PRODUCTS.some((p) => p.id === id)) {
+      if (byId(id)) {
         openModal(id);
       } else {
         toast('That product is no longer listed');
@@ -807,6 +1192,7 @@
   /* ── Wiring ────────────────────────────────────────────────────────────── */
   function init() {
     paintSite();
+    paintServices();
     paintChips();
     paintInterestOptions();
     paintGrid();
@@ -815,6 +1201,9 @@
     paintCompareBar();
     initScroll();
     openFromHash();
+
+    // Keep the open/closed badge honest without a page refresh.
+    setInterval(paintHours, 60000);
 
     // Catalogue controls
     $('#chips').addEventListener('click', (e) => {
@@ -861,7 +1250,7 @@
       if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openModal(card.dataset.id); }
     });
 
-    // Modal buttons
+    // Product modal
     modal.addEventListener('click', (e) => {
       const add = e.target.closest('[data-add]');
       if (add) { toggleInquiry(add.dataset.add); return; }
@@ -888,36 +1277,14 @@
       if (e.target.closest('[data-close]')) closeCompare();
     });
 
-    // Stock manager
-    $('#openManage').addEventListener('click', openManage);
-    manage.addEventListener('click', (e) => {
-      const copy = e.target.closest('[data-copy]');
-      if (copy) { copyProductLink(copy.dataset.copy); return; }
-      if (e.target.closest('[data-close]')) closeManage();
-    });
-    manage.addEventListener('change', (e) => {
-      const select = e.target.closest('[data-stock]');
-      if (select) setStock(select.dataset.stock, select.value);
-    });
-    $('#copyOverrides').addEventListener('click', () => {
-      copyText(overridesSnippet())
-        .then(() => toast('Copied — paste it over STOCK_OVERRIDES in data.js'))
-        .catch(() => toast('Copy failed — select the text manually'));
-    });
-    $('#resetOverrides').addEventListener('click', () => {
-      state.overrides = {};
-      save(); paintGrid(); paintManage();
-      toast('Back to the values in data.js');
-    });
-
-    window.addEventListener('hashchange', openFromHash);
-
+    // Inquiry drawer
     drawer.addEventListener('click', (e) => {
       const add = e.target.closest('[data-add]');
       if (add) { toggleInquiry(add.dataset.add); return; }
       if (e.target.closest('[data-close]')) { closeDrawer(); return; }
       if (e.target.id === 'clearList') {
-        state.inquiry = []; save(); paintGrid(); paintCount(); paintDrawer(); paintAttached();
+        state.inquiry = []; saveInquiry();
+        paintGrid(); paintCount(); paintDrawer(); paintAttached();
         toast('Inquiry list cleared');
       }
       if (e.target.id === 'goForm') {
@@ -926,8 +1293,49 @@
         setTimeout(() => $('#fName').focus(), 500);
       }
     });
-
     $('#openInquiry').addEventListener('click', openDrawer);
+
+    // Manage catalogue
+    $$('[data-open-manage]').forEach((btn) => btn.addEventListener('click', openManage));
+    manage.addEventListener('click', (e) => {
+      const copy = e.target.closest('[data-copy]');
+      if (copy) { copyProductLink(copy.dataset.copy); return; }
+      const edit = e.target.closest('[data-edit]');
+      if (edit) { state.editing = edit.dataset.edit; paintManage(); return; }
+      const del = e.target.closest('[data-delete]');
+      if (del) { deleteProduct(del.dataset.delete); return; }
+      if (e.target.closest('#addProduct')) { state.editing = 'new'; paintManage(); return; }
+      if (e.target.closest('#cancelEdit')) { state.editing = null; paintManage(); return; }
+      if (e.target.closest('[data-close]')) closeManage();
+    });
+    manage.addEventListener('change', (e) => {
+      const stockSelect = e.target.closest('[data-stock]');
+      if (stockSelect) setStock(stockSelect.dataset.stock, stockSelect.value);
+      const priceInput = e.target.closest('[data-price]');
+      if (priceInput) setPrice(priceInput.dataset.price, priceInput.value);
+    });
+    manage.addEventListener('submit', (e) => {
+      if (e.target.id === 'editor') submitEditor(e);
+    });
+    $('#downloadData').addEventListener('click', downloadDataFile);
+    $('#copyData').addEventListener('click', () => {
+      copyText(dataFileText())
+        .then(() => toast('Copied — paste it over assets/js/data.js'))
+        .catch(() => toast('Copy failed — use Download instead'));
+    });
+    $('#resetCatalogue').addEventListener('click', () => {
+      if (!window.confirm('Throw away every change you have made on this device?')) return;
+      try { localStorage.removeItem(CAT_KEY); } catch (e) {}
+      catalogue = clone(PRODUCTS);
+      state.inquiry = state.inquiry.filter(byId);
+      state.compare = state.compare.filter(byId);
+      saveInquiry();
+      refreshCatalogueViews();
+      paintManage();
+      toast('Back to the catalogue in data.js');
+    });
+
+    window.addEventListener('hashchange', openFromHash);
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
@@ -956,10 +1364,9 @@
       paintChips(); paintGrid();
     }));
 
-    // Theme
-    $('#themeToggle').addEventListener('click', toggleTheme);
+    $$('#themeToggle, #themeToggleMobile').forEach((btn) => btn.addEventListener('click', toggleTheme));
 
-    // Form
+    // Contact form
     $('#contactForm').addEventListener('submit', submitForm);
     $$('#contactForm input, #contactForm textarea').forEach((input) => {
       input.addEventListener('input', () => {

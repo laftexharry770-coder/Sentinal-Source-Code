@@ -1,56 +1,144 @@
 /* ==========================================================================
-   data.js — THIS IS THE ONLY FILE YOU NEED TO EDIT DAY TO DAY.
-   1. SITE     → your business name and contact details
-   2. PRODUCTS → everything shown in the catalogue
+   data.js — the file that holds everything about your business.
+
+   You can edit this by hand, OR use the "Manage catalogue" panel on the site
+   (link at the bottom of the page) to add products, change prices and flip
+   stock without touching code — then export a fresh copy of this file.
+
+   1. SITE      → name, phones, email, address, opening hours
+   2. SERVICES  → the repairs you offer
+   3. PRODUCTS  → everything in the catalogue
+   4. CATEGORIES→ the filter buttons
    ========================================================================== */
 
-/* ── 1. Your details ─────────────────────────────────────────────────────────
-   phone  : full international format, digits only, no "+" and no spaces.
-            Kenya example: 254712345678  (i.e. drop the leading 0 of 0712345678)
-            This one value powers the WhatsApp link, the tap-to-call link
-            and the number shown on the page.
-   ------------------------------------------------------------------------- */
+/* ── 1. Your business ────────────────────────────────────────────────────── */
 const SITE = {
-  brand:    'Sentinal',
-  tagline:  'Computers, phones and accessories — sold straight.',
+  brand:   'HOMCOM Technologies',
+  tagline: 'Computers, phones, accessories and repairs — done properly.',
 
-  phone:    '254700000000',                 // ← CHANGE ME (digits only, with country code)
-  email:    'laftexharry770@gmail.com',     // ← CHANGE ME if you use a business address
-  location: 'Nairobi, Kenya',               // ← CHANGE ME (short label shown on the page)
-  hours:    'Mon–Sat, 8:30am – 6:00pm',     // ← CHANGE ME
+  /* Phone numbers. Full international format, digits only, no "+" and no
+     spaces: 0724 359 797 becomes 254724359797.
+     The first one is the main line; `whatsapp` picks which one receives
+     WhatsApp messages from the site. */
+  phones: [
+    { number: '254724359797', label: 'Main line' },
+    { number: '254738715271', label: 'Second line' }
+  ],
+  whatsapp: '254724359797',
 
-  /* Google Maps. `mapQuery` is what gets searched — the more exact, the better
-     the pin. A full street address works; so does "Business Name, Street, City"
-     or even raw coordinates like "-1.286389,36.817223".
-     `address` is the human-readable version printed under the map. */
-  mapQuery: 'Kimathi Street, Nairobi, Kenya',   // ← CHANGE ME
-  address:  'Kimathi Street, CBD, Nairobi',     // ← CHANGE ME
-  mapNote:  'Free parking behind the building. Ring when you arrive.',
+  email:    'kariukilucy244@gmail.com',
+  location: 'Nairobi, Kenya',
+
+  /* Google Maps. `mapQuery` is what gets searched — coordinates are the most
+     accurate ("-1.286389,36.817223"), a full address works fine too.
+     `address` is the human-readable line printed under the map. */
+  mapQuery: 'Nairobi CBD, Nairobi, Kenya',   // ← CHANGE ME to your exact spot
+  address:  'Nairobi CBD, Nairobi',          // ← CHANGE ME
+  mapNote:  'Walk-ins welcome. Ring the main line when you arrive.',
+
+  /* Opening hours. 24-hour clock, "HH:MM". Use null for a day you're closed.
+     The site works out whether you're open right now from these, in your own
+     timezone — so it stays right for customers browsing from anywhere. */
+  timezone: 'Africa/Nairobi',
+  hours: {
+    mon: ['07:00', '22:00'],
+    tue: ['07:00', '22:00'],
+    wed: ['07:00', '22:00'],
+    thu: ['07:00', '22:00'],
+    fri: ['07:00', '22:00'],
+    sat: ['08:00', '09:00'],
+    sun: ['10:00', '17:00']
+  },
+  holidayNote: 'Open 7 days a week, public holidays included.',
 
   currency: 'KSh',        // shown before every price, e.g. KSh 84,500
   locale:   'en-KE',      // number formatting
 
-  /* Optional: a Formspree (or similar) endpoint so the form also emails you
-     silently in the background. Leave '' to rely on WhatsApp / email only.
+  /* Optional: a Formspree (or similar) endpoint so the inquiry form also
+     emails you in the background. Leave '' to rely on WhatsApp / email only.
      Get one free at https://formspree.io — paste the URL here. */
-  formEndpoint: ''
+  formEndpoint: '',
+
+  /* Optional 4-digit code asked for before the Manage catalogue panel opens.
+     This keeps a curious customer out of it — it is NOT real security, since
+     anyone can read this file. Their edits only ever affect their own browser
+     anyway. Leave '' for no code. */
+  managePin: ''
 };
 
-/* ── 2. Products ─────────────────────────────────────────────────────────────
-   Copy any block below to add a product. Fields:
+/* ── 2. Repairs ──────────────────────────────────────────────────────────── */
+const SERVICES = [
+  {
+    id: 'computer-repair',
+    name: 'Computer repair',
+    icon: 'computer',
+    desc: 'Laptops and desktops, any make. Free diagnosis before you commit to anything.',
+    items: [
+      'Cracked screen replacement',
+      'Keyboard, trackpad and hinges',
+      'Battery and charging faults',
+      'Windows / macOS reinstall',
+      'Virus removal and clean-ups',
+      'RAM and SSD upgrades'
+    ],
+    turnaround: 'Most jobs same day · free diagnosis'
+  },
+  {
+    id: 'phone-repair',
+    name: 'Phone repair',
+    icon: 'phone',
+    desc: 'Screens, batteries and ports for iPhone, Samsung, Tecno, Infinix and more.',
+    items: [
+      'Screen and glass replacement',
+      'Battery replacement',
+      'Charging port cleaning and rebuild',
+      'Water damage treatment',
+      'Software, updates and unlocking',
+      'Data transfer to a new phone'
+    ],
+    turnaround: 'Screens and batteries while you wait'
+  },
+  {
+    id: 'data-recovery',
+    name: 'Data recovery & backup',
+    icon: 'drive',
+    desc: 'Dead drive, deleted files, phone that will not boot — bring it in before you try anything else.',
+    items: [
+      'Failed hard drive and SSD recovery',
+      'Deleted photo and document recovery',
+      'Phone-to-phone and phone-to-cloud backup',
+      'Setting up automatic backups'
+    ],
+    turnaround: 'Assessed first, quoted before work starts'
+  },
+  {
+    id: 'setup',
+    name: 'Setup & networking',
+    icon: 'network',
+    desc: 'Getting a new machine, an office or a cyber running the way it should.',
+    items: [
+      'New machine setup and data transfer',
+      'Office and cyber installations',
+      'Wi-Fi, routers and extenders',
+      'Printer and CCTV setup',
+      'Software licensing and installs'
+    ],
+    turnaround: 'On-site visits by appointment'
+  }
+];
 
-     id        unique short slug (used for the inquiry list — keep it unique)
+/* ── 3. Products ─────────────────────────────────────────────────────────────
+   Copy any block to add a product. Fields:
+
+     id        unique short slug — it's what a product's shareable link uses
      name      product name shown on the card
      category  one of: computers | computer-accessories | phones | phone-accessories
-     price     number only, no commas, no currency symbol. Use null for "Ask"
+     price     number only, no commas, no currency symbol. null = "Price on request"
      desc      one or two lines shown on the card
      specs     { label: value } — any number of rows, shown in the pop-up
      tag       optional badge: 'New' | 'Best seller' | 'Refurbished' | 'Deal' | ''
-     stock     'in'  → green "In stock"
-               'low' → "Low stock"
-               'out' → "Out of stock" (still inquirable, sold as "order on request")
-     image     optional photo. Drop a file in assets/img/ and write
-               'assets/img/my-photo.jpg'. Leave '' to use the built-in icon art.
+     stock     'in' | 'low' | 'out'
+     image     optional photo — 'assets/img/my-photo.jpg'. '' uses the icon art.
    ------------------------------------------------------------------------- */
 const PRODUCTS = [
   /* ── Computers ─────────────────────────────────────────────────────────── */
@@ -109,6 +197,24 @@ const PRODUCTS = [
     image: ''
   },
   {
+    id: 'hp-250-g9',
+    name: 'HP 250 G9 Student Laptop',
+    category: 'computers',
+    price: 45000,
+    desc: 'Coursework, research and Zoom without the drama. The sensible campus machine.',
+    specs: {
+      Processor: 'Intel Core i3-1215U',
+      Memory: '8GB DDR4',
+      Storage: '512GB SSD',
+      Display: '15.6" FHD',
+      Weight: '1.7kg',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
     id: 'dell-opti-7090',
     name: 'Dell OptiPlex 7090 Desktop',
     category: 'computers',
@@ -147,6 +253,76 @@ const PRODUCTS = [
 
   /* ── Computer accessories ──────────────────────────────────────────────── */
   {
+    id: 'mouse-m170',
+    name: 'Logitech M170 Wireless Mouse',
+    category: 'computer-accessories',
+    price: 1800,
+    desc: 'Plug the tiny receiver in and forget about it. A year of battery, no fuss.',
+    specs: {
+      Connection: '2.4GHz USB receiver',
+      Battery: 'Up to 12 months (AA included)',
+      Buttons: '3 with scroll wheel',
+      Compatible: 'Windows, macOS, Linux, Chrome OS',
+      Warranty: '12 months'
+    },
+    tag: 'Deal',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'mouse-mx-master',
+    name: 'Logitech MX Master 3S Mouse',
+    category: 'computer-accessories',
+    price: 12500,
+    desc: 'Near-silent clicks, a scroll wheel that flies, and pairing for three machines.',
+    specs: {
+      Connection: 'Bluetooth + Logi Bolt',
+      Sensor: '8000 DPI, works on glass',
+      Battery: '70 days per charge',
+      Devices: 'Pairs with 3 machines',
+      Charging: 'USB-C',
+      Warranty: '12 months'
+    },
+    tag: 'Best seller',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'kb-mk270',
+    name: 'Logitech MK270 Keyboard & Mouse Combo',
+    category: 'computer-accessories',
+    price: 3500,
+    desc: 'Full-size wireless keyboard and mouse on one receiver. The office standard.',
+    specs: {
+      Connection: '2.4GHz USB receiver (one for both)',
+      Layout: 'Full size with number pad',
+      Battery: '24 months keyboard, 12 months mouse',
+      Keys: '8 media shortcut keys',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'kb-mech-rgb',
+    name: 'Mechanical Gaming Keyboard (RGB)',
+    category: 'computer-accessories',
+    price: 6500,
+    desc: 'Blue switches, per-key lighting and a metal top plate. Loud, in a good way.',
+    specs: {
+      Switches: 'Blue mechanical, hot-swappable',
+      Layout: 'TKL, 87 keys',
+      Lighting: 'Per-key RGB, 18 presets',
+      Build: 'Aluminium top plate',
+      Cable: 'Braided detachable USB-C',
+      Warranty: '6 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
     id: 'lg-27-monitor',
     name: 'LG 27" IPS Monitor (75Hz)',
     category: 'computer-accessories',
@@ -165,20 +341,55 @@ const PRODUCTS = [
     image: ''
   },
   {
-    id: 'logi-mx-combo',
-    name: 'Logitech MX Keys + MX Master 3S',
+    id: 'ext-4way',
+    name: '4-Way Power Extension with Surge Protection',
     category: 'computer-accessories',
-    price: 21500,
-    desc: 'The quiet, precise desk combo. One receiver, three paired devices, weeks per charge.',
+    price: 2200,
+    desc: 'Protects the machine from the spikes that come with our power. 3-metre cable.',
     specs: {
-      Connection: 'Bluetooth + Logi Bolt',
-      Battery: 'Up to 10 days backlit',
-      Devices: 'Pairs with 3 machines',
-      Compatible: 'Windows, macOS, Linux',
-      'In the box': 'Keyboard, mouse, USB-C cable',
-      Warranty: '12 months'
+      Sockets: '4 universal',
+      Cable: '3 metres, heavy duty',
+      Protection: 'Surge and overload cut-out',
+      Rating: '13A / 3250W',
+      Warranty: '6 months'
     },
-    tag: 'Best seller',
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'ext-6way-usb',
+    name: '6-Socket Extension Cable + USB Ports',
+    category: 'computer-accessories',
+    price: 3200,
+    desc: 'Six sockets plus four USB ports, so the desk stops fighting over chargers.',
+    specs: {
+      Sockets: '6 universal + 4 USB-A',
+      Cable: '3 metres',
+      'USB output': '2.4A shared',
+      Protection: 'Surge, overload, child-safety shutters',
+      Mounting: 'Wall-mountable',
+      Warranty: '6 months'
+    },
+    tag: 'Deal',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'usbc-hub-8n1',
+    name: '8-in-1 USB-C Docking Hub',
+    category: 'computer-accessories',
+    price: 5200,
+    desc: 'HDMI 4K, gigabit ethernet, card readers and 100W pass-through charging in one plug.',
+    specs: {
+      Ports: 'HDMI 4K30, RJ45, 3× USB-A, USB-C PD, SD, microSD',
+      'Pass-through': '100W',
+      Build: 'Aluminium shell',
+      Cable: '18cm braided',
+      Compatible: 'MacBook, Windows, iPad Pro',
+      Warranty: '6 months'
+    },
+    tag: '',
     stock: 'in',
     image: ''
   },
@@ -201,20 +412,19 @@ const PRODUCTS = [
     image: ''
   },
   {
-    id: 'usbc-hub-8n1',
-    name: '8-in-1 USB-C Docking Hub',
+    id: 'laptop-charger-65w',
+    name: 'Universal 65W Laptop Charger',
     category: 'computer-accessories',
-    price: 5200,
-    desc: 'HDMI 4K, gigabit ethernet, card readers and 100W pass-through charging in one plug.',
+    price: 3500,
+    desc: 'One charger, eight tips — HP, Dell, Lenovo, Asus and USB-C machines.',
     specs: {
-      Ports: 'HDMI 4K30, RJ45, 3× USB-A, USB-C PD, SD, microSD',
-      'Pass-through': '100W',
-      Build: 'Aluminium shell',
-      Cable: '18cm braided',
-      Compatible: 'MacBook, Windows, iPad Pro',
+      Output: '65W, auto-voltage 18.5–20V',
+      Tips: '8 interchangeable + USB-C',
+      Cable: '1.8m',
+      Protection: 'Short-circuit and over-heat',
       Warranty: '6 months'
     },
-    tag: 'Deal',
+    tag: '',
     stock: 'in',
     image: ''
   },
@@ -309,8 +519,127 @@ const PRODUCTS = [
     stock: 'in',
     image: ''
   },
+  {
+    id: 'infinix-hot-40i',
+    name: 'Infinix Hot 40i',
+    category: 'phones',
+    price: 15500,
+    desc: 'Two-day battery and a screen that stays readable in the sun, for very little money.',
+    specs: {
+      Display: '6.6" 90Hz',
+      Chip: 'Unisoc T606',
+      Memory: '8GB RAM / 256GB',
+      Camera: '50MP main',
+      Battery: '5000mAh, 18W',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
 
   /* ── Phone accessories ─────────────────────────────────────────────────── */
+  {
+    id: 'case-glass-bundle',
+    name: 'Clear Case + Tempered Glass Bundle',
+    category: 'phone-accessories',
+    price: 1500,
+    desc: 'Shock-absorbing corners and 9H glass, fitted for you in the shop. Most models stocked.',
+    specs: {
+      Case: 'Anti-yellow TPU, raised lip',
+      Glass: '9H tempered, oleophobic',
+      Fitting: 'Free, done while you wait',
+      Models: 'iPhone, Samsung, Tecno, Infinix and more',
+      Warranty: 'Replacement if it cracks on fitting'
+    },
+    tag: 'Deal',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'case-flip-wallet',
+    name: 'Leather Flip Wallet Case',
+    category: 'phone-accessories',
+    price: 1200,
+    desc: 'Covers the screen when it drops face-down, and holds two cards and a note.',
+    specs: {
+      Material: 'PU leather with soft inner lining',
+      Slots: '2 card slots + cash pocket',
+      Feature: 'Folds into a video stand',
+      Closure: 'Magnetic',
+      Models: 'Most iPhone, Samsung, Tecno and Infinix'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'gan-65w',
+    name: '65W GaN Fast Charger',
+    category: 'phone-accessories',
+    price: 3900,
+    desc: 'One small brick that charges a phone, tablet and laptop. Replaces three chargers.',
+    specs: {
+      Output: '65W total — 2× USB-C, 1× USB-A',
+      Tech: 'GaN III, PD 3.0 + PPS',
+      Size: 'Foldable pins, palm-sized',
+      Safety: 'Over-current and thermal protection',
+      Warranty: '6 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'charger-20w',
+    name: '20W USB-C Fast Charger',
+    category: 'phone-accessories',
+    price: 1800,
+    desc: 'Half a charge in half an hour on most phones. The one to keep by the bed.',
+    specs: {
+      Output: '20W USB-C Power Delivery',
+      Compatible: 'iPhone 8 and newer, USB-C Android',
+      Safety: 'Over-voltage and short-circuit protection',
+      Warranty: '6 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'cable-usbc-braided',
+    name: 'Braided USB-C Charging Cable (2m)',
+    category: 'phone-accessories',
+    price: 800,
+    desc: 'Nylon braid and reinforced ends — the bit that usually frays first.',
+    specs: {
+      Length: '2 metres',
+      Rating: '60W / 3A charging',
+      Data: 'USB 2.0, 480Mbps',
+      Build: 'Nylon braid, aluminium shell',
+      Warranty: '3 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'cable-lightning-mfi',
+    name: 'MFi Lightning Cable (1m)',
+    category: 'phone-accessories',
+    price: 1500,
+    desc: 'Apple-certified, so no "accessory not supported" nonsense after an update.',
+    specs: {
+      Length: '1 metre',
+      Certification: 'Apple MFi',
+      Charging: 'Up to 20W with a PD charger',
+      Compatible: 'iPhone 5 through 14, iPad, AirPods',
+      Warranty: '6 months'
+    },
+    tag: '',
+    stock: 'in',
+    image: ''
+  },
   {
     id: 'anker-20k',
     name: 'Anker 20,000mAh Power Bank (22.5W)',
@@ -329,19 +658,19 @@ const PRODUCTS = [
     image: ''
   },
   {
-    id: 'gan-65w',
-    name: '65W GaN Fast Charger',
+    id: 'airpods-pro-2',
+    name: 'Apple AirPods Pro (2nd gen)',
     category: 'phone-accessories',
-    price: 3900,
-    desc: 'One small brick that charges a phone, tablet and laptop. Replaces three chargers.',
+    price: 32000,
+    desc: 'The noise cancelling everyone compares the rest to. Sealed, with USB-C case.',
     specs: {
-      Output: '65W total — 2× USB-C, 1× USB-A',
-      Tech: 'GaN III, PD 3.0 + PPS',
-      Size: 'Foldable pins, palm-sized',
-      Safety: 'Over-current and thermal protection',
-      Warranty: '6 months'
+      ANC: 'Active, with Transparency mode',
+      Battery: '6 hrs + 30 hrs case',
+      Case: 'USB-C, MagSafe and Qi charging',
+      Rating: 'IP54 dust and sweat resistant',
+      Warranty: '12 months'
     },
-    tag: '',
+    tag: 'New',
     stock: 'in',
     image: ''
   },
@@ -364,17 +693,17 @@ const PRODUCTS = [
     image: ''
   },
   {
-    id: 'case-glass-bundle',
-    name: 'Clear Case + Tempered Glass Bundle',
+    id: 'earphones-wired',
+    name: 'Wired Earphones with Mic',
     category: 'phone-accessories',
-    price: 1500,
-    desc: 'Shock-absorbing corners and 9H glass, fitted for you in the shop. Most models stocked.',
+    price: 600,
+    desc: 'No charging, no pairing, no losing one down the seat. USB-C or 3.5mm.',
     specs: {
-      Case: 'Anti-yellow TPU, raised lip',
-      Glass: '9H tempered, oleophobic',
-      Fitting: 'Free, done while you wait',
-      Models: 'iPhone, Samsung, Tecno, Infinix and more',
-      Warranty: 'Replacement if it cracks on fitting'
+      Connector: '3.5mm or USB-C — say which you need',
+      Driver: '10mm dynamic',
+      Controls: 'In-line mic with play/pause',
+      Cable: '1.2m tangle-resistant',
+      Warranty: '3 months'
     },
     tag: 'Deal',
     stock: 'in',
@@ -395,24 +724,30 @@ const PRODUCTS = [
       Warranty: '6 months'
     },
     tag: '',
-    stock: 'out',
+    stock: 'in',
+    image: ''
+  },
+  {
+    id: 'apple-watch-se',
+    name: 'Apple Watch SE (40mm, GPS)',
+    category: 'phone-accessories',
+    price: 34000,
+    desc: 'Crash and fall detection, proper workout tracking, and it just works with an iPhone.',
+    specs: {
+      Display: '40mm Retina',
+      Chip: 'S8 SiP',
+      Features: 'Crash detection, fall detection, ECG-free heart alerts',
+      Battery: 'Up to 18 hrs',
+      Rating: '50m water resistant',
+      Warranty: '12 months'
+    },
+    tag: '',
+    stock: 'low',
     image: ''
   }
 ];
 
-/* ── 3. Stock overrides ──────────────────────────────────────────────────────
-   The "Manage stock" panel on the site (footer link, or add #manage to the web
-   address) lets you flip any product between In stock / Low stock / Out of
-   stock without touching code. Those changes are saved in YOUR browser only.
-
-   When you're happy with them, the panel gives you a "Copy for data.js"
-   button — paste what it copies over the block below and every visitor sees
-   the new availability.                                                     */
-const STOCK_OVERRIDES = {
-  // 'tp-t14-g3': 'out',
-};
-
-/* Category labels shown on the filter chips — edit the text, keep the keys. */
+/* ── 4. Category filters — edit the labels, keep the keys. ────────────────── */
 const CATEGORIES = [
   { key: 'all',                  label: 'Everything' },
   { key: 'computers',            label: 'Computers' },

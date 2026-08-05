@@ -285,10 +285,45 @@ category with nothing in it is hidden from customers automatically.
 
 ---
 
-## 8. What customers can do
+## 8. Search
 
-- **Browse and filter** by category, search by name or spec, sort by price or
-  by biggest saving, and filter to **On offer** only.
+There are three ways in, all opening the same search:
+
+- the **big search bar in the hero**, first thing on the page;
+- the **Search button in the header**, on every scroll position;
+- the **`/` key** (or Ctrl/Cmd + K) on a computer.
+
+It searches products, repairs and the page sections at once, and understands the
+words customers actually use rather than the words on the label:
+
+| They type | They find |
+| --- | --- |
+| headphones, earpods, buds | the earphones, earbuds and AirPods |
+| cover | the cases and screen protectors |
+| my laptop is spoilt | the repair services |
+| fix my cracked screen | computer and phone repair |
+| tom mboya, directions | the map section |
+| offers, cheap, deal | whatever is on offer |
+
+Filler words ("do you have a…", "I need…") are ignored. Arrow keys move, Enter
+opens, Esc closes. **See all in the catalogue** hands the words to the catalogue
+filter so they can browse the full list of matches.
+
+When nothing matches, they get a "we source to order" message with a WhatsApp
+button that already has their words in it — so a search that fails still turns
+into an inquiry.
+
+The words are widened by the `ALIAS_GROUPS` table near the top of `app.js`. Add
+a group, or add a word to one, whenever you notice customers asking for
+something by a name the site doesn't know.
+
+---
+
+## 9. What customers can do
+
+- **Search from anywhere** — the hero bar, the header button or the `/` key.
+- **Browse and filter** by category, sort by price or biggest saving, and
+  filter to **On offer** only.
 - **See photos, specs and a 360° spin** of anything you've photographed.
 - **Compare up to 4 products** side by side — differences highlighted, lowest
   price and offers flagged.
@@ -309,7 +344,7 @@ into `formEndpoint` in `data.js`.
 
 ---
 
-## 9. Previewing locally
+## 10. Previewing locally
 
 A service worker needs a real server, so double-clicking `index.html` works for
 everything except the offline behaviour. To see all of it:

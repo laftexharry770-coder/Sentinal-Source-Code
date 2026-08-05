@@ -492,14 +492,13 @@
   }
 
   function visibleProducts() {
-    const q = state.query.trim().toLowerCase();
+    // The catalogue box understands the same words as the big search.
+    const tokens = tokenise(state.query);
     let list = catalogue.filter((p) => {
       if (!inCategory(p)) return false;
-      if (!q) return true;
-      const haystack = [p.name, p.desc, catLabel(p.category), p.tag,
-        Object.entries(p.specs || {}).map(([k, v]) => k + ' ' + v).join(' ')
-      ].join(' ').toLowerCase();
-      return q.split(/\s+/).every((word) => haystack.includes(word));
+      if (!tokens.length) return true;
+      const haystack = productHaystack(p);
+      return tokens.every((token) => matches(haystack, token));
     });
 
     const price = (p) => (p.price == null ? Infinity : Number(p.price));
@@ -794,6 +793,270 @@
     if (!$('#drawer').hidden) return;
     document.body.classList.remove('no-scroll');
     if (lastFocused) lastFocused.focus();
+  }
+
+  /* ── Site-wide search ──────────────────────────────────────────────────────
+     People rarely type the words on the label: "headphones" for earphones,
+     "cover" for a case, "fix my screen" for a repair. Each word a customer
+     types is widened to the words we actually use before matching.
+     ------------------------------------------------------------------------ */
+  /* Words that mean the same thing to a customer. Every word in a group finds
+     every other word in it, so the table only has to be written once. */
+  const ALIAS_GROUPS = [
+    ['laptop', 'notebook', 'computer', 'macbook', 'thinkpad', 'elitebook', 'portable'],
+    ['desktop', 'pc', 'tower', 'optiplex', 'computer'],
+    ['gaming', 'game', 'rtx', 'graphics'],
+    ['phone', 'smartphone', 'handset', 'iphone', 'samsung', 'tecno', 'infinix', 'pixel'],
+    ['earphone', 'earbud', 'earpod', 'airpod', 'headphone', 'headset', 'bud', 'anc'],
+    ['case', 'cover', 'flip', 'wallet', 'protector', 'glass', 'tempered'],
+    ['charger', 'charging', 'charge', 'adapter', 'plug', 'gan', 'watt'],
+    ['cable', 'cord', 'wire', 'lightning', 'usb'],
+    ['extension', 'socket', 'surge', 'power'],
+    ['mouse', 'mice', 'logitech'],
+    ['keyboard', 'keypad', 'combo', 'mechanical', 'typing'],
+    ['watch', 'smartwatch', 'wearable', 'fitness'],
+    ['powerbank', 'bank', 'anker', 'portable'],
+    ['screen', 'display', 'monitor', 'panel'],
+    ['storage', 'ssd', 'drive', 'disk', 'memory', 'ram'],
+    ['printer', 'print', 'scan', 'copy', 'deskjet'],
+    ['router', 'wifi', 'network', 'internet', 'extender'],
+    ['cctv', 'camera', 'security', 'surveillance', 'dvr'],
+    ['projector', 'beamer', 'presentation'],
+    ['ups', 'blackout', 'backup', 'battery'],
+    ['repair', 'fix', 'broken', 'cracked', 'damaged', 'service', 'replacement', 'faulty', 'spoilt'],
+    ['water', 'liquid', 'damage'],
+    ['recovery', 'recover', 'deleted', 'lost', 'backup'],
+    ['offer', 'discount', 'sale', 'deal', 'cheap', 'affordable', 'budget'],
+    ['student', 'school', 'college', 'campus', 'budget'],
+    ['office', 'work', 'business', 'desk']
+  ];
+
+  /* Built once: every word points at the union of the groups it belongs to. */
+  const ALIASES = (function () {
+    const map = {};
+    ALIAS_GROUPS.forEach((group) => {
+      group.forEach((word) => {
+        map[word] = map[word] || [];
+        group.forEach((other) => { if (map[word].indexOf(other) < 0) map[word].push(other); });
+      });
+    });
+    return map;
+  })();
+
+  /* "do you have a cheap laptop" is really just "cheap laptop". */
+  const STOP_WORDS = ('a an the my your our is are am do does i we you it of for to with and or ' +
+    'have has need want looking please any some that this there here can could would get got ' +
+    'me us buy sell price how much what where when').split(' ');
+
+  const singular = (word) => (word.length > 3 && /s$/.test(word) && !/ss$/.test(word)
+    ? word.slice(0, -1) : word);
+
+  function tokenise(query) {
+    return String(query).toLowerCase().split(/[^a-z0-9+]+/)
+      .filter((word) => word && STOP_WORDS.indexOf(word) < 0);
+  }
+
+  const SECTIONS = [
+    { label: 'The catalogue',      sub: 'Everything we sell',                   hash: '#catalogue', words: 'shop products browse catalogue buy stock' },
+    { label: 'Repairs',            sub: 'Computers, phones, data and setup',    hash: '#repairs',   words: 'repair fix service workshop diagnosis' },
+    { label: 'Opening hours',      sub: 'When we are open, when we answer',     hash: '#contact',   words: 'hours open closed time contact call sunday saturday' },
+    { label: 'Find the shop',      sub: 'Tom Mboya Street, opposite Imenti House', hash: '#visit',  words: 'location map directions address tom mboya imenti odeon rasulmal nairobi' },
+    { label: 'Get in touch',       sub: 'WhatsApp, phone and email',            hash: '#contact',   words: 'contact whatsapp call email phone number message inquiry' }
+  ];
+
+  const SUGGESTIONS = ['Laptops', 'Chargers', 'Earphones', 'Phone cases', 'Screen repair', 'On offer'];
+
+  /** Every word we'd accept for one word the customer typed. */
+  function expand(token) {
+    const base = singular(token);
+    const words = [token];
+    if (base !== token) words.push(base);
+    [token, base].forEach((form) => {
+      (ALIASES[form] || []).forEach((word) => { if (words.indexOf(word) < 0) words.push(word); });
+    });
+    return words;
+  }
+
+  /* Two haystacks per product. Loose words (a charger is also an "adapter")
+     are matched against the headline text only; the spec sheet is matched on
+     the literal word, so "charger" doesn't drag in every phone that mentions
+     fast charging in its battery row. */
+  function productHaystack(p) {
+    return {
+      strong: [p.name, catLabel(p.category), p.tag, p.desc,
+        discount(p) ? 'offer discount sale deal cheap' : ''].join(' ').toLowerCase(),
+      full: Object.entries(p.specs || {}).map(([k, v]) => k + ' ' + v).join(' ').toLowerCase()
+    };
+  }
+
+  const matches = (hay, token) =>
+    expand(token).some((word) => hay.strong.includes(word)) || hay.full.includes(token);
+
+  function searchProducts(tokens) {
+    return catalogue.map((p) => {
+      const hay = productHaystack(p);
+      const name = p.name.toLowerCase();
+      let score = 0;
+      const matchedAll = tokens.every((token) => {
+        const words = expand(token);
+        if (!matches(hay, token)) return false;
+        if (name.startsWith(token)) score += 4;
+        else if (name.includes(token)) score += 3;
+        else if (words.some((w) => name.includes(w))) score += 2;
+        else score += 1;
+        return true;
+      });
+      if (!matchedAll) return null;
+      if (stockOf(p) === 'out') score -= 1;
+      if (discount(p)) score += 0.5;
+      return { product: p, score: score };
+    }).filter(Boolean).sort((a, b) => b.score - a.score);
+  }
+
+  function searchServices(tokens) {
+    if (typeof SERVICES === 'undefined') return [];
+    return SERVICES.filter((s) => {
+      const hay = [s.name, s.desc, (s.items || []).join(' '), 'repair fix service'].join(' ').toLowerCase();
+      return tokens.every((token) => expand(token).some((w) => hay.includes(w)));
+    });
+  }
+
+  function searchSections(tokens) {
+    return SECTIONS.filter((s) => {
+      const hay = (s.label + ' ' + s.sub + ' ' + s.words).toLowerCase();
+      return tokens.every((token) => expand(token).some((w) => hay.includes(w)));
+    });
+  }
+
+  const searchOverlay = $('#searchOverlay');
+  let searchIndex = -1;      // which result is highlighted
+
+  function paintSearch(query) {
+    const box = $('#searchResults');
+    const tokens = tokenise(query);
+    $('#searchClear').hidden = !query;
+    searchIndex = -1;
+
+    if (!tokens.length) {
+      box.innerHTML =
+        '<p class="search-hint">Try a few of these</p>' +
+        '<div class="search-suggestions">' +
+          SUGGESTIONS.map((s) => '<button type="button" class="chip" data-suggest="' + esc(s) + '">' +
+            esc(s) + '</button>').join('') +
+        '</div>';
+      return;
+    }
+
+    const products = searchProducts(tokens).slice(0, 8);
+    const services = searchServices(tokens).slice(0, 3);
+    const sections = searchSections(tokens).slice(0, 3);
+    let n = 0;
+
+    if (!products.length && !services.length && !sections.length) {
+      const ask = 'Hi ' + SITE.brand + ', do you have ' + query.trim() + '?';
+      box.innerHTML =
+        '<div class="search-empty">' +
+          '<h4>Nothing here matches “' + esc(query.trim()) + '”</h4>' +
+          '<p>We source to order, so it is still worth asking.</p>' +
+          '<a class="btn btn-wa btn-small" target="_blank" rel="noopener" href="' + esc(waLink(ask)) + '">' +
+            'Ask us on WhatsApp</a>' +
+        '</div>';
+      return;
+    }
+
+    const productRows = products.map((hit) => {
+      const p = hit.product;
+      const off = discount(p);
+      return '<button type="button" class="search-row" role="option" data-product="' + esc(p.id) + '" data-index="' + (n++) + '">' +
+        '<span class="row-media">' + media(p, 'ph') + '</span>' +
+        '<span class="row-text">' +
+          '<strong>' + esc(p.name) + '</strong>' +
+          '<span>' + esc(catLabel(p.category)) + ' · ' + esc(STOCK[stockOf(p)].text) + '</span>' +
+        '</span>' +
+        '<span class="row-price">' + esc(money(p.price)) +
+          (off ? '<em>−' + off + '%</em>' : '') + '</span>' +
+      '</button>';
+    }).join('');
+
+    const serviceRows = services.map((s) =>
+      '<button type="button" class="search-row" role="option" data-service="' + esc(s.id) + '" data-index="' + (n++) + '">' +
+        '<span class="row-media icon">' + (SERVICE_ICONS[s.icon] || SERVICE_ICONS.fallback) + '</span>' +
+        '<span class="row-text"><strong>' + esc(s.name) + '</strong><span>' + esc(s.desc) + '</span></span>' +
+      '</button>').join('');
+
+    const sectionRows = sections.map((s) =>
+      '<button type="button" class="search-row" role="option" data-hash="' + esc(s.hash) + '" data-index="' + (n++) + '">' +
+        '<span class="row-media icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
+        '<span class="row-text"><strong>' + esc(s.label) + '</strong><span>' + esc(s.sub) + '</span></span>' +
+      '</button>').join('');
+
+    box.innerHTML =
+      (products.length ? '<p class="search-hint">Products<span>' + products.length +
+        (products.length === 8 ? '+' : '') + '</span></p>' + productRows : '') +
+      (services.length ? '<p class="search-hint">Repairs</p>' + serviceRows : '') +
+      (sectionRows ? '<p class="search-hint">On this page</p>' + sectionRows : '');
+
+    highlight(0);
+  }
+
+  function highlight(index) {
+    const rows = $$('.search-row', searchOverlay);
+    if (!rows.length) return;
+    searchIndex = ((index % rows.length) + rows.length) % rows.length;
+    rows.forEach((row, i) => {
+      const on = i === searchIndex;
+      row.classList.toggle('on', on);
+      row.setAttribute('aria-selected', String(on));
+      if (on) row.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  function runResult(row) {
+    if (!row) return;
+    if (row.dataset.product) {
+      closeSearch();
+      openModal(row.dataset.product);
+      return;
+    }
+    if (row.dataset.service) {
+      closeSearch();
+      const target = $('#repairs');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (row.dataset.hash) {
+      closeSearch();
+      const target = $(row.dataset.hash);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  /** Hand the current words to the catalogue's own filter and jump there. */
+  function searchInCatalogue() {
+    const query = $('#globalSearch').value.trim();
+    closeSearch();
+    state.category = 'all';
+    state.query = query;
+    $('#search').value = query;
+    paintChips();
+    paintGrid();
+    $('#catalogue').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function openSearch(seed) {
+    lastFocused = document.activeElement;
+    searchOverlay.hidden = false;
+    document.body.classList.add('no-scroll');
+    const input = $('#globalSearch');
+    input.value = seed || $('#search').value || '';
+    paintSearch(input.value);
+    setTimeout(() => { input.focus(); input.select(); }, 30);
+  }
+
+  function closeSearch() {
+    searchOverlay.hidden = true;
+    if (modal.hidden && drawer.hidden && manage.hidden) document.body.classList.remove('no-scroll');
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
   }
 
   /* ── Compare ───────────────────────────────────────────────────────────── */
@@ -1664,6 +1927,55 @@
 
     setInterval(paintHours, 60000);   // keep both status badges honest
 
+    // Search: open from the header, the hero, "/" or Ctrl/Cmd+K
+    $('#openSearch').addEventListener('click', () => openSearch());
+    $('#heroSearch').addEventListener('click', () => openSearch());
+    $('#searchClear').addEventListener('click', () => {
+      const input = $('#globalSearch');
+      input.value = '';
+      paintSearch('');
+      input.focus();
+    });
+    $('#searchAll').addEventListener('click', searchInCatalogue);
+
+    let globalTimer;
+    $('#globalSearch').addEventListener('input', (e) => {
+      const value = e.target.value;
+      clearTimeout(globalTimer);
+      globalTimer = setTimeout(() => paintSearch(value), 90);
+    });
+
+    $('#globalSearch').addEventListener('keydown', (e) => {
+      const rows = $$('.search-row', searchOverlay);
+      if (e.key === 'ArrowDown') { e.preventDefault(); highlight(searchIndex + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(searchIndex - 1); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (rows.length && searchIndex > -1) runResult(rows[searchIndex]);
+        else if (e.target.value.trim()) searchInCatalogue();
+      }
+    });
+
+    searchOverlay.addEventListener('click', (e) => {
+      const suggest = e.target.closest('[data-suggest]');
+      if (suggest) {
+        const input = $('#globalSearch');
+        input.value = suggest.dataset.suggest;
+        paintSearch(input.value);
+        input.focus();
+        return;
+      }
+      const row = e.target.closest('.search-row');
+      if (row) { runResult(row); return; }
+      if (e.target.closest('[data-close]')) closeSearch();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || '')) || e.target.isContentEditable;
+      if (e.key === '/' && !typing && searchOverlay.hidden) { e.preventDefault(); openSearch(); }
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openSearch(); }
+    });
+
     // Catalogue controls
     $('#chips').addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
@@ -1856,7 +2168,8 @@
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      if (!modal.hidden) closeModal();
+      if (!searchOverlay.hidden) closeSearch();
+      else if (!modal.hidden) closeModal();
       else if (!compareModal.hidden) closeCompare();
       else if (!manage.hidden) closeManage();
       else if (!drawer.hidden) closeDrawer();

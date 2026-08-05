@@ -6,11 +6,15 @@
    connection or with no data at all. That is what makes the "Install app"
    button and the offline behaviour work.
 
+   Prices and stock (data.js) are always fetched fresh when there is a signal,
+   so a customer never sees yesterday's price on a phone that has been here
+   before. The cached copy is only used when the network fails.
+
    Bump CACHE_VERSION whenever you upload changed files — that is what tells
    every phone to fetch the new version instead of serving the old one.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v1';
+const CACHE_VERSION = 'homcom-v2';
 const SHELL = [
   './',
   './index.html',
@@ -47,9 +51,10 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;   // let maps and fonts go to the network
 
-  // Pages: try the network first so a fresh upload is picked up straight away,
-  // fall back to the cached copy when there is no connection.
-  if (request.mode === 'navigate') {
+  // The catalogue itself and the pages that show it: always ask the network
+  // first, so a price changed this morning is the price a returning customer
+  // sees this afternoon. The cached copy is the fallback, not the default.
+  if (request.mode === 'navigate' || /\/data\.js(\?|$)/.test(url.pathname + url.search)) {
     event.respondWith(
       fetch(request)
         .then((response) => {

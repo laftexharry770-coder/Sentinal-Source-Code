@@ -260,9 +260,14 @@ it on any of these and it's up around the clock, free, with HTTPS included:
 All three run on networks that serve the file from the closest place to whoever
 is looking, so it stays fast in Nairobi and abroad.
 
-**One thing to remember:** after uploading changed files, bump `CACHE_VERSION`
-at the top of `service-worker.js` (`homcom-v1` → `homcom-v2`). That's what tells
-phones that already have the site saved to fetch the new version.
+**Prices and stock need nothing.** `data.js` is always fetched fresh when there
+is a signal, so a price you publish this morning is the price a returning
+customer sees this afternoon — the saved copy is only used when they have no
+network at all.
+
+**Only if you change the design** (`index.html`, `styles.css`, `app.js`) bump
+`CACHE_VERSION` at the top of `service-worker.js` (`homcom-v2` → `homcom-v3`).
+That tells phones which already have the site saved to fetch the new files.
 
 ### A custom domain
 

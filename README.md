@@ -238,8 +238,22 @@ with bad reception, or for a customer browsing on the matatu.
 The site is plain files with no server to crash and no database to fill up. Host
 it on any of these and it's up around the clock, free, with HTTPS included:
 
-- **GitHub Pages** — merge to `main`, then **Settings → Pages → Deploy from a
-  branch → `main` / root**.
+- **GitHub Pages** — the site is already on `main`; turning Pages on is the one
+  step left, and it has to be you. GitHub deliberately won't let an automated
+  token switch Pages on for a repository.
+
+  1. Open **github.com in a browser**. The GitHub phone app doesn't show this
+     screen — on a phone use Chrome and tap ⋮ → **Desktop site**.
+  2. Repository → **Settings** → **Pages** (left-hand menu).
+  3. **Build and deployment → Source: Deploy from a branch.**
+  4. Branch **main**, folder **/ (root)** → **Save**.
+
+  A minute later the site is at
+  `https://laftexharry770-coder.github.io/Sentinal-Source-Code/`, and every
+  future push to `main` republishes it. No build step, no workflow to maintain.
+  The empty `.nojekyll` file tells GitHub to serve the files as they are rather
+  than running them through its blog engine first.
+
 - **Netlify** or **Cloudflare Pages** — connect the repo, or drag the folder
   onto their dashboard. No build command, no output directory.
 

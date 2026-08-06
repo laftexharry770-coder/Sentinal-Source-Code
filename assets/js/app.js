@@ -514,7 +514,10 @@
     return '<span class="price">' +
       (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') +
       esc(money(p.price)) +
-      (p.price != null ? '<small>' + (off ? 'save ' + esc(money(saving(p))) : 'incl. VAT') + '</small>' : '') +
+      (p.price != null
+        ? (off ? '<small class="save">save ' + esc(money(saving(p))) + '</small>'
+               : '<small class="vat">incl. VAT</small>')
+        : '') +
     '</span>';
   }
 
@@ -1846,36 +1849,39 @@
 
   /* ── Install as an app (Android, desktop; iOS gets instructions) ───────── */
   function initInstall() {
-    const button = $('#installBtn');
-    if (!button) return;
+    // One in the header for wide screens, one inside the menu for narrow ones,
+    // where the header has no room to spare.
+    const buttons = $$('#installBtn, #installBtnNav');
+    if (!buttons.length) return;
     let prompt = null;
 
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true;
 
-    if (standalone) { button.hidden = true; return; }
+    const showAll = (show) => buttons.forEach((b) => { b.hidden = !show; });
+    if (standalone) { showAll(false); return; }
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       prompt = e;
-      button.hidden = false;
+      showAll(true);
     });
 
-    if (isIOS) button.hidden = false;
+    if (isIOS) showAll(true);
 
-    button.addEventListener('click', () => {
+    buttons.forEach((button) => button.addEventListener('click', () => {
       if (prompt) {
         prompt.prompt();
-        prompt.userChoice.finally(() => { prompt = null; button.hidden = true; });
+        prompt.userChoice.finally(() => { prompt = null; showAll(false); });
       } else if (isIOS) {
         toast('In Safari: tap Share, then "Add to Home Screen"');
       } else {
         toast('Use your browser menu → "Install app" or "Add to Home screen"');
       }
-    });
+    }));
 
-    window.addEventListener('appinstalled', () => { button.hidden = true; toast('Installed — it now opens like an app'); });
+    window.addEventListener('appinstalled', () => { showAll(false); toast('Installed — it now opens like an app'); });
   }
 
   function initServiceWorker() {
@@ -1898,21 +1904,54 @@
     const sections = ['catalogue', 'repairs', 'contact'].map((id) => $('#' + id)).filter(Boolean);
     let ticking = false;
 
+    /* Everything the scroll handler needs is worked out once here rather than
+       measured on every frame — reading offsetTop mid-scroll is the classic
+       way to make a phone stutter. */
+    const navLinks = $$('.nav a');
+    let offsets = [];
+    let scrollable = 0;
+    const measure = () => {
+      offsets = sections.map((section) => ({ id: section.id, top: section.offsetTop }));
+      scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    document.addEventListener('DOMContentLoaded', measure);
+    window.addEventListener('load', measure);
+
+    // Only write to the DOM when a value actually changed; a redundant write
+    // still costs a style recalculation.
+    let lastProgress = -1;
+    let lastSection = null;
+    let lastScrolled = null;
+
     const paintScroll = () => {
       ticking = false;
       const y = window.scrollY;
-      header.classList.toggle('scrolled', y > 8);
 
-      if (progress) {
-        const height = document.documentElement.scrollHeight - window.innerHeight;
-        progress.style.setProperty('--progress', height > 0 ? Math.min(y / height, 1).toFixed(4) : 0);
+      const scrolled = y > 8;
+      if (scrolled !== lastScrolled) {
+        header.classList.toggle('scrolled', scrolled);
+        lastScrolled = scrolled;
+      }
+
+      if (progress && scrollable > 0) {
+        const value = Math.min(y / scrollable, 1);
+        if (Math.abs(value - lastProgress) > 0.002) {
+          progress.style.setProperty('--progress', value.toFixed(3));
+          lastProgress = value;
+        }
       }
 
       let current = '';
-      sections.forEach((section) => {
-        if (y >= section.offsetTop - 120) current = section.id;
-      });
-      $$('.nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === '#' + current));
+      for (let i = 0; i < offsets.length; i++) {
+        if (y >= offsets[i].top - 120) current = offsets[i].id;
+      }
+      if (current !== lastSection) {
+        navLinks.forEach((a) => a.classList.toggle('active', a.getAttribute('href') === '#' + current));
+        lastSection = current;
+      }
     };
 
     window.addEventListener('scroll', () => {

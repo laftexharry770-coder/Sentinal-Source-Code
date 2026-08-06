@@ -2500,6 +2500,10 @@
         if (input.closest('.field').classList.contains('invalid')) validate($('#contactForm'));
       });
     });
+
+    /* Tells the failsafe in index.html that the page painted. Without it, that
+       failsafe assumes the worst after eight seconds and shows everything. */
+    document.documentElement.classList.add('ready');
   }
 
   /* ── Safety net ──────────────────────────────────────────────────────────

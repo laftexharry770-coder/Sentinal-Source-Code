@@ -45,6 +45,48 @@
          know scripts are running: if anything later fails, the page is plain
          but perfectly readable. */
       document.documentElement.className += ' js';
+
+      /* Last line of defence, and it lives in the page itself on purpose.
+         index.html is the one file always fetched from the network, so this
+         still arrives on a phone holding an old stylesheet or an old script —
+         which is exactly the situation that leaves a blank page. app.js marks
+         the page "ready" once it has painted. If that has not happened, show
+         everything anyway and offer a one-tap repair. */
+      setTimeout(function () {
+        var root = document.documentElement;
+        if (root.className.indexOf('ready') > -1) return;
+
+        var style = document.createElement('style');
+        style.textContent =
+          '.reveal,.reveal.in{opacity:1!important;transform:none!important;animation:none!important}' +
+          '.card,.feature{animation:none!important;opacity:1!important}' +
+          '#stalePage{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;display:flex;' +
+          'gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;' +
+          'padding:12px 14px;border-radius:14px;font:500 14px/1.4 system-ui,sans-serif;' +
+          'background:#14161a;color:#f2f3f5;box-shadow:0 8px 30px rgba(0,0,0,.35)}' +
+          '#stalePage button{border:0;border-radius:999px;padding:8px 16px;font:inherit;' +
+          'font-weight:650;background:#f2f3f5;color:#14161a}';
+        document.head.appendChild(style);
+
+        var bar = document.createElement('div');
+        bar.id = 'stalePage';
+        bar.innerHTML = '<span>This page did not load properly.</span>' +
+          '<button type="button">Reload it</button>';
+        bar.querySelector('button').onclick = function () {
+          this.textContent = 'Reloading…';
+          var jobs = [];
+          try {
+            if (window.caches) jobs.push(caches.keys().then(function (keys) {
+              return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+            }));
+            if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations()
+              .then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+          } catch (e) {}
+          Promise.all(jobs.map(function (j) { return j['catch'](function () { return null; }); }))
+            .then(function () { location.replace(location.pathname + '?reload=' + Date.now()); });
+        };
+        document.body.appendChild(bar);
+      }, 8000);
     })();
   </script>
 </head>

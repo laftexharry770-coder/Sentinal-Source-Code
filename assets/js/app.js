@@ -100,7 +100,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v13';
+  const BUILD = 'v14';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -1227,14 +1227,30 @@
       '</span>';
     });
 
-    $('#compareTable').innerHTML = head + '<tbody>' +
+    const table = $('#compareTable');
+    table.innerHTML = head + '<tbody>' +
       row('Price', priceCells, differs(prices)) +
       (items.some(discount) ? row('Offer', offerCells, differs(items.map(discount))) : '') +
       row('Availability', stockCells, differs(items.map(stockOf))) +
       specRows +
       row('', actionCells, false) +
       '</tbody>';
+
+    /* The table is sized to how many products are in it, so two of them fit a
+       phone outright instead of being cut off at the edge. */
+    table.style.setProperty('--compare-cols', items.length);
+    afterPaint(showSwipeHint);
   }
+
+  /** Only mention swiping when there is actually something off to the side. */
+  function showSwipeHint() {
+    const scroll = $('.compare-scroll');
+    const hint = $('#compareSwipe');
+    if (!scroll || !hint) return;
+    hint.classList.toggle('show', scroll.scrollWidth - scroll.clientWidth > 4);
+  }
+
+  const afterPaint = (fn) => requestAnimationFrame(() => requestAnimationFrame(fn));
 
   function openCompare() {
     if (state.compare.length < 2) { toast('Pick at least two products to compare'); return; }
@@ -2006,6 +2022,10 @@
     };
     measure();
     window.addEventListener('resize', measure);
+    // Turning the phone changes whether the comparison still fits.
+    window.addEventListener('resize', () => {
+      if (!compareModal.hidden) showSwipeHint();
+    });
     window.addEventListener('orientationchange', measure);
     document.addEventListener('DOMContentLoaded', measure);
     window.addEventListener('load', measure);

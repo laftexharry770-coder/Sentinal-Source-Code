@@ -34,7 +34,7 @@ phones: [                                   // SALES
   { number: '254738715271', label: 'Second line' }
 ],
 whatsapp: '254724359797',
-email:    'kariukilucy244@gmail.com',
+email:    'homcomcomputers@gmail.com',
 
 repairs: {                                  // REPAIRS — its own line and inbox
   phone:    '254751851228',

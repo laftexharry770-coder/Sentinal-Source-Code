@@ -14,7 +14,7 @@
    every phone to fetch the new version instead of serving the old one.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v9';
+const CACHE_VERSION = 'homcom-v10';
 const SHELL = [
   './',
   './index.html',

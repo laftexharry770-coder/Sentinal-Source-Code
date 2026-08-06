@@ -18,7 +18,7 @@ const SITE = {
     }
   ],
   "whatsapp": "254724359797",
-  "email": "kariukilucy244@gmail.com",
+  "email": "homcomcomputers@gmail.com",
   "repairs": {
     "label": "Repair desk",
     "phone": "254751851228",

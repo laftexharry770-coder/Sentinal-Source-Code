@@ -269,9 +269,13 @@ That tells phones which already have the site saved to fetch the new files.
 
 ### The domain: homcomtech.com
 
-The `CNAME` file in the repository root already says `homcomtech.com`, which is
-how GitHub is told which address the site answers to. **Two things have to be
-true before that address works**, and neither of them is code:
+The domain is prepared but **not switched on yet**. The file that does it is
+sitting in the repository root as **`CNAME.ready`**, containing
+`homcomtech.com`. Renaming it to plain **`CNAME`** is the switch — GitHub reads
+that file to learn which address the site answers to.
+
+It is parked rather than live because **two things have to be true first**, and
+neither of them is code:
 
 **1. You own homcomtech.com.** Buy it from any registrar (Truehost, Safaricom
 Domains, Namecheap, GoDaddy — anywhere).
@@ -293,10 +297,15 @@ the tick box stays greyed out until it is ready).
 
 DNS changes usually take 15 minutes to a few hours to spread.
 
-> **Until both of those are done, the `CNAME` file makes the site unreachable** —
-> GitHub redirects the `github.io` address to a domain that doesn't answer yet.
-> If you need the site live before the domain is sorted, delete the `CNAME`
-> file and the old address works again immediately.
+> **Flip the switch only after both are done.** A live `CNAME` file pointing at
+> a domain that doesn't answer yet makes the site unreachable — GitHub
+> redirects the `github.io` address to it and the redirect goes nowhere. That
+> is why it is parked as `CNAME.ready`.
+>
+> To switch over: rename `CNAME.ready` to `CNAME` (on GitHub: open the file →
+> pencil → change the filename in the box at the top → Commit).
+> To undo at any time: rename it back, and the `github.io` address works again
+> within a minute.
 
 ---
 

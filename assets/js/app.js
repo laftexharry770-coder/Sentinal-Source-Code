@@ -5,28 +5,18 @@
 (function () {
   'use strict';
 
-  /* ── Safety net ──────────────────────────────────────────────────────────
-     If data.js is ever uploaded half-finished, the browser cannot read it and
-     the catalogue simply does not exist. Rather than leave a blank page, stop
-     here and fall back to the plain HTML — the shop name, both phone numbers,
-     the email and the address are all written into index.html — and say plainly
-     what went wrong, so a customer can still reach us and the owner knows what
-     to fix. This has to be the first thing in the file: everything below it
-     assumes the catalogue is there.
-
-     `const` in another script is a global binding, not a window property, so
-     typeof is the only safe way to ask whether data.js actually loaded.
-     ─────────────────────────────────────────────────────────────────────── */
-  const catalogueLoaded =
+  /* Whether data.js actually loaded. `const` in another script is a global
+     binding rather than a window property, so typeof is the only safe way to
+     ask. Nothing in this file may assume the answer is yes — see the safety
+     net at the bottom. */
+  const catalogueLoaded = () =>
     typeof SITE === 'undefined'       ? false :
     typeof PRODUCTS === 'undefined'   ? false :
     typeof CATEGORIES === 'undefined' ? false :
     Boolean(SITE) && Array.isArray(PRODUCTS) && Array.isArray(CATEGORIES);
 
-  if (!catalogueLoaded) {
-    whenReady(() => degrade('data.js did not load — see the error above this one'));
-    return;
-  }
+  const seedProducts   = () => (typeof PRODUCTS === 'undefined'   ? [] : PRODUCTS);
+  const seedCategories = () => (typeof CATEGORIES === 'undefined' ? [] : CATEGORIES);
 
   /* ── Helpers ───────────────────────────────────────────────────────────── */
   const $  = (sel, root) => (root || document).querySelector(sel);
@@ -136,9 +126,9 @@
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(SHOP_KEY) || 'null'); } catch (e) {}
     catalogue = (saved && Array.isArray(saved.products) && saved.products.length
-      ? saved.products : clone(PRODUCTS)).map(normalise);
+      ? saved.products : clone(seedProducts())).map(normalise);
     categories = saved && Array.isArray(saved.categories) && saved.categories.length
-      ? clone(saved.categories) : clone(CATEGORIES);
+      ? clone(saved.categories) : clone(seedCategories());
     if (!categories.some((c) => c.key === 'all')) {
       categories.unshift({ key: 'all', label: 'Everything' });
     }
@@ -2434,11 +2424,54 @@
     });
   }
 
-  /* The two halves of the safety net declared at the top of this file. Both are
-     function declarations so they exist before the check that uses them. */
+  /* ── Safety net ──────────────────────────────────────────────────────────
+     Two things can leave the page without a catalogue: data.js uploaded
+     half-finished, or a phone still holding an old broken copy of it in its
+     own cache. The second one is the cruel one — the shop fixes the file, the
+     site is fine for everybody else, and that one phone keeps showing the
+     fault until somebody clears its cache by hand.
+
+     So: ask for the file once more under a name nothing can have cached. If
+     that works, the page carries on as normal and the customer never knows.
+     If it still fails, fall back to the plain HTML — the shop name, both phone
+     numbers, the repair desk, the email, the hours, the address and the map
+     links are all written into index.html — and say plainly what happened.
+     ─────────────────────────────────────────────────────────────────────── */
   function whenReady(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
     else fn();
+  }
+
+  let refetched = false;
+
+  function bootOrRecover() {
+    if (catalogueLoaded()) {
+      try { init(); } catch (err) { degrade(err); }
+      return;
+    }
+    if (refetched) { degrade('data.js still unreadable after a fresh fetch'); return; }
+    refetched = true;
+
+    const fresh = document.createElement('script');
+    fresh.src = 'assets/js/data.js?fresh=' + Date.now();
+    // A syntax error still fires load, so re-check rather than trust it.
+    fresh.onload  = () => { if (catalogueLoaded()) loadShop(); bootOrRecover(); };
+    fresh.onerror = () => degrade('data.js could not be fetched');
+    document.head.appendChild(fresh);
+  }
+
+  /** Throw away every cached copy of the site on this device, then reload. */
+  function hardRefresh() {
+    const jobs = [];
+    if (window.caches && caches.keys) {
+      jobs.push(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
+    }
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      jobs.push(navigator.serviceWorker.getRegistrations()
+        .then((regs) => Promise.all(regs.map((r) => r.unregister()))));
+    }
+    Promise.all(jobs.map((j) => j.catch(() => null)))
+      .then(() => location.replace(location.pathname + '?reload=' + Date.now()));
   }
 
   function degrade(reason) {
@@ -2465,7 +2498,8 @@
       '<span>Everything else on this page still works. Call, WhatsApp or email us ' +
       'and we will confirm stock and prices right away.</span>' +
       '<span class="data-error-actions">' +
-        '<a class="btn btn-primary btn-small" href="https://wa.me/254724359797" target="_blank" rel="noopener">WhatsApp us</a>' +
+        '<button type="button" class="btn btn-primary btn-small" id="dataErrorRetry">Try again</button>' +
+        '<a class="btn btn-ghost btn-small" href="https://wa.me/254724359797" target="_blank" rel="noopener">WhatsApp us</a>' +
         '<a class="btn btn-ghost btn-small" href="tel:+254724359797">Call the shop</a>' +
       '</span>' +
       '<span class="data-error-owner">Shop owner: <code>assets/js/data.js</code> was ' +
@@ -2475,11 +2509,14 @@
     const grid = document.getElementById('grid');
     if (grid && grid.parentNode) grid.parentNode.insertBefore(notice, grid);
     else document.body.insertBefore(notice, document.body.firstChild);
+
+    const retry = document.getElementById('dataErrorRetry');
+    if (retry) retry.addEventListener('click', () => {
+      retry.disabled = true;
+      retry.textContent = 'Reloading…';
+      hardRefresh();
+    });
   }
 
-  // A readable page beats a half-painted one: if anything in the wiring throws,
-  // fall back the same way as a missing catalogue.
-  whenReady(() => {
-    try { init(); } catch (err) { degrade(err); }
-  });
+  whenReady(bootOrRecover);
 })();

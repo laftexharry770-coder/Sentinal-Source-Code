@@ -14,7 +14,7 @@
    every phone to fetch the new version instead of serving the old one.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v8';
+const CACHE_VERSION = 'homcom-v9';
 const SHELL = [
   './',
   './index.html',
@@ -30,8 +30,10 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       // addAll fails the whole install if one file 404s; add them individually
-      // so a missing optional asset can never break the install.
-      .then((cache) => Promise.all(SHELL.map((url) => cache.add(url).catch(() => null))))
+      // so a missing optional asset can never break the install. `reload` skips
+      // the browser's own cache, so a new version never precaches an old file.
+      .then((cache) => Promise.all(SHELL.map((url) =>
+        cache.add(new Request(url, { cache: 'reload' })).catch(() => null))))
       .then(() => self.skipWaiting())
   );
 });
@@ -54,9 +56,15 @@ self.addEventListener('fetch', (event) => {
   // The catalogue itself and the pages that show it: always ask the network
   // first, so a price changed this morning is the price a returning customer
   // sees this afternoon. The cached copy is the fallback, not the default.
-  if (request.mode === 'navigate' || /\/data\.js(\?|$)/.test(url.pathname + url.search)) {
+  const isCatalogue = /\/data\.js(\?|$)/.test(url.pathname + url.search);
+  if (request.mode === 'navigate' || isCatalogue) {
+    // For the catalogue, go past the browser's own HTTP cache as well. Without
+    // this a phone can sit on a stale — or broken — copy for as long as the
+    // cache headers say, no matter how many times the customer pulls to
+    // refresh. Navigations can't be re-created this way, so they go as they are.
+    const live = isCatalogue ? fetch(request, { cache: 'reload' }) : fetch(request);
     event.respondWith(
-      fetch(request)
+      live
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));

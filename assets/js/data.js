@@ -14,7 +14,7 @@
 
 /* ── 1. Your business ────────────────────────────────────────────────────── */
 const SITE = {
-  brand:   'HOMCOM Technologies',
+  brand:   'HOMCOM COMPUTERS',
   tagline: 'Computers, phones, accessories and repairs — done properly.',
 
   /* SALES contacts. Phone numbers in full international format: digits only,

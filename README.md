@@ -1,4 +1,4 @@
-# HOMCOM Technologies — website
+# HOMCOM COMPUTERS — website
 
 The shop online: the full catalogue with photos, 360° views, offers and specs;
 the repair services with their own contact line; live opening and contact hours;

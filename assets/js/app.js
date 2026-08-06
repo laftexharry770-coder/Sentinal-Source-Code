@@ -2277,6 +2277,25 @@
     const chip = $('#manageChip');
     if (chip) chip.addEventListener('click', () => openManage(false));
 
+    /* A way in that doesn't need an address bar. Installed on a home screen
+       the site opens as an app with no way to type #manage-…, so five quick
+       taps on the logo asks for the code instead. It is not a second key —
+       the code is still required — just a second door. */
+    const brand = $('.header-inner .brand');
+    if (brand) {
+      let taps = 0;
+      let timer = null;
+      brand.addEventListener('click', (e) => {
+        taps++;
+        clearTimeout(timer);
+        timer = setTimeout(() => { taps = 0; }, 1500);
+        if (taps < 5) return;
+        taps = 0;
+        e.preventDefault();
+        openManage(true);
+      });
+    }
+
     manage.addEventListener('click', (e) => {
       const copy = e.target.closest('[data-copy]');
       if (copy) { copyProductLink(copy.dataset.copy); return; }

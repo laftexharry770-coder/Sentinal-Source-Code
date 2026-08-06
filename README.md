@@ -97,14 +97,21 @@ they stay right for a customer browsing from anywhere.
 
 ## 3. Getting into the Manage panel
 
-There is **no link to it anywhere on the site.** You reach it by typing the
-secret address:
+There is **no link to it anywhere on the site.** Two ways in, both asking for
+the same code:
+
+**In a browser** — type the secret address:
 
 ```
 https://homcomtech.com/#manage-homcom
 ```
 
-then entering the code. Both are yours to change, at the bottom of `SITE`:
+**In the installed app** (added to your home screen) there is no address bar,
+so instead: **tap the logo five times quickly** — five taps inside a second and
+a half. It asks for the code exactly the same way. Three taps, or five slow
+ones, do nothing at all, so a customer will never stumble into it.
+
+Either way you then enter the code. Both are yours to change, at the bottom of `SITE`:
 
 ```js
 manageKey: 'homcom',      // the bit after #manage-

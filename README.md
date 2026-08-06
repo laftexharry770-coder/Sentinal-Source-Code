@@ -411,7 +411,18 @@ the cursor; product images that ease in; a sweep of light across buttons; spring
 feedback when a filter or product is picked; sections that fade up in sequence;
 the hero's haze drifting against the pointer.
 
-Four rules keep it from becoming a nuisance:
+**Phones get a different build of the atmosphere.** A phone scrolls smoothly
+only when the browser can hand scrolling to the compositor and leave the main
+thread alone, and three things prevented that: a fixed full-screen layer, a
+blend mode over the whole viewport, and a blurred header re-blurring the moving
+content behind it every frame. On touch devices the wash is painted once into
+the page background instead of floating above it, the header is simply opaque,
+and every hover-only flourish — invisible to a finger — is skipped. It looks
+the same and scrolls like a native list. Measured on a mid-range Android
+profile: worst-case frame time fell from 150ms to 22ms, and main-thread work
+over a full scroll from 4.9s to 1.2s.
+
+Five rules keep it from becoming a nuisance:
 
 - **Nothing blurs while it moves.** Animated blur is what makes interfaces look
   smeary, and it's the most expensive thing to draw. The panes still frost what

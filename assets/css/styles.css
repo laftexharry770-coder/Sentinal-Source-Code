@@ -987,6 +987,8 @@ svg:not(.brand-mark):not([data-fill]) {
 .editor-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 
 .manage-hint { margin-bottom: 12px; font-size: .78rem; color: var(--text-faint); }
+.manage-version { margin-top: 10px; font-size: .72rem; color: var(--text-faint); text-align: center; }
+.manage-version b { color: var(--text-soft); font-weight: 650; }
 .foot-row { display: flex; gap: 8px; margin-top: 10px; }
 .foot-row .btn { flex: 1; }
 

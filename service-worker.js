@@ -11,10 +11,12 @@
    before. The cached copy is only used when the network fails.
 
    Bump CACHE_VERSION whenever you upload changed files — that is what tells
-   every phone to fetch the new version instead of serving the old one.
+   every phone to fetch the new version instead of serving the old one. Keep
+   BUILD in app.js on the same number; the Manage panel shows it, so you can
+   see which version a phone is actually running.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v10';
+const CACHE_VERSION = 'homcom-v11';
 const SHELL = [
   './',
   './index.html',

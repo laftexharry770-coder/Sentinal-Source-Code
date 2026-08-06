@@ -97,6 +97,11 @@
     out: { text: 'Order on request', cls: 'out', label: 'Out of stock' }
   };
 
+  /* Shown at the bottom of the Manage panel so you can tell at a glance which
+     version your phone is actually running. Keep it in step with
+     CACHE_VERSION in service-worker.js. */
+  const BUILD = 'v11';
+
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
   const INQUIRY_KEY = 'homcom-inquiry';
@@ -1941,9 +1946,40 @@
   function initServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     if (location.protocol === 'file:') return;   // needs http(s)
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+
+    /* Whether this phone was already running an installed copy of the site.
+       Read before registering, because registering is what changes it. */
+    const wasInstalled = !!navigator.serviceWorker.controller;
+
+    /* When a newer version takes over, the files this page was built from are
+       already out of date — that is how a phone ends up showing last week's
+       prices however many times its owner pulls to refresh. Reload once, and
+       only for someone who had the old version: a first-time visitor is
+       looking at the new one already. */
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!wasInstalled || reloading) return;
+      reloading = true;
+      location.reload();
     });
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then((reg) => { if (reg && reg.update) reg.update(); })
+        .catch(() => {});
+    });
+  }
+
+  /** Tells you which version this device is running, and where it came from. */
+  function paintBuild() {
+    const tag = $('#buildTag');
+    const source = $('#buildSource');
+    if (tag) tag.textContent = BUILD;
+    if (!source) return;
+    const offline = 'serviceWorker' in navigator && navigator.serviceWorker.controller;
+    source.textContent = offline
+      ? 'installed on this device — new versions load themselves'
+      : 'loaded straight from the website';
   }
 
   /* ── Motion ────────────────────────────────────────────────────────────────
@@ -2163,6 +2199,7 @@
     initPointerFX();
     initInstall();
     initServiceWorker();
+    paintBuild();
     if (unlocked()) { const chip = $('#manageChip'); if (chip) chip.hidden = false; }
     openFromHash();
 

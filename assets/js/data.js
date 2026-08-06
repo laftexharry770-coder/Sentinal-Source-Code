@@ -31,8 +31,8 @@ const SITE = {
   ],
   "contactNote": "Calls, texts, WhatsApp and emails are answered between 8am and 8pm, every day. Messages sent outside those hours are answered first thing.",
   "location": "Tom Mboya Street, Nairobi",
-  "mapQuery": "Rasulmal House, Tom Mboya Street, Nairobi, Kenya",
-  "address": "Rasulmal House, ground floor, first shop — Tom Mboya Street, Nairobi",
+  "mapQuery": "Rasumal House, Tom Mboya Street, Nairobi, Kenya",
+  "address": "Rasumal House, ground floor, first shop — Tom Mboya Street, Nairobi",
   "mapNote": "Opposite Imenti House, near Odeon. Ground floor, first shop on your right.",
   "timezone": "Africa/Nairobi",
   "hours": {

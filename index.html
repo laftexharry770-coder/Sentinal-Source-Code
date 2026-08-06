@@ -40,6 +40,11 @@
         var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
       } catch (e) {}
+      /* The fade-in-on-scroll effect starts elements invisible, which means a
+         single script error used to leave a blank page. Only arm it once we
+         know scripts are running: if anything later fails, the page is plain
+         but perfectly readable. */
+      document.documentElement.className += ' js';
     })();
   </script>
 </head>
@@ -196,7 +201,7 @@
               and whether it's worth fixing at all.
             </p>
           </div>
-          <a class="btn btn-primary" id="repairCta" href="#" target="_blank" rel="noopener">
+          <a class="btn btn-primary" id="repairCta" href="https://wa.me/254751851228" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/></svg>
             Describe your fault
           </a>
@@ -213,7 +218,7 @@
             <span class="status-pill" data-contact-pill></span>
           </div>
           <div class="repair-contact-links">
-            <a class="contact-card" id="repairWhatsapp" href="#" target="_blank" rel="noopener">
+            <a class="contact-card" id="repairWhatsapp" href="https://wa.me/254751851228" target="_blank" rel="noopener">
               <span class="contact-icon whatsapp">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/></svg>
               </span>
@@ -223,7 +228,7 @@
                 <em>Send a photo of the fault</em>
               </span>
             </a>
-            <a class="contact-card" id="repairCall" href="#">
+            <a class="contact-card" id="repairCall" href="tel:+254751851228">
               <span class="contact-icon">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
               </span>
@@ -233,7 +238,7 @@
                 <em data-contact-status></em>
               </span>
             </a>
-            <a class="contact-card" id="repairEmail" href="#">
+            <a class="contact-card" id="repairEmail" href="mailto:mwangiherbert225@gmail.com">
               <span class="contact-icon">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
               </span>
@@ -295,12 +300,12 @@
 
         <p class="contact-window reveal">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span data-site="contactNote"></span>
+          <span data-site="contactNote">Calls, texts, WhatsApp and emails are answered between 8am and 8pm, every day. Messages sent outside those hours are answered first thing.</span>
         </p>
 
         <div class="contact-layout">
           <aside class="contact-cards reveal">
-            <a class="contact-card" id="cardWhatsapp" href="#" target="_blank" rel="noopener">
+            <a class="contact-card" id="cardWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">
               <span class="contact-icon whatsapp">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/><path d="M9 8.5c.3 2.5 3.9 6.1 6.4 6.4l1.1-1.6-2.1-1-1 .9c-1-.5-1.9-1.4-2.4-2.4l.9-1-1-2.1z" fill="currentColor" stroke="none"/></svg>
               </span>
@@ -314,7 +319,7 @@
 
             <div id="phoneList"></div>
 
-            <a class="contact-card" id="cardEmail" href="#">
+            <a class="contact-card" id="cardEmail" href="mailto:kariukilucy244@gmail.com">
               <span class="contact-icon">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
               </span>
@@ -336,9 +341,13 @@
                   <span class="status-pill" data-status-pill></span>
                   <em data-status-detail></em>
                 </span>
-                <ul class="hours-list" id="hoursList"></ul>
-                <em data-site="holidayNote"></em>
-                <em class="hours-contact">Calls, texts and emails: <b data-contact-window></b></em>
+                <ul class="hours-list" id="hoursList">
+                  <li><span>Mon – Fri</span><span>7:00 am – 10:00 pm</span></li>
+                  <li><span>Saturday</span><span>8:00 am – 9:00 am</span></li>
+                  <li><span>Sunday</span><span>10:00 am – 5:00 pm</span></li>
+                </ul>
+                <em data-site="holidayNote">Open 7 days a week, public holidays included.</em>
+                <em class="hours-contact">Calls, texts and emails: <b data-contact-window>8:00 am – 8:00 pm, every day</b></em>
               </span>
             </div>
 
@@ -409,15 +418,15 @@
           <div class="map-head">
             <div>
               <h3>Find the shop</h3>
-              <p data-site="address">Nairobi CBD, Nairobi</p>
-              <p class="map-note" data-site="mapNote"></p>
+              <p data-site="address">Rasulmal House, ground floor, first shop — Tom Mboya Street, Nairobi</p>
+              <p class="map-note" data-site="mapNote">Opposite Imenti House, near Odeon. Ground floor, first shop on your right.</p>
             </div>
             <div class="map-actions">
-              <a class="btn btn-primary btn-small" id="mapOpen" href="#" target="_blank" rel="noopener">
+              <a class="btn btn-primary btn-small" id="mapOpen" href="https://www.google.com/maps/search/?api=1&amp;query=Rasulmal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 Open in Google Maps
               </a>
-              <a class="btn btn-ghost btn-small" id="mapDirections" href="#" target="_blank" rel="noopener">
+              <a class="btn btn-ghost btn-small" id="mapDirections" href="https://www.google.com/maps/dir/?api=1&amp;destination=Rasulmal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l19-8-8 19-2-9z"/></svg>
                 Get directions
               </a>
@@ -443,7 +452,7 @@
           <span class="brand-name" data-site="brand">HOMCOM COMPUTERS</span>
         </span>
         <p data-site="tagline">Computers, phones, accessories and repairs — done properly.</p>
-        <p class="footer-address" data-site="address"></p>
+        <p class="footer-address" data-site="address">Rasulmal House, ground floor, first shop — Tom Mboya Street, Nairobi</p>
         <span class="status-pill" data-status-pill></span>
       </div>
 
@@ -464,9 +473,9 @@
         </div>
         <div>
           <h4>Reach us</h4>
-          <a data-site="linkWhatsapp" href="#" target="_blank" rel="noopener">WhatsApp — sales</a>
-          <a data-site="linkPhone" href="#">Call sales</a>
-          <a data-site="linkEmail" href="#">Email sales</a>
+          <a data-site="linkWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">WhatsApp — sales</a>
+          <a data-site="linkPhone" href="tel:+254724359797">Call sales</a>
+          <a data-site="linkEmail" href="mailto:kariukilucy244@gmail.com">Email sales</a>
           <a href="#repairs">Repair desk</a>
           <a href="#visit">Find the shop</a>
         </div>

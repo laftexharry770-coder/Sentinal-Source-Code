@@ -5,6 +5,29 @@
 (function () {
   'use strict';
 
+  /* ── Safety net ──────────────────────────────────────────────────────────
+     If data.js is ever uploaded half-finished, the browser cannot read it and
+     the catalogue simply does not exist. Rather than leave a blank page, stop
+     here and fall back to the plain HTML — the shop name, both phone numbers,
+     the email and the address are all written into index.html — and say plainly
+     what went wrong, so a customer can still reach us and the owner knows what
+     to fix. This has to be the first thing in the file: everything below it
+     assumes the catalogue is there.
+
+     `const` in another script is a global binding, not a window property, so
+     typeof is the only safe way to ask whether data.js actually loaded.
+     ─────────────────────────────────────────────────────────────────────── */
+  const catalogueLoaded =
+    typeof SITE === 'undefined'       ? false :
+    typeof PRODUCTS === 'undefined'   ? false :
+    typeof CATEGORIES === 'undefined' ? false :
+    Boolean(SITE) && Array.isArray(PRODUCTS) && Array.isArray(CATEGORIES);
+
+  if (!catalogueLoaded) {
+    whenReady(() => degrade('data.js did not load — see the error above this one'));
+    return;
+  }
+
   /* ── Helpers ───────────────────────────────────────────────────────────── */
   const $  = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -2411,9 +2434,52 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  /* The two halves of the safety net declared at the top of this file. Both are
+     function declarations so they exist before the check that uses them. */
+  function whenReady(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
   }
+
+  function degrade(reason) {
+    document.documentElement.classList.remove('js');   // reveal every section
+    try { console.error('HOMCOM:', reason); } catch (e) {}
+    if (document.getElementById('dataError')) return;
+
+    // Filters, sort, search and the inquiry form all need the catalogue to do
+    // anything, so hide them rather than leave dead controls on the page. The
+    // contact cards and the map stay: those are plain links in index.html and
+    // work with no scripts at all. `display` is set directly because several of
+    // these carry a display rule of their own.
+    document.querySelectorAll(
+      '#catalogue .controls, #openSearch, #heroSearch, #compareBar, #contactForm,' +
+      ' #installBtnNav, .hero-stats'
+    ).forEach((el) => { el.style.display = 'none'; });
+
+    const notice = document.createElement('div');
+    notice.id = 'dataError';
+    notice.className = 'data-error';
+    notice.setAttribute('role', 'status');
+    notice.innerHTML =
+      '<strong>The product list could not be loaded.</strong>' +
+      '<span>Everything else on this page still works. Call, WhatsApp or email us ' +
+      'and we will confirm stock and prices right away.</span>' +
+      '<span class="data-error-actions">' +
+        '<a class="btn btn-primary btn-small" href="https://wa.me/254724359797" target="_blank" rel="noopener">WhatsApp us</a>' +
+        '<a class="btn btn-ghost btn-small" href="tel:+254724359797">Call the shop</a>' +
+      '</span>' +
+      '<span class="data-error-owner">Shop owner: <code>assets/js/data.js</code> was ' +
+      'uploaded incomplete. Paste the whole exported file over it — from the first ' +
+      'line to the last — then refresh.</span>';
+
+    const grid = document.getElementById('grid');
+    if (grid && grid.parentNode) grid.parentNode.insertBefore(notice, grid);
+    else document.body.insertBefore(notice, document.body.firstChild);
+  }
+
+  // A readable page beats a half-painted one: if anything in the wiring throws,
+  // fall back the same way as a missing catalogue.
+  whenReady(() => {
+    try { init(); } catch (err) { degrade(err); }
+  });
 })();

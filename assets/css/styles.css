@@ -633,6 +633,22 @@ svg:not(.brand-mark):not([data-fill]) {
 .empty h3 { margin-bottom: 6px; color: var(--text); }
 .empty .btn { margin-top: 18px; }
 
+/* Shown only if data.js failed to load — see the safety net at the end of app.js */
+.data-error {
+  display: grid; gap: 8px; padding: 22px 24px; border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+  color: var(--text);
+}
+.data-error strong { font-size: 1.05rem; }
+.data-error-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.data-error span { color: var(--text-soft); font-size: .94rem; }
+.data-error-owner { font-size: .86rem !important; }
+.data-error code {
+  padding: 1px 6px; border-radius: 6px; font-size: .92em;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
 .note { margin-top: 32px; font-size: .9rem; color: var(--text-faint); }
 .note a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 
@@ -1334,7 +1350,10 @@ svg:not(.brand-mark):not([data-fill]) {
 @keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.985); } }
 @keyframes slide-in { from { transform: translateX(100%); } }
 
-.reveal { opacity: 0; transform: translateY(18px); }
+/* Only hidden once we know scripts are running (index.html adds `js` to <html>).
+   Without that guard a single broken line in data.js would leave every section
+   invisible — a blank page instead of a plain one. */
+.js .reveal { opacity: 0; transform: translateY(18px); }
 .reveal.in {
   opacity: 1; transform: none;
   transition: opacity .7s var(--ease), transform .7s var(--ease);
@@ -1678,7 +1697,7 @@ html.lite .card:hover .card-media img { transform: none; }
     animation-duration: .001ms !important; animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
   }
-  .reveal { opacity: 1; transform: none; }
+  .js .reveal { opacity: 1; transform: none; }
 }
 
 @media print {

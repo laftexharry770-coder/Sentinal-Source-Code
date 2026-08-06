@@ -32,10 +32,10 @@
   --warn-chip-fg:  #26200a;
 
   /* Ambient wash sitting behind the whole page */
-  --amb-1:         color-mix(in srgb, var(--accent) 16%, transparent);
-  --amb-2:         color-mix(in srgb, var(--whatsapp) 12%, transparent);
-  --amb-3:         color-mix(in srgb, #7c5cff 13%, transparent);
-  --amb-4:         color-mix(in srgb, #ff8a3d 8%, transparent);
+  --amb-1:         color-mix(in srgb, var(--accent) 20%, transparent);
+  --amb-2:         color-mix(in srgb, var(--whatsapp) 16%, transparent);
+  --amb-3:         color-mix(in srgb, #7c5cff 17%, transparent);
+  --amb-4:         color-mix(in srgb, #ff8a3d 11%, transparent);
   --amb-section:   color-mix(in srgb, var(--accent) 10%, transparent);
   --amb-grain:     .028;
   --sheen-top:     inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent);
@@ -88,7 +88,7 @@
   --amb-2:         color-mix(in srgb, var(--whatsapp) 15%, transparent);
   --amb-3:         color-mix(in srgb, #8b6cff 24%, transparent);
   --amb-4:         color-mix(in srgb, #ff7a3d 12%, transparent);
-  --amb-section:   color-mix(in srgb, var(--accent) 20%, transparent);
+  --amb-section:   color-mix(in srgb, var(--accent) 30%, transparent);
   --amb-grain:     .05;
   --sheen-top:     inset 0 1px 0 rgba(255, 255, 255, .045);
   --shadow-sm:     0 1px 2px rgba(0, 0, 0, .4);
@@ -450,8 +450,8 @@ svg:not(.brand-mark):not([data-fill]) {
   position: relative;
   background:
     linear-gradient(180deg,
-      color-mix(in srgb, var(--bg-alt) 88%, transparent),
-      color-mix(in srgb, var(--bg-alt) 96%, transparent));
+      color-mix(in srgb, var(--bg-alt) 74%, transparent),
+      color-mix(in srgb, var(--bg-alt) 88%, transparent));
   border-block: 1px solid var(--line);
 }
 /* Hairline of light along the top edge, the way lit surfaces meet */
@@ -463,6 +463,11 @@ svg:not(.brand-mark):not([data-fill]) {
   opacity: .5;
 }
 [data-theme="dark"] .section-alt::before { opacity: .07; }
+[data-theme="dark"] .section-alt {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bg-alt) 62%, transparent),
+    color-mix(in srgb, var(--bg-alt) 80%, transparent));
+}
 
 .section-head {
   display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
@@ -965,7 +970,21 @@ svg:not(.brand-mark):not([data-fill]) {
 .foot-row .btn { flex: 1; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
-.site-footer { padding-top: 56px; background: var(--bg-alt); border-top: 1px solid var(--line); }
+.site-footer {
+  position: relative; isolation: isolate;
+  padding-top: 56px; border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-alt) 78%, transparent);
+}
+[data-theme="dark"] .site-footer { background: color-mix(in srgb, var(--bg-alt) 64%, transparent); }
+/* The page used to end in flat colour; now it closes on its own light. */
+.site-footer::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60% 70% at 15% 0%, var(--amb-section), transparent 74%),
+    radial-gradient(55% 60% at 88% 40%, var(--amb-3), transparent 76%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 100%);
+}
 .footer-inner { display: grid; gap: 36px; grid-template-columns: 1.2fr 1fr; padding-bottom: 40px; }
 .footer-brand p { margin-top: 12px; max-width: 34ch; font-size: .89rem; color: var(--text-soft); }
 .footer-brand .status-pill { margin-top: 14px; }
@@ -1563,14 +1582,27 @@ body.has-compare .toast { bottom: 96px; }
   body::before, body::after { display: none !important; }
 
   html {
+    /* Painted into the page rather than fixed over it, so it costs nothing to
+       scroll — but a single wash over a 9,000px document leaves everything
+       below the first screen flat. So each colour tiles down the page on its
+       own cycle; because the cycles are different lengths (137vh, 179vh,
+       223vh, 101vh) they never line up, and the light keeps shifting the
+       whole way down instead of looking like wallpaper. */
     background:
-      radial-gradient(70% 20% at 6% 1%,   var(--amb-1), transparent 72%),
-      radial-gradient(65% 16% at 98% 9%,  var(--amb-3), transparent 74%),
-      radial-gradient(70% 14% at 84% 30%, var(--amb-2), transparent 76%),
-      radial-gradient(60% 12% at 10% 52%, var(--amb-1), transparent 76%),
-      radial-gradient(70% 14% at 70% 74%, var(--amb-3), transparent 76%),
+      radial-gradient(135% 78% at 2% 22%,   var(--amb-1), transparent 82%),
+      radial-gradient(130% 72% at 100% 48%, var(--amb-3), transparent 82%),
+      radial-gradient(135% 70% at 70% 76%,  var(--amb-2), transparent 84%),
+      radial-gradient(120% 62% at 8% 58%,   var(--amb-4), transparent 84%),
+      radial-gradient(125% 65% at 52% 30%,  var(--amb-1), transparent 84%),
       var(--bg);
-    background-repeat: no-repeat;
+    background-size:
+      100% 82vh,
+      100% 119vh,
+      100% 151vh,
+      100% 97vh,
+      100% 173vh,
+      auto;
+    background-repeat: repeat-y;
     background-attachment: scroll;
   }
 

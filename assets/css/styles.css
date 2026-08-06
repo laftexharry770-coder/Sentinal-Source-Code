@@ -32,9 +32,11 @@
   --warn-chip-fg:  #26200a;
 
   /* Ambient wash sitting behind the whole page */
-  --amb-1:         color-mix(in srgb, var(--accent) 9%, transparent);
-  --amb-2:         color-mix(in srgb, var(--whatsapp) 7%, transparent);
-  --amb-3:         color-mix(in srgb, #7c5cff 6%, transparent);
+  --amb-1:         color-mix(in srgb, var(--accent) 16%, transparent);
+  --amb-2:         color-mix(in srgb, var(--whatsapp) 12%, transparent);
+  --amb-3:         color-mix(in srgb, #7c5cff 13%, transparent);
+  --amb-4:         color-mix(in srgb, #ff8a3d 8%, transparent);
+  --amb-section:   color-mix(in srgb, var(--accent) 10%, transparent);
   --amb-grain:     .028;
   --sheen-top:     inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent);
   --shadow-sm:     0 1px 2px rgba(16, 18, 22, .05), 0 1px 3px rgba(16, 18, 22, .04);
@@ -82,9 +84,11 @@
   --warn-chip:     #f0b429;
   --warn-chip-fg:  #26200a;
 
-  --amb-1:         color-mix(in srgb, var(--accent) 13%, transparent);
-  --amb-2:         color-mix(in srgb, var(--whatsapp) 8%, transparent);
-  --amb-3:         color-mix(in srgb, #8b6cff 11%, transparent);
+  --amb-1:         color-mix(in srgb, var(--accent) 26%, transparent);
+  --amb-2:         color-mix(in srgb, var(--whatsapp) 15%, transparent);
+  --amb-3:         color-mix(in srgb, #8b6cff 24%, transparent);
+  --amb-4:         color-mix(in srgb, #ff7a3d 12%, transparent);
+  --amb-section:   color-mix(in srgb, var(--accent) 20%, transparent);
   --amb-grain:     .05;
   --sheen-top:     inset 0 1px 0 rgba(255, 255, 255, .045);
   --shadow-sm:     0 1px 2px rgba(0, 0, 0, .4);
@@ -126,11 +130,12 @@ body {
 body::before {
   content: ""; position: fixed; inset: -12%; z-index: -2; pointer-events: none;
   background:
-    radial-gradient(42% 32% at 10% 4%,  var(--amb-1), transparent 70%),
-    radial-gradient(36% 28% at 90% 18%, var(--amb-3), transparent 72%),
-    radial-gradient(40% 32% at 78% 74%, var(--amb-2), transparent 72%),
-    radial-gradient(34% 26% at 16% 62%, var(--amb-1), transparent 74%),
-    radial-gradient(30% 24% at 50% 106%, var(--amb-3), transparent 74%);
+    radial-gradient(48% 38% at 8% 0%,   var(--amb-1), transparent 72%),
+    radial-gradient(42% 34% at 94% 12%, var(--amb-3), transparent 74%),
+    radial-gradient(46% 36% at 82% 70%, var(--amb-2), transparent 74%),
+    radial-gradient(40% 32% at 12% 58%, var(--amb-1), transparent 76%),
+    radial-gradient(34% 26% at 58% 34%, var(--amb-4), transparent 76%),
+    radial-gradient(38% 30% at 46% 104%, var(--amb-3), transparent 76%);
   /* Deliberately static. Animating a full-viewport gradient forced a repaint
      of the whole screen every frame — it cost about 35ms of every scroll frame
      for movement nobody could point at. The life in the page comes from the
@@ -364,13 +369,26 @@ svg:not(.brand-mark):not([data-fill]) {
 .hero-inner { position: relative; z-index: 1; max-width: 900px; }
 
 .hero-glow {
-  position: absolute; inset: -30% 0 auto -10%; height: 880px; pointer-events: none;
+  position: absolute; inset: -30% 0 auto -10%; height: 920px; pointer-events: none;
+  /* The lower blobs would otherwise be cut off square where the box ends,
+     leaving a visible seam across the page. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 96%);
+  mask-image: linear-gradient(to bottom, #000 62%, transparent 96%);
   background:
-    radial-gradient(46% 36% at 22% 26%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%),
-    radial-gradient(40% 30% at 78% 14%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 70%),
+    radial-gradient(48% 38% at 20% 22%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%),
+    radial-gradient(42% 32% at 80% 10%, color-mix(in srgb, #7c5cff 24%, transparent), transparent 70%),
     /* sits behind the glass search bar, so there is something for it to refract */
-    radial-gradient(34% 22% at 34% 62%, color-mix(in srgb, var(--whatsapp) 13%, transparent), transparent 72%),
-    radial-gradient(30% 20% at 62% 70%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 72%);
+    radial-gradient(36% 24% at 32% 60%, color-mix(in srgb, var(--whatsapp) 20%, transparent), transparent 72%),
+    radial-gradient(32% 22% at 64% 68%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 72%),
+    radial-gradient(26% 18% at 52% 34%, color-mix(in srgb, #ff8a3d 12%, transparent), transparent 74%);
+}
+[data-theme="dark"] .hero-glow {
+  background:
+    radial-gradient(48% 38% at 20% 22%, color-mix(in srgb, var(--accent) 34%, transparent), transparent 70%),
+    radial-gradient(42% 32% at 80% 10%, color-mix(in srgb, #8b6cff 30%, transparent), transparent 70%),
+    radial-gradient(36% 24% at 32% 60%, color-mix(in srgb, var(--whatsapp) 20%, transparent), transparent 72%),
+    radial-gradient(32% 22% at 64% 68%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 72%),
+    radial-gradient(26% 18% at 52% 34%, color-mix(in srgb, #ff7a3d 14%, transparent), transparent 74%);
 }
 
 /* The business name, said plainly, before anything else on the page */
@@ -401,7 +419,31 @@ svg:not(.brand-mark):not([data-fill]) {
 .hero-stats span { font-size: .85rem; color: var(--text-faint); }
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
-.section { padding: clamp(56px, 8vw, 100px) 0; }
+.section { position: relative; isolation: isolate; padding: clamp(56px, 8vw, 100px) 0; }
+
+/* Each section rises out of its own pool of light, so the page has depth as
+   you scroll rather than being one flat sheet. Painted once with the section —
+   nothing is fixed, nothing repaints while scrolling. */
+.section::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  /* Kept inside the page: an absolutely positioned glow hanging past the edges
+     gives a phone 59px of sideways scroll. */
+  inset: -6% 0 auto 0; height: 72%;
+  background: radial-gradient(46% 100% at 50% 0%, var(--amb-section), transparent 72%);
+  /* These pools are brightest at the top edge of their box, so without a mask
+     the box boundary itself shows as a hard line across the page. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 55%, transparent 96%);
+  mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 55%, transparent 96%);
+}
+.section:nth-of-type(even)::after {
+  background: radial-gradient(52% 100% at 32% 4%,
+    color-mix(in srgb, var(--amb-3) 85%, transparent), transparent 74%);
+}
+#contact::after {
+  background:
+    radial-gradient(44% 90% at 76% 2%, var(--amb-2), transparent 72%),
+    radial-gradient(40% 80% at 20% 10%, var(--amb-section), transparent 74%);
+}
 
 /* Alternating bands are translucent, so the ambience shows through them */
 .section-alt {
@@ -1411,6 +1453,11 @@ body.has-compare .toast { bottom: 96px; }
   .header-inner { gap: 10px; }
   .install-btn span, .search-trigger span, .search-trigger .kbd-hint { display: none; }
   .install-btn, .search-trigger { padding: 10px 12px; }
+  /* The tagline pill spanned two full lines on a phone; the third clause is
+     the one the headline already says. */
+  .eyebrow-more { display: none; }
+  .eyebrow { font-size: .72rem; padding: 5px 12px; }
+  h1 { font-size: clamp(2.05rem, 8.6vw, 4.2rem); }
   .hero-search { margin-top: 24px; padding: 13px 16px; }
   .hero-search .kbd-hint { display: none; }
   .search-panel { width: 100%; max-height: 100%; height: 100%; margin: 0; border-radius: 0; border: 0; }
@@ -1517,9 +1564,11 @@ body.has-compare .toast { bottom: 96px; }
 
   html {
     background:
-      radial-gradient(60% 22% at 8% 2%,  var(--amb-1), transparent 70%),
-      radial-gradient(55% 18% at 95% 12%, var(--amb-3), transparent 72%),
-      radial-gradient(60% 16% at 80% 42%, var(--amb-2), transparent 74%),
+      radial-gradient(70% 20% at 6% 1%,   var(--amb-1), transparent 72%),
+      radial-gradient(65% 16% at 98% 9%,  var(--amb-3), transparent 74%),
+      radial-gradient(70% 14% at 84% 30%, var(--amb-2), transparent 76%),
+      radial-gradient(60% 12% at 10% 52%, var(--amb-1), transparent 76%),
+      radial-gradient(70% 14% at 70% 74%, var(--amb-3), transparent 76%),
       var(--bg);
     background-repeat: no-repeat;
     background-attachment: scroll;

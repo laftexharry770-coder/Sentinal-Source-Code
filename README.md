@@ -101,7 +101,7 @@ There is **no link to it anywhere on the site.** You reach it by typing the
 secret address:
 
 ```
-https://yoursite.com/#manage-homcom
+https://homcomtech.com/#manage-homcom
 ```
 
 then entering the code. Both are yours to change, at the bottom of `SITE`:
@@ -248,11 +248,9 @@ it on any of these and it's up around the clock, free, with HTTPS included:
   3. **Build and deployment → Source: Deploy from a branch.**
   4. Branch **main**, folder **/ (root)** → **Save**.
 
-  A minute later the site is at
-  `https://laftexharry770-coder.github.io/Sentinal-Source-Code/`, and every
-  future push to `main` republishes it. No build step, no workflow to maintain.
-  The empty `.nojekyll` file tells GitHub to serve the files as they are rather
-  than running them through its blog engine first.
+  Every future push to `main` republishes it. No build step, no workflow to
+  maintain. The empty `.nojekyll` file tells GitHub to serve the files as they
+  are rather than running them through its blog engine first.
 
 - **Netlify** or **Cloudflare Pages** — connect the repo, or drag the folder
   onto their dashboard. No build command, no output directory.
@@ -269,10 +267,36 @@ network at all.
 `CACHE_VERSION` at the top of `service-worker.js` (`homcom-v2` → `homcom-v3`).
 That tells phones which already have the site saved to fetch the new files.
 
-### A custom domain
+### The domain: homcomtech.com
 
-Buy the domain, then point it at whichever host you chose — each has a one-page
-guide. For GitHub Pages, add a file called `CNAME` containing just your domain.
+The `CNAME` file in the repository root already says `homcomtech.com`, which is
+how GitHub is told which address the site answers to. **Two things have to be
+true before that address works**, and neither of them is code:
+
+**1. You own homcomtech.com.** Buy it from any registrar (Truehost, Safaricom
+Domains, Namecheap, GoDaddy — anywhere).
+
+**2. The domain points at GitHub.** In your registrar's DNS panel add these
+exact records:
+
+| Type | Name / Host | Value |
+| --- | --- | --- |
+| A | `@` | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+| CNAME | `www` | `laftexharry770-coder.github.io.` |
+
+Then in **Settings → Pages → Custom domain**, confirm `homcomtech.com` and tick
+**Enforce HTTPS** once the certificate is issued (that can take up to an hour;
+the tick box stays greyed out until it is ready).
+
+DNS changes usually take 15 minutes to a few hours to spread.
+
+> **Until both of those are done, the `CNAME` file makes the site unreachable** —
+> GitHub redirects the `github.io` address to a domain that doesn't answer yet.
+> If you need the site live before the domain is sorted, delete the `CNAME`
+> file and the old address works again immediately.
 
 ---
 

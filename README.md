@@ -72,7 +72,7 @@ puts the pin on your door rather than on the street.
 
 ```js
 hours: {
-  mon: ['07:00', '22:00'], ... sat: ['08:00', '09:00'], sun: ['10:00', '17:00']
+  mon: ['07:00', '20:00'], ... sat: ['08:00', '09:00'], sun: ['10:00', '17:00']
 },
 ```
 
@@ -84,7 +84,7 @@ contactHours: ['08:00', '20:00'],
 contactNote:  'Calls, texts, WhatsApp and emails are answered between 8am and 8pm, every day…',
 ```
 
-Both are live on the page. The header badge says "Open now · closes 10pm"; every
+Both are live on the page. The header badge says "Open now · closes 8pm"; every
 phone and WhatsApp card says "Answering now · until 8pm" or "Outside contact
 hours · we reply from 8am". They recompute every minute, in Nairobi time, so
 they stay right for a customer browsing from anywhere.

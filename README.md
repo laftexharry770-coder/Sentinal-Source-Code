@@ -269,19 +269,30 @@ That tells phones which already have the site saved to fetch the new files.
 
 ### The domain: homcomtech.com
 
-The domain is prepared but **not switched on yet**. The file that does it is
-sitting in the repository root as **`CNAME.ready`**, containing
-`homcomtech.com`. Renaming it to plain **`CNAME`** is the switch — GitHub reads
-that file to learn which address the site answers to.
+The domain is **live**. Pages is on, `CNAME` in the repository root says
+`homcomtech.com`, and GitHub rebuilds the site on every push to `main`. The
+`github.io` address now redirects to the custom domain.
 
-It is parked rather than live because **two things have to be true first**, and
-neither of them is code:
+`homcomtech.com` is registered and its DNS points at **Cloudflare**. That is a
+perfectly good setup — Cloudflare sits in front and passes traffic to GitHub —
+but it has two well-known snags worth knowing about:
 
-**1. You own homcomtech.com.** Buy it from any registrar (Truehost, Safaricom
-Domains, Namecheap, GoDaddy — anywhere).
+**"Enforce HTTPS" stays greyed out in Settings → Pages.** GitHub issues the
+certificate by answering a challenge on your domain, and it cannot do that
+while Cloudflare is proxying (the orange cloud). The fix:
 
-**2. The domain points at GitHub.** In your registrar's DNS panel add these
-exact records:
+1. In Cloudflare → DNS, click the orange cloud on the `homcomtech.com` and
+   `www` records so they go grey (DNS only).
+2. Wait a few minutes, then in GitHub → Settings → Pages, remove and re-enter
+   the domain. The certificate is usually issued within the hour.
+3. Tick **Enforce HTTPS**, then turn the orange cloud back on if you want
+   Cloudflare's caching.
+
+**A redirect loop ("too many redirects").** If Cloudflare's SSL mode is
+*Flexible*, it talks to GitHub over plain HTTP while GitHub redirects to HTTPS,
+and the two bounce forever. In Cloudflare → SSL/TLS set the mode to **Full**.
+
+If you would rather skip Cloudflare entirely, point the DNS straight at GitHub:
 
 | Type | Name / Host | Value |
 | --- | --- | --- |
@@ -291,21 +302,8 @@ exact records:
 | A | `@` | `185.199.111.153` |
 | CNAME | `www` | `laftexharry770-coder.github.io.` |
 
-Then in **Settings → Pages → Custom domain**, confirm `homcomtech.com` and tick
-**Enforce HTTPS** once the certificate is issued (that can take up to an hour;
-the tick box stays greyed out until it is ready).
-
-DNS changes usually take 15 minutes to a few hours to spread.
-
-> **Flip the switch only after both are done.** A live `CNAME` file pointing at
-> a domain that doesn't answer yet makes the site unreachable — GitHub
-> redirects the `github.io` address to it and the redirect goes nowhere. That
-> is why it is parked as `CNAME.ready`.
->
-> To switch over: rename `CNAME.ready` to `CNAME` (on GitHub: open the file →
-> pencil → change the filename in the box at the top → Commit).
-> To undo at any time: rename it back, and the `github.io` address works again
-> within a minute.
+To go back to the `github.io` address at any time, delete the `CNAME` file and
+clear the custom domain in Settings → Pages.
 
 ---
 

@@ -115,7 +115,14 @@
     p.wasPrice = p.wasPrice === '' || p.wasPrice == null ? null : Number(p.wasPrice);
     p.stock = STOCK[p.stock] ? p.stock : 'in';
     p.specs = p.specs && typeof p.specs === 'object' ? p.specs : {};
+    p.updated = Number(p.updated) || null;   // when the shop last changed it
     return p;
+  }
+
+  /** Mark a product as just changed, so it moves to the front of its category. */
+  function touch(product) {
+    if (product) product.updated = Date.now();
+    return product;
   }
 
   let catalogue  = [];
@@ -515,11 +522,23 @@
     });
 
     const price = (p) => (p.price == null ? Infinity : Number(p.price));
+    if (state.sort === 'featured')   list = byNewestChange(list);
     if (state.sort === 'price-asc')  list = list.slice().sort((a, b) => price(a) - price(b));
     if (state.sort === 'price-desc') list = list.slice().sort((a, b) => price(b) - price(a));
     if (state.sort === 'name')       list = list.slice().sort((a, b) => a.name.localeCompare(b.name));
     if (state.sort === 'discount')   list = list.slice().sort((a, b) => discount(b) - discount(a));
     return list;
+  }
+
+  /* Anything the shop has just added, re-priced or changed the stock on comes
+     first — in whichever category you are looking at, since the list is already
+     filtered by the time it gets here. Products that have never been edited
+     keep the order they have in data.js, below the recent ones. */
+  function byNewestChange(list) {
+    const original = new Map(catalogue.map((p, i) => [p.id, i]));
+    return list.slice().sort((a, b) =>
+      (b.updated || 0) - (a.updated || 0) ||
+      (original.get(a.id) - original.get(b.id)));
   }
 
   function priceHTML(p) {
@@ -1459,8 +1478,25 @@
       '</div>' + groups;
   }
 
+  /** "just now", "3 hours ago", "12 Jul" — only ever shown in the Manage panel. */
+  function editedLabel(product) {
+    if (!product.updated) return '';
+    const mins = Math.round((Date.now() - product.updated) / 60000);
+    if (mins < 1)  return 'just now';
+    if (mins < 60) return mins + (mins === 1 ? ' minute ago' : ' minutes ago');
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+    const days = Math.round(hours / 24);
+    if (days < 30) return days + (days === 1 ? ' day ago' : ' days ago');
+    try {
+      return new Date(product.updated)
+        .toLocaleDateString(SITE.locale || 'en-KE', { day: 'numeric', month: 'short' });
+    } catch (e) { return ''; }
+  }
+
   function manageRow(p) {
     const off = discount(p);
+    const edited = editedLabel(p);
     return '<div class="manage-row">' +
       '<span class="line-media">' + media(p, 'ph') + '</span>' +
       '<span class="line-info">' +
@@ -1469,6 +1505,8 @@
           (p.spin && p.spin.length > 1 ? '<span class="row-flag alt">360°</span>' : '') +
           (p.images && p.images.length ? '<span class="row-flag alt">' + p.images.length + ' photo' +
             (p.images.length === 1 ? '' : 's') + '</span>' : '') +
+          (edited ? '<span class="row-flag time" title="Shows first in its category">Edited ' +
+            esc(edited) + '</span>' : '') +
         '</strong>' +
         '<span class="manage-controls">' +
           '<label class="price-field" title="Selling price">' + esc(SITE.currency) +
@@ -1621,6 +1659,7 @@
       images: state.draft ? state.draft.images : [],
       spin: state.draft ? state.draft.spin : []
     });
+    touch(product);
 
     if (product.wasPrice && product.price && product.wasPrice <= product.price) {
       toast('The old price must be higher than the price now — offer not applied');
@@ -1667,6 +1706,7 @@
       product.wasPrice = null;
       toast('The old price must be higher than the price now');
     }
+    touch(product);
     saveShop();
     refreshCatalogueViews();
     paintManage();
@@ -1676,6 +1716,7 @@
     const product = byId(id);
     if (!product) return;
     product.stock = value;
+    touch(product);
     saveShop();
     refreshCatalogueViews();
     const select = $('[data-stock="' + id + '"]');

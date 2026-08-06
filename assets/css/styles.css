@@ -902,6 +902,11 @@ svg:not(.brand-mark):not([data-fill]) {
   background: var(--offer); color: var(--offer-fg); font-size: .66rem; font-weight: 650; letter-spacing: .03em;
 }
 .row-flag.alt { background: var(--surface-2); color: var(--text-faint); border: 1px solid var(--line); }
+/* Marks a product that has just been changed, and so leads its category. */
+.row-flag.time {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
 
 .price-field.was { color: var(--text-faint); }
 .price-field.was input { width: 62px; font-weight: 400; }

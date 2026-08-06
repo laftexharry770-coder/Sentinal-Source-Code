@@ -340,6 +340,35 @@ Everything the panel does can be done in the file directly:
 New categories go in `CATEGORIES`; new repair services go in `SERVICES`. A
 category with nothing in it is hidden from customers automatically.
 
+### Publishing without breaking anything
+
+**Use "Download data.js", not "Copy instead."** GitHub's editor inserts
+where your cursor is rather than replacing what is already there, so pasting
+a fresh export over the old file can leave the old one sitting underneath.
+The browser then cannot read the file at all. Uploading the downloaded file
+replaces the whole thing, so it cannot happen.
+
+If it does happen anyway, four things now stand between that and a broken
+shop:
+
+1. **It repairs itself.** A check runs on GitHub after every change. If it
+   finds the old copy left underneath the new one, it removes the leftovers,
+   keeps everything you uploaded, and commits the repair — usually within a
+   minute, without you doing anything.
+2. **Everything gets checked.** The same run reads the whole site: every
+   script parses, every product has a name and a real category, every photo
+   exists, the offer prices make sense, the phone numbers and emails look
+   right, and nothing points at a missing file. A green tick on your commit
+   means the site is sound; a red cross tells you exactly what is wrong.
+   Run it yourself any time with `node tools/check-site.js`.
+3. **The page still works.** If the catalogue cannot load, the site does not
+   go blank. It fetches a fresh copy once, and if that fails too it shows the
+   shop name, both numbers, the repair desk, the email, the hours and the map
+   — everything a customer needs to reach you — plus a note telling you what
+   to re-upload.
+4. **A stale phone repairs itself.** A device holding an old copy is offered
+   a one-tap "Reload it", and new versions load themselves from now on.
+
 ---
 
 ## 8. Search

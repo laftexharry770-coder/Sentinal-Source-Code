@@ -16,7 +16,7 @@
    see which version a phone is actually running.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v11';
+const CACHE_VERSION = 'homcom-v12';
 const SHELL = [
   './',
   './index.html',

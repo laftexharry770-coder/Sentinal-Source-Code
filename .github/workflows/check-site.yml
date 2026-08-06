@@ -1,0 +1,65 @@
+# =============================================================================
+# Runs on GitHub every time anything in the website changes.
+#
+#   1. If data.js was pasted in half — the old copy left sitting underneath the
+#      new one — this repairs it and commits the repair, so the shop is back
+#      within about a minute without anyone having to do anything.
+#   2. Then it checks the whole site: every script parses, every product has a
+#      name, a price and a real category, every photo exists, the contact
+#      details look like contact details, and nothing points at a missing file.
+#
+# A green tick next to a commit means the site is sound. A red cross means
+# something needs fixing, and the log says exactly what and where.
+# =============================================================================
+name: Check the site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: check-site-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Repair a half-pasted data.js
+        id: repair
+        run: node tools/repair-data.js
+
+      # Only pushes when the repair actually changed something. Commits made
+      # with the built-in token do not start this workflow again, so there is
+      # no chance of a loop.
+      - name: Publish the repair
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- assets/js/data.js; then
+            echo "Nothing to publish."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/js/data.js
+          git commit -m "Repair a half-pasted data.js
+
+          The upload left the previous version of the file underneath the new
+          one, which the browser cannot read. Kept the complete export and
+          removed the leftovers. Every product, price and photo in the upload
+          is preserved."
+          git push
+
+      - name: Check the whole site
+        run: node tools/check-site.js

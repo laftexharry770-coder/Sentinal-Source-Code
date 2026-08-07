@@ -565,8 +565,14 @@ svg:not(.brand-mark):not([data-fill]) {
 .card-media .ph svg { width: 100%; height: auto; stroke-width: 1.2; }
 .card:hover .card-media .ph { transform: scale(1.06) translateY(-2px); }
 
+/* z-index is deliberate, not decoration. The photo sits after this badge in
+   the markup, and on hover it gets a transform — which lifts it into the same
+   painting stage as this positioned badge, where later-in-the-document wins.
+   Browsers vary in how they resolve that, so the badge says where it belongs
+   rather than relying on paint order to be kind. */
 .tag {
-  position: absolute; top: 12px; left: 12px; padding: 5px 11px; border-radius: 999px;
+  position: absolute; top: 12px; left: 12px; z-index: 2;
+  padding: 5px 11px; border-radius: 999px;
   background: var(--text); color: var(--bg);
   font-size: .68rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
 }
@@ -575,7 +581,7 @@ svg:not(.brand-mark):not([data-fill]) {
 .tag.offer { background: var(--offer); color: var(--offer-fg); letter-spacing: .03em; }
 
 .spin-badge {
-  position: absolute; top: 12px; right: 12px; z-index: 1;
+  position: absolute; top: 12px; right: 12px; z-index: 2;   /* same reason as .tag */
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 9px; border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 86%, transparent);
@@ -612,6 +618,9 @@ svg:not(.brand-mark):not([data-fill]) {
 .card-tools { display: flex; gap: 7px; flex: none; }
 .price { font-size: 1.02rem; font-weight: 600; letter-spacing: -0.02em; }
 .price small { display: block; font-size: .72rem; font-weight: 400; color: var(--text-faint); letter-spacing: 0; }
+/* The saving in words, then the same thing as a percentage, in the offer
+   colour so it reads as one figure rather than two separate notes. */
+.price .save .off { color: var(--offer); font-weight: 650; white-space: nowrap; }
 .card-add {
   display: grid; place-items: center; width: 36px; height: 36px; flex: none;
   border-radius: 50%; border: 1px solid var(--line-strong); background: transparent;
@@ -837,6 +846,10 @@ svg:not(.brand-mark):not([data-fill]) {
   font-size: 1rem; line-height: 1; padding: 0 2px;
 }
 .compare-pick button:hover { color: var(--danger); }
+.compare-pick .pick-off {
+  flex: none; font-style: normal; font-size: .7rem; font-weight: 650;
+  color: var(--offer); white-space: nowrap;
+}
 .compare-hint { flex: none; font-size: .8rem; color: var(--text-faint); }
 .compare-bar-actions { display: flex; gap: 8px; flex: none; }
 
@@ -1363,6 +1376,10 @@ svg:not(.brand-mark):not([data-fill]) {
 .line-info { flex: 1; min-width: 0; }
 .line-info strong { display: block; font-size: .9rem; font-weight: 550; }
 .line-info span { font-size: .82rem; color: var(--text-faint); }
+.line-info s { color: var(--text-faint); opacity: .8; }
+.line-info .line-off {
+  font-style: normal; font-weight: 650; color: var(--offer); white-space: nowrap;
+}
 .line-remove {
   width: 30px; height: 30px; flex: none; border: 1px solid var(--line); border-radius: 50%;
   background: transparent; color: var(--text-faint); cursor: pointer;

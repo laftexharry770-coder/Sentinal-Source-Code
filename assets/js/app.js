@@ -100,7 +100,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v16';
+  const BUILD = 'v17';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -609,11 +609,16 @@
 
   function priceHTML(p) {
     const off = discount(p);
+    /* The percentage is repeated here, next to the price, and not left only to
+       the badge on the photo — that badge can be missed, sits away from the
+       number it refers to, and is the first thing to go if anything paints
+       over the image. */
     return '<span class="price">' +
       (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') +
       esc(money(p.price)) +
       (p.price != null
-        ? (off ? '<small class="save">save ' + esc(money(saving(p))) + '</small>'
+        ? (off ? '<small class="save">save ' + esc(money(saving(p))) +
+                   ' <span class="off">−' + off + '%</span></small>'
                : '<small class="vat">incl. VAT</small>')
         : '') +
     '</span>';
@@ -1225,6 +1230,7 @@
       '<span class="compare-pick">' +
         '<span class="pick-media">' + media(p, 'ph') + '</span>' +
         '<span>' + esc(p.name) + '</span>' +
+        (discount(p) ? '<em class="pick-off">−' + discount(p) + '%</em>' : '') +
         '<button type="button" data-compare="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + ' from comparison">&times;</button>' +
       '</span>').join('') +
       (items.length < 2 ? '<span class="compare-hint">Pick one more to compare</span>' : '');
@@ -1398,15 +1404,20 @@
       return;
     }
 
-    body.innerHTML = items.map((p) =>
-      '<div class="line-item">' +
+    body.innerHTML = items.map((p) => {
+      const off = discount(p);
+      return '<div class="line-item">' +
         '<span class="line-media">' + media(p, 'ph') + '</span>' +
         '<span class="line-info">' +
           '<strong>' + esc(p.name) + '</strong>' +
-          '<span>' + esc(money(p.price)) + '</span>' +
+          // What they are saving belongs on the list they are about to send.
+          '<span>' + (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') +
+            esc(money(p.price)) +
+            (off ? ' <em class="line-off">−' + off + '%</em>' : '') + '</span>' +
         '</span>' +
         '<button class="line-remove" type="button" data-add="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + '">&times;</button>' +
-      '</div>').join('');
+      '</div>';
+    }).join('');
 
     foot.innerHTML =
       '<div class="drawer-total"><span>' + items.length + ' item' + (items.length === 1 ? '' : 's') +

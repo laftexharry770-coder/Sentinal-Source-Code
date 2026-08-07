@@ -147,6 +147,36 @@ did not help form.
 
 These are standard textbook entries — a tunable starting point, not an edge.
 
+## Bar-close vs intrabar entries
+
+`InpIntrabarSignals` decides which candle the rules read.
+
+**`false` (default) — bar close.** Rules read candle 1, the last *closed* one.
+A signal here is settled: it cannot be taken back. Entry happens on the first
+tick after the candle closes, so on an M15 chart the bot can wait up to 15
+minutes before acting on a move.
+
+**`true` — intrabar.** Rules read candle 0, the one currently forming, and every
+tick is a chance to enter. Reaction is immediate.
+
+The cost is real and worth understanding. On a forming candle an EMA cross can
+appear, then vanish before the candle closes, because the current price is still
+moving. The bot will have already traded on a signal that, in hindsight, never
+happened — the chart afterwards shows no cross at all. Whipsaw in a choppy
+market is the usual outcome.
+
+Two consequences:
+
+- Entries are capped at **one per candle**, so a value flickering across a
+  threshold cannot fire repeated orders.
+- **Backtests become unreliable as a guide.** The Strategy Tester models
+  intrabar ticks approximately, so a backtest with this on will not match live
+  results the way a bar-close test does. Numbers you gathered at bar close do
+  not transfer.
+
+Reversal exits and trailing stops already run every tick in both modes — that
+part was never waiting for a candle.
+
 ## Status panel
 
 | State | Meaning |

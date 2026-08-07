@@ -96,6 +96,7 @@ input double InpADXMin           = 20.0;   // Min ADX to trade
 input bool   InpCloseOnReverse   = true;   // Close position when trend flips
 
 input group "=== Entry ==="
+input bool   InpIntrabarSignals  = false;  // React inside the candle (faster, signals can flip)
 input EDirection InpDirection    = DIR_BOTH;        // Allowed trade direction
 input EStrategy InpStrategy      = STRAT_EMA_CROSS; // Entry strategy
 input int    InpFastEMA          = 12;     // EMA cross: fast period
@@ -145,6 +146,7 @@ CPositionInfo  position;
 double   g_startBalance    = 0.0;
 bool     g_halted          = false;
 datetime g_lastBar         = 0;
+datetime g_lastEntryBar    = 0;     // caps entries at one per candle
 
 double   g_dayStartBalance = 0.0;   // balance at the start of the current day
 datetime g_dayStamp        = 0;     // which day that was
@@ -186,6 +188,11 @@ int OnInit()
 
    if(!CreateIndicators())
       return(INIT_FAILED);
+
+   if(InpIntrabarSignals)
+      Print("Sentinal: INTRABAR mode — rules read the forming candle. Entries are "
+            "faster but a signal can appear and then vanish before the candle closes, "
+            "so live results will differ from a bar-close backtest.");
 
    if(InpShowPanel)
       PanelUpdate();
@@ -359,7 +366,12 @@ void OnTick()
                      InpTargetProfitPct, gainPct);
         }
      }
-   if(!IsNewBar())
+   bool newBar = IsNewBar();
+
+   // In bar-close mode nothing is re-evaluated mid-candle. In intrabar
+   // mode every tick is a chance to enter, capped at one entry per bar
+   // so a signal flickering across a threshold cannot machine-gun orders.
+   if(!InpIntrabarSignals && !newBar)
       return;
 
    // Work out whether this bar trades, and if not, exactly why. "Nothing
@@ -401,10 +413,15 @@ void OnTick()
          blk = BLK_TREND_OPPOSED;
      }
 
-   g_barsSeen++;
-   g_blockTally[blk]++;
+   // Tally once per bar, so the summary's percentages stay per-bar and
+   // are not diluted by tick count in intrabar mode.
+   if(newBar)
+     {
+      g_barsSeen++;
+      g_blockTally[blk]++;
+     }
 
-   if(InpVerboseLog)
+   if(InpVerboseLog && newBar)
      {
       double atr = CurrentATR();
       PrintFormat("Sentinal bar %s | signal=%s trend=%s spread=%.0f atr=%.0f -> %s",
@@ -419,7 +436,11 @@ void OnTick()
    if(blk != BLK_ENTER)
       return;
 
+   if(g_lastEntryBar == g_lastBar)
+      return;                       // already entered on this candle
+
    OpenTrade(signal == SIGNAL_BUY ? ORDER_TYPE_BUY : ORDER_TYPE_SELL);
+   g_lastEntryBar = g_lastBar;
   }
 
 //+------------------------------------------------------------------+
@@ -470,14 +491,26 @@ ESignal Signal()
    return(SIGNAL_NONE);
   }
 
+//+------------------------------------------------------------------+
+//| Which bar the rules read. 1 = the last CLOSED candle (settled,   |
+//| a signal here can never be taken back). 0 = the candle currently |
+//| forming, which reacts instantly but can change its mind on the   |
+//| next tick.                                                       |
+//+------------------------------------------------------------------+
+int SignalShift()
+  {
+   return(InpIntrabarSignals ? 0 : 1);
+  }
+
 ESignal SignalEmaCross()
   {
    double fast[], slow[];
    ArraySetAsSeries(fast, true);
    ArraySetAsSeries(slow, true);
 
-   if(CopyBuffer(g_hFast, 0, 1, 2, fast) < 2) return(SIGNAL_NONE);
-   if(CopyBuffer(g_hSlow, 0, 1, 2, slow) < 2) return(SIGNAL_NONE);
+   int s = SignalShift();
+   if(CopyBuffer(g_hFast, 0, s, 2, fast) < 2) return(SIGNAL_NONE);
+   if(CopyBuffer(g_hSlow, 0, s, 2, slow) < 2) return(SIGNAL_NONE);
 
    if(fast[1] <= slow[1] && fast[0] > slow[0]) return(SIGNAL_BUY);
    if(fast[1] >= slow[1] && fast[0] < slow[0]) return(SIGNAL_SELL);
@@ -488,7 +521,9 @@ ESignal SignalRsiReversion()
   {
    double rsi[];
    ArraySetAsSeries(rsi, true);
-   if(CopyBuffer(g_hRSI, 0, 1, 2, rsi) < 2) return(SIGNAL_NONE);
+
+   int s = SignalShift();
+   if(CopyBuffer(g_hRSI, 0, s, 2, rsi) < 2) return(SIGNAL_NONE);
 
    if(rsi[1] <  InpRSIOversold   && rsi[0] >= InpRSIOversold)   return(SIGNAL_BUY);
    if(rsi[1] >  InpRSIOverbought && rsi[0] <= InpRSIOverbought) return(SIGNAL_SELL);
@@ -500,21 +535,22 @@ ESignal SignalBreakout()
    MqlRates r[];
    ArraySetAsSeries(r, true);
 
-   int need = InpBreakoutBars + 2;
+   int s    = SignalShift();
+   int need = InpBreakoutBars + s + 2;
    if(CopyRates(_Symbol, PERIOD_CURRENT, 0, need, r) < need)
       return(SIGNAL_NONE);
 
-   // Range excludes the bar that just closed, so its close is tested
+   // Range excludes the bar being tested, so its close is measured
    // against a range it did not help form.
-   double hi = r[2].high, lo = r[2].low;
-   for(int i = 3; i <= InpBreakoutBars + 1; i++)
+   double hi = r[s + 1].high, lo = r[s + 1].low;
+   for(int i = s + 2; i <= s + InpBreakoutBars; i++)
      {
       hi = MathMax(hi, r[i].high);
       lo = MathMin(lo, r[i].low);
      }
 
-   if(r[1].close > hi) return(SIGNAL_BUY);
-   if(r[1].close < lo) return(SIGNAL_SELL);
+   if(r[s].close > hi) return(SIGNAL_BUY);
+   if(r[s].close < lo) return(SIGNAL_SELL);
    return(SIGNAL_NONE);
   }
 

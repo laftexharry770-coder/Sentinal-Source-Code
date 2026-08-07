@@ -17,7 +17,19 @@ is actually true.
 ## Points, not pips — and why gold broke before
 
 Every distance in this EA is in **points**: the smallest quote increment for the
-symbol. On 2-digit gold, 1 point = `0.01`, so 100 points = $1.00 of price.
+symbol.
+
+Gold is quoted at **2 or 3 digits depending on the broker**, so a point is not a
+fixed amount of money:
+
+| Broker quote | Example | 1 point | A 26-cent spread reads as |
+|---|---|---|---|
+| 2-digit | `4345.36` | `0.01` | 26 points |
+| 3-digit | `4345.368` | `0.001` | **260 points** |
+
+Exness quotes `XAUUSDm` at 3 digits. This is why `InpMaxSpreadPoints` defaults to
+`500` and why `InpMaxSpreadATR` exists — an ATR-relative spread limit means the
+same thing on every broker, where an absolute point limit does not.
 
 Version 1 used "pips" and computed them as `10 × point` only on 5- and 3-digit
 symbols. Gold quotes at 2 digits, so it fell through to 1 pip = 1 point = `0.01`

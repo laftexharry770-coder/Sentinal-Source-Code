@@ -72,7 +72,8 @@ input bool   InpUseTrailingStop  = true;   // Trail the stop as price moves
 input double InpATRTrailMult     = 2.0;    // Trail distance = ATR x this
 
 input group "=== Filters ==="
-input int    InpMaxSpreadPoints  = 50;     // Max spread (points, 0 = ignore)
+input int    InpMaxSpreadPoints  = 500;    // Max spread (points, 0 = ignore)
+input double InpMaxSpreadATR     = 0.5;    // Max spread as fraction of ATR (0 = ignore)
 input double InpTargetProfit     = 0.0;    // Halt at account profit (0 = off)
 input bool   InpUseTimeFilter    = false;  // Restrict trading hours
 input int    InpStartHour        = 0;      // Start hour (server time)
@@ -662,11 +663,31 @@ bool WithinTradingHours()
    return(t.hour >= InpStartHour && t.hour < InpEndHour);
   }
 
+//+------------------------------------------------------------------+
+//| Spread filter.                                                   |
+//|                                                                  |
+//| An absolute point limit is broker-specific: gold quotes at 2 or  |
+//| 3 digits depending on the broker, so the same 26c spread reads   |
+//| as 26 points on one and 260 on another. The ATR-relative test    |
+//| is the one that actually means something — a spread that is a    |
+//| large fraction of the current range eats the trade regardless    |
+//| of what the absolute number looks like.                          |
+//+------------------------------------------------------------------+
 bool SpreadAcceptable()
   {
-   if(InpMaxSpreadPoints <= 0)
-      return(true);
-   return(CurrentSpreadPoints() <= InpMaxSpreadPoints);
+   double spreadPts = CurrentSpreadPoints();
+
+   if(InpMaxSpreadPoints > 0 && spreadPts > InpMaxSpreadPoints)
+      return(false);
+
+   if(InpMaxSpreadATR > 0.0)
+     {
+      double atr = CurrentATR();
+      if(atr > 0.0 && (spreadPts * _Point) > (atr * InpMaxSpreadATR))
+         return(false);
+     }
+
+   return(true);
   }
 
 double CurrentSpreadPoints()
@@ -725,6 +746,8 @@ void PanelUpdate()
    double atr = CurrentATR();
    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
 
+   PanelBackground(12);
+
    int row = 0;
    PanelLine(row++, "Sentinal",  stateColor, state);
    PanelLine(row++, "Server",    InpPanelColor, AccountInfoString(ACCOUNT_SERVER));
@@ -743,10 +766,11 @@ void PanelUpdate()
              DoubleToString(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits) + " / " +
              DoubleToString(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits));
    PanelLine(row++, "Spread",    InpPanelColor,
-             DoubleToString(CurrentSpreadPoints(), 0) + " pts" +
-             (SpreadAcceptable() ? "" : "  (too wide)"));
+             DoubleToString(CurrentSpreadPoints(), 0) + " / " +
+             IntegerToString(InpMaxSpreadPoints) + " pts" +
+             (SpreadAcceptable() ? "" : "  (TOO WIDE - no entries)"));
    PanelLine(row++, "ATR",       InpPanelColor,
-             (atr > 0.0 ? DoubleToString(atr / _Point, 0) + " pts" : "n/a"));
+             (atr > 0.0 ? DoubleToString(atr / _Point, 0) + " pts" : "warming up"));
    PanelLine(row++, "Positions", InpPanelColor,
              IntegerToString(OpenPositionCount()) + " / " + IntegerToString(InpMaxPositions));
    PanelLine(row++, "Equity",    InpPanelColor,
@@ -754,6 +778,32 @@ void PanelUpdate()
              DoubleToString(equity - g_startBalance, 2));
 
    ChartRedraw();
+  }
+
+//+------------------------------------------------------------------+
+//| Solid backdrop so the panel stays readable over the candles      |
+//+------------------------------------------------------------------+
+void PanelBackground(const int rows)
+  {
+   string name = PANEL_PREFIX + "BG";
+
+   if(ObjectFind(0, name) < 0)
+     {
+      ObjectCreate(0, name, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, name, OBJPROP_XDISTANCE, 5);
+      ObjectSetInteger(0, name, OBJPROP_YDISTANCE, 14);
+      ObjectSetInteger(0, name, OBJPROP_BGCOLOR, C'15,15,20');
+      ObjectSetInteger(0, name, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+      ObjectSetInteger(0, name, OBJPROP_COLOR, C'70,70,80');
+      ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, name, OBJPROP_BACK, false);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER, 0);
+     }
+
+   ObjectSetInteger(0, name, OBJPROP_XSIZE, 320);
+   ObjectSetInteger(0, name, OBJPROP_YSIZE, 16 + rows * 16);
   }
 
 void PanelLine(const int row, const string label, const color clr, const string value)
@@ -769,6 +819,7 @@ void PanelLine(const int row, const string label, const color clr, const string 
       ObjectSetString(0, name, OBJPROP_FONT, "Consolas");
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER, 1);   // above the backdrop
      }
 
    ObjectSetInteger(0, name, OBJPROP_YDISTANCE, 20 + row * 16);

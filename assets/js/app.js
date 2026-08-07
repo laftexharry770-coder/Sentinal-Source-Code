@@ -100,10 +100,11 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v14';
+  const BUILD = 'v15';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
+  const PUBLISHED_KEY = 'homcom-published'; // fingerprint of the last export
   const INQUIRY_KEY = 'homcom-inquiry';
   const UNLOCK_KEY  = 'homcom-unlocked';
   const MAX_COMPARE = 4;
@@ -132,15 +133,63 @@
 
   let catalogue  = [];
   let categories = [];
+  /* Set by loadShop when this device hands back to the published catalogue.
+     Declared up here because loadShop runs on the next line. */
+  let wentLive = false;
   loadShop();
+
+  /* A short fingerprint of a catalogue. Two catalogues with the same products,
+     prices, photos and categories produce the same string, so we can tell
+     whether what the site is serving is the same thing this device last
+     exported — without keeping a second copy of it to compare against. */
+  function signature(products, cats) {
+    const text = JSON.stringify({
+      p: (products || []).map((p) => [
+        p.id, p.name, p.category, p.price, p.wasPrice, p.stock, p.desc,
+        (p.images || []).join(''), JSON.stringify(p.specs || {})
+      ]),
+      c: (cats || []).filter((c) => c.key !== 'all').map((c) => [c.key, c.label])
+    });
+    let h = 5381;
+    for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+    return h.toString(36) + '-' + text.length.toString(36);
+  }
+
+  /* Declarations, not arrow constants: loadShop runs before this point in the
+     file and calls both of them. */
+  function publishedMark() {
+    try { return localStorage.getItem(PUBLISHED_KEY); } catch (e) { return null; }
+  }
+
+  /** Forget this device's private copy and follow the published catalogue. */
+  function forgetLocalCopy() {
+    try {
+      localStorage.removeItem(SHOP_KEY);
+      localStorage.removeItem(PUBLISHED_KEY);
+    } catch (e) {}
+  }
 
   function loadShop() {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(SHOP_KEY) || 'null'); } catch (e) {}
+
+    const seeded = clone(seedProducts()).map(normalise);
+    const seedCats = clone(seedCategories());
+
+    /* Changes are saved on this device first and published second. Once the
+       file you exported is the one the site is serving, that private copy has
+       done its job — so it steps aside rather than sitting on top of the
+       published catalogue forever, hiding every later change from this phone. */
+    if (saved && publishedMark() && publishedMark() === signature(seeded, seedCats)) {
+      forgetLocalCopy();
+      saved = null;
+      wentLive = true;
+    }
+
     catalogue = (saved && Array.isArray(saved.products) && saved.products.length
-      ? saved.products : clone(seedProducts())).map(normalise);
+      ? saved.products.map(normalise) : seeded);
     categories = saved && Array.isArray(saved.categories) && saved.categories.length
-      ? clone(saved.categories) : clone(seedCategories());
+      ? clone(saved.categories) : seedCats;
     if (!categories.some((c) => c.key === 'all')) {
       categories.unshift({ key: 'all', label: 'Everything' });
     }
@@ -1467,6 +1516,11 @@
       ? '<div class="manage-banner edited">' +
           '<strong>You have unpublished changes.</strong> They show on this device now. ' +
           'Use <em>Download data.js</em> below and upload that file to publish them to everyone.' +
+          (publishedMark()
+            ? '<span class="storage">Waiting for your upload to go live. ' +
+                'The moment it does, this device drops its own copy and follows the ' +
+                'published shop — nothing is left stacked on top.</span>'
+            : '') +
           '<span class="storage">Saved data: ' + used.mb + ' MB' +
             (used.bytes > 3500000 ? ' — getting full, prefer file paths for photos' : '') + '</span>' +
         '</div>'
@@ -1496,7 +1550,32 @@
         '<button type="button" class="btn btn-primary" id="addProduct">' +
           '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Add a product</button>' +
         '<button type="button" class="btn btn-ghost" id="addCategory">New category</button>' +
+        // Only offered when there is a private copy to drop.
+        (isEdited()
+          ? '<button type="button" class="btn btn-ghost" id="usePublished">Use the published version</button>'
+          : '') +
       '</div>' + groups;
+  }
+
+  /* Throw away this device's copy and show the published shop instead. This
+     loses anything not yet uploaded, so it asks first and says what goes. */
+  function usePublished() {
+    const mine = catalogue.length;
+    const live = seedProducts().length;
+    const ok = confirm(
+      'Show the published shop on this device?\n\n' +
+      'This device is showing its own saved copy (' + mine + ' products).\n' +
+      'The published shop has ' + live + '.\n\n' +
+      'Any change here that you have not downloaded and uploaded will be lost.'
+    );
+    if (!ok) return;
+    forgetLocalCopy();
+    loadShop();
+    state.editing = null;
+    state.draft = null;
+    refreshCatalogueViews();
+    paintManage();
+    toast('Now showing the published shop');
   }
 
   /** "just now", "3 hours ago", "12 Jul" — only ever shown in the Manage panel. */
@@ -1803,6 +1882,11 @@
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    /* Remember what this download contained. When the site starts serving the
+       same thing, we know the upload landed and this device can stop holding
+       its own copy — see loadShop. */
+    try { localStorage.setItem(PUBLISHED_KEY, signature(catalogue, categories)); } catch (e) {}
+
     const mb = (text.length / 1048576).toFixed(1);
     toast('data.js downloaded (' + mb + ' MB) — put it in assets/js/ and upload');
   }
@@ -2418,6 +2502,7 @@
       if (delcat) { deleteCategory(delcat.dataset.delcat); return; }
       if (e.target.closest('#addProduct')) { state.editing = 'new'; state.draft = null; paintManage(); paintTrays(); return; }
       if (e.target.closest('#addCategory')) { addCategory(); return; }
+      if (e.target.closest('#usePublished')) { usePublished(); return; }
       if (e.target.closest('#cancelEdit')) { state.editing = null; state.draft = null; paintManage(); return; }
       if (e.target.closest('#pickPhotos')) { $('#pPhotos').click(); return; }
       if (e.target.closest('#pickSpin')) { $('#pSpin').click(); return; }
@@ -2524,6 +2609,11 @@
     /* Tells the failsafe in index.html that the page painted. Without it, that
        failsafe assumes the worst after eight seconds and shows everything. */
     document.documentElement.classList.add('ready');
+
+    // Said once, on the first visit after an upload goes live.
+    if (wentLive) {
+      setTimeout(() => toast('Your changes are live — this device is following the published shop again'), 900);
+    }
   }
 
   /* ── Safety net ──────────────────────────────────────────────────────────

@@ -5,16 +5,39 @@
 #property copyright "Sentinal"
 #property version   "1.00"
 #property strict
-#property description "Sentinal trading harness: on-chart status panel, risk-based"
-#property description "position sizing and a single pluggable signal function."
+#property description "Sentinal trading bot: on-chart status panel, risk-based"
+#property description "position sizing, and selectable EMA / RSI / breakout entries."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
 #include <Trade/SymbolInfo.mqh>
 
 //+------------------------------------------------------------------+
+//| Strategy selection                                                |
+//|                                                                   |
+//| These are standard, transparent textbook entries. They are a      |
+//| working starting point you can tune and test - not an edge, and   |
+//| not a claim that any of them is profitable on your symbol.        |
+//+------------------------------------------------------------------+
+enum EStrategy
+  {
+   STRAT_EMA_CROSS,      // EMA cross (fast crosses slow)
+   STRAT_RSI_REVERSION,  // RSI reversion (exit from oversold/overbought)
+   STRAT_BREAKOUT        // Breakout of N-bar high/low
+  };
+
+//+------------------------------------------------------------------+
 //| Inputs                                                           |
 //+------------------------------------------------------------------+
+input group "=== Strategy ==="
+input EStrategy InpStrategy      = STRAT_EMA_CROSS; // Entry strategy
+input int    InpFastEMA        = 12;      // EMA cross: fast period
+input int    InpSlowEMA        = 26;      // EMA cross: slow period
+input int    InpRSIPeriod      = 14;      // RSI: period
+input int    InpRSIOversold    = 30;      // RSI: oversold level
+input int    InpRSIOverbought  = 70;      // RSI: overbought level
+input int    InpBreakoutBars   = 20;      // Breakout: lookback bars
+
 input group "=== Trading ==="
 input bool   InpAutoTrade      = false;   // Auto-trade (false = monitor only)
 input long   InpMagicNumber    = 770001;  // Magic number
@@ -44,6 +67,10 @@ CPositionInfo  position;
 double g_pip           = 0.0;   // price value of one pip
 double g_startBalance  = 0.0;   // balance at attach, for TargetProfit
 bool   g_halted        = false; // latched once TargetProfit is hit
+
+int    g_hFast         = INVALID_HANDLE; // fast EMA handle
+int    g_hSlow         = INVALID_HANDLE; // slow EMA handle
+int    g_hRSI          = INVALID_HANDLE; // RSI handle
 
 const string PANEL_PREFIX = "SENT_";
 
@@ -80,10 +107,14 @@ int OnInit()
       return(INIT_PARAMETERS_INCORRECT);
      }
 
+   if(!CreateIndicators())
+      return(INIT_FAILED);
+
    if(InpShowPanel)
       PanelUpdate();
 
    Print("Sentinal initialised on ", _Symbol,
+         " | strategy=", EnumToString(InpStrategy),
          " | auto-trade=", (InpAutoTrade ? "ON" : "OFF"),
          " | digits=", _Digits, " | pip=", DoubleToString(g_pip, _Digits));
 
@@ -95,8 +126,77 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
+   if(g_hFast != INVALID_HANDLE) IndicatorRelease(g_hFast);
+   if(g_hSlow != INVALID_HANDLE) IndicatorRelease(g_hSlow);
+   if(g_hRSI  != INVALID_HANDLE) IndicatorRelease(g_hRSI);
+
    ObjectsDeleteAll(0, PANEL_PREFIX);
    ChartRedraw();
+  }
+
+//+------------------------------------------------------------------+
+//| Build the indicator handles the selected strategy needs          |
+//+------------------------------------------------------------------+
+bool CreateIndicators()
+  {
+   switch(InpStrategy)
+     {
+      case STRAT_EMA_CROSS:
+        {
+         if(InpFastEMA < 1 || InpSlowEMA < 1)
+           {
+            Print("Sentinal: EMA periods must be >= 1.");
+            return(false);
+           }
+         if(InpFastEMA >= InpSlowEMA)
+           {
+            Print("Sentinal: InpFastEMA must be smaller than InpSlowEMA.");
+            return(false);
+           }
+         g_hFast = iMA(_Symbol, PERIOD_CURRENT, InpFastEMA, 0, MODE_EMA, PRICE_CLOSE);
+         g_hSlow = iMA(_Symbol, PERIOD_CURRENT, InpSlowEMA, 0, MODE_EMA, PRICE_CLOSE);
+         if(g_hFast == INVALID_HANDLE || g_hSlow == INVALID_HANDLE)
+           {
+            Print("Sentinal: failed to create EMA handles. err=", GetLastError());
+            return(false);
+           }
+         break;
+        }
+
+      case STRAT_RSI_REVERSION:
+        {
+         if(InpRSIPeriod < 2)
+           {
+            Print("Sentinal: InpRSIPeriod must be >= 2.");
+            return(false);
+           }
+         if(InpRSIOversold <= 0 || InpRSIOverbought >= 100 ||
+            InpRSIOversold >= InpRSIOverbought)
+           {
+            Print("Sentinal: need 0 < oversold < overbought < 100.");
+            return(false);
+           }
+         g_hRSI = iRSI(_Symbol, PERIOD_CURRENT, InpRSIPeriod, PRICE_CLOSE);
+         if(g_hRSI == INVALID_HANDLE)
+           {
+            Print("Sentinal: failed to create RSI handle. err=", GetLastError());
+            return(false);
+           }
+         break;
+        }
+
+      case STRAT_BREAKOUT:
+        {
+         if(InpBreakoutBars < 2)
+           {
+            Print("Sentinal: InpBreakoutBars must be >= 2.");
+            return(false);
+           }
+         break;   // uses raw price data, no indicator handle needed
+        }
+     }
+
+   return(true);
   }
 
 //+------------------------------------------------------------------+
@@ -146,24 +246,86 @@ void OnTick()
   }
 
 //+------------------------------------------------------------------+
-//| Signal                                                           |
+//| Signal — dispatches to the selected strategy.                    |
 //|                                                                  |
-//| >>> PUT YOUR STRATEGY HERE <<<                                   |
-//|                                                                  |
-//| Returns SIGNAL_BUY, SIGNAL_SELL or SIGNAL_NONE. It deliberately  |
-//| returns SIGNAL_NONE so the EA cannot place a trade on logic you  |
-//| did not choose. Everything around it — sizing, stops, execution, |
-//| filters, the panel — is already wired up and working.            |
-//|                                                                  |
-//| Candle data is available directly, no broker API needed:         |
-//|   MqlRates r[];                                                  |
-//|   ArraySetAsSeries(r, true);                                     |
-//|   if(CopyRates(_Symbol, PERIOD_CURRENT, 0, 50, r) < 50)          |
-//|      return(SIGNAL_NONE);                                        |
-//|   // r[1] is the last closed candle, r[2] the one before it.     |
+//| Called on the first tick of a new bar, so every rule below is    |
+//| evaluated against CLOSED candles. Bar 1 is the candle that just  |
+//| closed; bar 0 is still forming and is never used for entries.    |
 //+------------------------------------------------------------------+
 ESignal Signal()
   {
+   switch(InpStrategy)
+     {
+      case STRAT_EMA_CROSS:     return(SignalEmaCross());
+      case STRAT_RSI_REVERSION: return(SignalRsiReversion());
+      case STRAT_BREAKOUT:      return(SignalBreakout());
+     }
+   return(SIGNAL_NONE);
+  }
+
+//+------------------------------------------------------------------+
+//| Fast EMA crossing the slow EMA                                   |
+//+------------------------------------------------------------------+
+ESignal SignalEmaCross()
+  {
+   double fast[], slow[];
+   ArraySetAsSeries(fast, true);
+   ArraySetAsSeries(slow, true);
+
+   // Two most recently closed bars: [0] = bar 1, [1] = bar 2.
+   if(CopyBuffer(g_hFast, 0, 1, 2, fast) < 2) return(SIGNAL_NONE);
+   if(CopyBuffer(g_hSlow, 0, 1, 2, slow) < 2) return(SIGNAL_NONE);
+
+   bool crossedUp   = (fast[1] <= slow[1] && fast[0] >  slow[0]);
+   bool crossedDown = (fast[1] >= slow[1] && fast[0] <  slow[0]);
+
+   if(crossedUp)   return(SIGNAL_BUY);
+   if(crossedDown) return(SIGNAL_SELL);
+   return(SIGNAL_NONE);
+  }
+
+//+------------------------------------------------------------------+
+//| RSI leaving an oversold / overbought zone                        |
+//+------------------------------------------------------------------+
+ESignal SignalRsiReversion()
+  {
+   double rsi[];
+   ArraySetAsSeries(rsi, true);
+
+   if(CopyBuffer(g_hRSI, 0, 1, 2, rsi) < 2) return(SIGNAL_NONE);
+
+   bool leftOversold   = (rsi[1] <  InpRSIOversold   && rsi[0] >= InpRSIOversold);
+   bool leftOverbought = (rsi[1] >  InpRSIOverbought && rsi[0] <= InpRSIOverbought);
+
+   if(leftOversold)   return(SIGNAL_BUY);
+   if(leftOverbought) return(SIGNAL_SELL);
+   return(SIGNAL_NONE);
+  }
+
+//+------------------------------------------------------------------+
+//| Close beyond the high / low of the preceding N bars              |
+//+------------------------------------------------------------------+
+ESignal SignalBreakout()
+  {
+   MqlRates r[];
+   ArraySetAsSeries(r, true);
+
+   int need = InpBreakoutBars + 2;
+   if(CopyRates(_Symbol, PERIOD_CURRENT, 0, need, r) < need)
+      return(SIGNAL_NONE);
+
+   // Range spans bars 2..N+1 — it excludes the bar that just closed, so
+   // that bar's close is tested against a range it did not help form.
+   double hi = r[2].high;
+   double lo = r[2].low;
+   for(int i = 3; i <= InpBreakoutBars + 1; i++)
+     {
+      hi = MathMax(hi, r[i].high);
+      lo = MathMin(lo, r[i].low);
+     }
+
+   if(r[1].close > hi) return(SIGNAL_BUY);
+   if(r[1].close < lo) return(SIGNAL_SELL);
    return(SIGNAL_NONE);
   }
 
@@ -378,6 +540,7 @@ void PanelUpdate()
              (AccountInfoInteger(ACCOUNT_TRADE_MODE) == ACCOUNT_TRADE_MODE_DEMO ? "  [DEMO]" : "  [REAL]"));
    PanelLine(row++, "Symbol",   InpPanelColor,
              _Symbol + "  " + EnumToString((ENUM_TIMEFRAMES)Period()));
+   PanelLine(row++, "Strategy", InpPanelColor, EnumToString(InpStrategy));
    PanelLine(row++, "Bid/Ask",  InpPanelColor,
              DoubleToString(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits) + " / " +
              DoubleToString(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits));

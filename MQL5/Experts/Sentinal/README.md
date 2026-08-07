@@ -1,7 +1,7 @@
 # Sentinal — MT5 Expert Advisor
 
-A trading harness for MetaTrader 5. Everything around a strategy is built and
-working; the strategy itself is one function you fill in.
+A trading bot for MetaTrader 5. It places real trades: pick a strategy, set your
+risk, and switch `InpAutoTrade` on.
 
 ## Why this replaces the MetaApi work
 
@@ -40,7 +40,40 @@ Drawn top-left of the chart, refreshed each tick. `Sentinal:` shows one of:
 The remaining rows show server, login, DEMO/REAL, symbol and timeframe, bid/ask,
 spread in pips, last tick time, open positions, and equity with running P/L.
 
+## Turning it on
+
+Two switches must both be on before a single order is placed:
+
+1. MT5's **Algo Trading** toolbar button must be green
+2. **`InpAutoTrade` must be set to `true`** — it ships as `false`
+
+With `InpAutoTrade` off the EA evaluates signals and updates the panel but never
+sends an order. That is the default on purpose, so attaching the EA is never
+itself the thing that starts trading your account.
+
+## Strategies
+
+Set `InpStrategy`. All three are evaluated on the first tick of a new bar, so
+they read closed candles — the forming candle is never used for an entry.
+
+| Strategy | Buy when | Sell when |
+|---|---|---|
+| `STRAT_EMA_CROSS` | Fast EMA crosses above slow EMA | Fast crosses below slow |
+| `STRAT_RSI_REVERSION` | RSI climbs back above the oversold level | RSI drops back below overbought |
+| `STRAT_BREAKOUT` | Last close is above the high of the prior N bars | Last close is below the low |
+
+The breakout range spans bars 2..N+1, excluding the candle that just closed, so
+that candle's close is tested against a range it did not help form.
+
+These are standard textbook entries. They are a working, tunable starting point
+— not an edge, and not a claim that any of them is profitable on your symbol or
+timeframe. Which one earns money on XAUUSD M15 is an empirical question, and the
+Strategy Tester is what answers it.
+
 ## Inputs
+
+**Strategy** — `InpStrategy`, `InpFastEMA`, `InpSlowEMA`, `InpRSIPeriod`,
+`InpRSIOversold`, `InpRSIOverbought`, `InpBreakoutBars`.
 
 **Trading** — `InpAutoTrade` (default `false`), `InpMagicNumber`,
 `InpMaxPositions`.
@@ -59,11 +92,13 @@ a stop loss — the EA refuses to initialise with `InpUseRiskPercent` on and
 `InpStopLossPips` at `0`, because without a stop there is no defined risk to
 size against.
 
-## Adding your strategy
+## Adding your own strategy
 
-Fill in `Signal()`. It returns `SIGNAL_BUY`, `SIGNAL_SELL` or `SIGNAL_NONE`, and
-currently always returns `SIGNAL_NONE` — so the EA will not trade on logic you
-did not choose. Candle data needs no external API:
+`Signal()` dispatches on `InpStrategy` to `SignalEmaCross()`,
+`SignalRsiReversion()` or `SignalBreakout()`. To add your own, write another
+function returning `SIGNAL_BUY` / `SIGNAL_SELL` / `SIGNAL_NONE`, add a value to
+the `EStrategy` enum, and add one `case` to the switch. Candle data needs no
+external API:
 
 ```mql5
 MqlRates r[];
@@ -73,10 +108,10 @@ if(CopyRates(_Symbol, PERIOD_CURRENT, 0, 50, r) < 50)
 // r[1] is the last closed candle, r[2] the one before it.
 ```
 
-`Signal()` is called on the first tick of each new bar, so it evaluates closed
-candles rather than a forming one. Sizing, stop/target placement, broker minimum
-stop distance, spread filtering, position limits and execution are all handled
-around it.
+If your strategy needs an indicator, create its handle in `CreateIndicators()`
+and release it in `OnDeinit()`. Sizing, stop/target placement, broker minimum
+stop distance, spread filtering, position limits and execution are handled
+around whatever `Signal()` returns.
 
 ## Before running on real money
 

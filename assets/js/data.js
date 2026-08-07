@@ -69,8 +69,8 @@ const SITE = {
   "currency": "KSh",
   "locale": "en-KE",
   "formEndpoint": "",
-  "manageKey": "hc9v4t",
-  "managePin": "704628"
+  "manageKey": "malvel",
+  "managePin": "1754"
 };
 
 const SERVICES = [

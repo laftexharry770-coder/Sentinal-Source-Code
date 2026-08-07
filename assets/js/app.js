@@ -100,7 +100,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v15';
+  const BUILD = 'v16';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -176,11 +176,20 @@
     const seeded = clone(seedProducts()).map(normalise);
     const seedCats = clone(seedCategories());
 
-    /* Changes are saved on this device first and published second. Once the
-       file you exported is the one the site is serving, that private copy has
-       done its job — so it steps aside rather than sitting on top of the
-       published catalogue forever, hiding every later change from this phone. */
-    if (saved && publishedMark() && publishedMark() === signature(seeded, seedCats)) {
+    /* Changes are saved on this device first and published second, and the
+       private copy used to sit on top of the published catalogue forever,
+       hiding every later change from this phone. So it steps aside — but only
+       once it has become identical to what the site is serving.
+
+       Comparing the copy against the live catalogue, rather than against a
+       note of what was last exported, is what makes this safe: if the two
+       already say the same thing, dropping the copy cannot change what you
+       see, so nothing can be lost. Anything you have added since — including
+       while an upload was still in flight — makes them differ, and the copy
+       stays until that reaches the site too. */
+    const savedProducts = saved && Array.isArray(saved.products) ? saved.products : null;
+    if (savedProducts && savedProducts.length &&
+        signature(savedProducts.map(normalise), saved.categories) === signature(seeded, seedCats)) {
       forgetLocalCopy();
       saved = null;
       wentLive = true;
@@ -198,6 +207,9 @@
   function saveShop() {
     try {
       localStorage.setItem(SHOP_KEY, JSON.stringify({ products: catalogue, categories: categories }));
+      /* The file you last downloaded no longer matches this device, so stop
+         saying an upload of it is pending. */
+      localStorage.removeItem(PUBLISHED_KEY);
       return true;
     } catch (e) {
       toast('Storage is full — remove a photo or two, or use file paths instead of uploads');

@@ -80,6 +80,7 @@ input int    InpStartHour        = 0;      // Start hour (server time)
 input int    InpEndHour          = 24;     // End hour (server time)
 
 input group "=== Display ==="
+input bool   InpVerboseLog       = true;   // Log why each bar did/didn't trade
 input bool   InpShowPanel        = true;   // Show status panel
 input color  InpPanelColor       = clrWhite; // Panel text colour
 
@@ -259,19 +260,45 @@ void OnTick()
    if(!IsNewBar())
       return;
 
-   if(!WithinTradingHours() || !SpreadAcceptable())
-      return;
+   // Work out whether this bar trades, and if not, exactly why. "Nothing
+   // is happening" is the normal state for a filtered strategy, so the
+   // log has to distinguish that from something actually being broken.
+   string  block  = "";
+   ESignal signal = SIGNAL_NONE;
+   int     trend  = 0;
 
-   if(OpenPositionCount() >= InpMaxPositions)
-      return;
+   if(!WithinTradingHours())
+      block = "outside trading hours";
+   else if(!SpreadAcceptable())
+      block = StringFormat("spread %.0f pts too wide", CurrentSpreadPoints());
+   else if(OpenPositionCount() >= InpMaxPositions)
+      block = "position limit reached";
+   else
+     {
+      signal = Signal();
+      trend  = TrendDirection();
 
-   ESignal signal = Signal();
-   if(signal == SIGNAL_NONE)
-      return;
+      if(signal == SIGNAL_NONE)
+         block = "no entry signal";
+      else if(InpUseTrendFilter && trend == 0)
+         block = "trend undecided / ADX below minimum";
+      else if(InpUseTrendFilter && trend != (int)signal)
+         block = "signal against higher-TF trend";
+     }
 
-   // Trend gate: never enter against the higher-timeframe direction.
-   int trend = TrendDirection();
-   if(InpUseTrendFilter && trend != (int)signal)
+   if(InpVerboseLog)
+     {
+      double atr = CurrentATR();
+      PrintFormat("Sentinal bar %s | signal=%s trend=%s spread=%.0f atr=%.0f -> %s",
+                  TimeToString(g_lastBar, TIME_DATE | TIME_MINUTES),
+                  (signal == SIGNAL_BUY ? "BUY" : (signal == SIGNAL_SELL ? "SELL" : "none")),
+                  (trend > 0 ? "up" : (trend < 0 ? "down" : "flat")),
+                  CurrentSpreadPoints(),
+                  (atr > 0.0 ? atr / _Point : 0.0),
+                  (block == "" ? "ENTERING" : block));
+     }
+
+   if(block != "")
       return;
 
    OpenTrade(signal == SIGNAL_BUY ? ORDER_TYPE_BUY : ORDER_TYPE_SELL);
@@ -746,8 +773,6 @@ void PanelUpdate()
    double atr = CurrentATR();
    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
 
-   PanelBackground(12);
-
    int row = 0;
    PanelLine(row++, "Sentinal",  stateColor, state);
    PanelLine(row++, "Server",    InpPanelColor, AccountInfoString(ACCOUNT_SERVER));
@@ -780,32 +805,6 @@ void PanelUpdate()
    ChartRedraw();
   }
 
-//+------------------------------------------------------------------+
-//| Solid backdrop so the panel stays readable over the candles      |
-//+------------------------------------------------------------------+
-void PanelBackground(const int rows)
-  {
-   string name = PANEL_PREFIX + "BG";
-
-   if(ObjectFind(0, name) < 0)
-     {
-      ObjectCreate(0, name, OBJ_RECTANGLE_LABEL, 0, 0, 0);
-      ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
-      ObjectSetInteger(0, name, OBJPROP_XDISTANCE, 5);
-      ObjectSetInteger(0, name, OBJPROP_YDISTANCE, 14);
-      ObjectSetInteger(0, name, OBJPROP_BGCOLOR, C'15,15,20');
-      ObjectSetInteger(0, name, OBJPROP_BORDER_TYPE, BORDER_FLAT);
-      ObjectSetInteger(0, name, OBJPROP_COLOR, C'70,70,80');
-      ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
-      ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
-      ObjectSetInteger(0, name, OBJPROP_BACK, false);
-      ObjectSetInteger(0, name, OBJPROP_ZORDER, 0);
-     }
-
-   ObjectSetInteger(0, name, OBJPROP_XSIZE, 320);
-   ObjectSetInteger(0, name, OBJPROP_YSIZE, 16 + rows * 16);
-  }
-
 void PanelLine(const int row, const string label, const color clr, const string value)
   {
    string name = PANEL_PREFIX + IntegerToString(row);
@@ -819,7 +818,7 @@ void PanelLine(const int row, const string label, const color clr, const string 
       ObjectSetString(0, name, OBJPROP_FONT, "Consolas");
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
-      ObjectSetInteger(0, name, OBJPROP_ZORDER, 1);   // above the backdrop
+      ObjectSetInteger(0, name, OBJPROP_ZORDER, 1);
      }
 
    ObjectSetInteger(0, name, OBJPROP_YDISTANCE, 20 + row * 16);

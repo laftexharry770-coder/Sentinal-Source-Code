@@ -24,6 +24,13 @@ enum EStrategy
 
 enum ESignal { SIGNAL_NONE = 0, SIGNAL_BUY = 1, SIGNAL_SELL = -1 };
 
+enum EDirection
+  {
+   DIR_BOTH,        // Long and short
+   DIR_LONG_ONLY,   // Long only
+   DIR_SHORT_ONLY   // Short only
+  };
+
 //+------------------------------------------------------------------+
 //| Every reason a bar can fail to produce a trade. Tallied and      |
 //| printed at the end of a run, so "it isn't trading" always has a  |
@@ -42,6 +49,7 @@ enum EBlock
    BLK_NOSIGNAL,
    BLK_TREND_FLAT,
    BLK_TREND_OPPOSED,
+   BLK_DIRECTION,
    BLK_COUNT
   };
 
@@ -60,6 +68,7 @@ string BlockName(const int b)
       case BLK_NOSIGNAL:      return("no entry signal");
       case BLK_TREND_FLAT:    return("trend flat / ADX below minimum");
       case BLK_TREND_OPPOSED: return("signal against higher-TF trend");
+      case BLK_DIRECTION:     return("direction disabled (long/short filter)");
      }
    return("unknown");
   }
@@ -87,6 +96,7 @@ input double InpADXMin           = 20.0;   // Min ADX to trade
 input bool   InpCloseOnReverse   = true;   // Close position when trend flips
 
 input group "=== Entry ==="
+input EDirection InpDirection    = DIR_BOTH;        // Allowed trade direction
 input EStrategy InpStrategy      = STRAT_EMA_CROSS; // Entry strategy
 input int    InpFastEMA          = 12;     // EMA cross: fast period
 input int    InpSlowEMA          = 26;     // EMA cross: slow period
@@ -382,6 +392,9 @@ void OnTick()
 
       if(signal == SIGNAL_NONE)
          blk = BLK_NOSIGNAL;
+      else if((InpDirection == DIR_LONG_ONLY  && signal == SIGNAL_SELL) ||
+              (InpDirection == DIR_SHORT_ONLY && signal == SIGNAL_BUY))
+         blk = BLK_DIRECTION;
       else if(InpUseTrendFilter && trend == 0)
          blk = BLK_TREND_FLAT;
       else if(InpUseTrendFilter && trend != (int)signal)

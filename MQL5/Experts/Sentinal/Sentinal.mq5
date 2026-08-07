@@ -25,6 +25,46 @@ enum EStrategy
 enum ESignal { SIGNAL_NONE = 0, SIGNAL_BUY = 1, SIGNAL_SELL = -1 };
 
 //+------------------------------------------------------------------+
+//| Every reason a bar can fail to produce a trade. Tallied and      |
+//| printed at the end of a run, so "it isn't trading" always has a  |
+//| specific, counted answer instead of a guess.                     |
+//+------------------------------------------------------------------+
+enum EBlock
+  {
+   BLK_ENTER = 0,
+   BLK_AUTOTRADE_OFF,
+   BLK_TARGET_HALT,
+   BLK_HOURS,
+   BLK_DAILY_LOSS,
+   BLK_SPREAD,
+   BLK_POSLIMIT,
+   BLK_TOTALRISK,
+   BLK_NOSIGNAL,
+   BLK_TREND_FLAT,
+   BLK_TREND_OPPOSED,
+   BLK_COUNT
+  };
+
+string BlockName(const int b)
+  {
+   switch(b)
+     {
+      case BLK_ENTER:         return("entered");
+      case BLK_AUTOTRADE_OFF: return("auto-trade OFF");
+      case BLK_TARGET_HALT:   return("halted at profit target");
+      case BLK_HOURS:         return("outside trading hours");
+      case BLK_DAILY_LOSS:    return("daily loss limit");
+      case BLK_SPREAD:        return("spread too wide");
+      case BLK_POSLIMIT:      return("position limit reached");
+      case BLK_TOTALRISK:     return("combined open risk at cap");
+      case BLK_NOSIGNAL:      return("no entry signal");
+      case BLK_TREND_FLAT:    return("trend flat / ADX below minimum");
+      case BLK_TREND_OPPOSED: return("signal against higher-TF trend");
+     }
+   return("unknown");
+  }
+
+//+------------------------------------------------------------------+
 //| Inputs                                                           |
 //|                                                                  |
 //| All distances are in POINTS, never "pips". A point is the        |
@@ -100,6 +140,11 @@ double   g_dayStartBalance = 0.0;   // balance at the start of the current day
 datetime g_dayStamp        = 0;     // which day that was
 bool     g_dayHalted       = false; // daily loss limit tripped
 
+long     g_blockTally[BLK_COUNT];   // why each evaluated bar did not trade
+long     g_barsSeen        = 0;
+long     g_ordersPlaced    = 0;
+long     g_sizingSkips     = 0;     // signal passed every gate, sizing refused
+
 int g_hFast  = INVALID_HANDLE;
 int g_hSlow  = INVALID_HANDLE;
 int g_hRSI   = INVALID_HANDLE;
@@ -156,6 +201,41 @@ void OnDeinit(const int reason)
 
    ObjectsDeleteAll(0, PANEL_PREFIX);
    ChartRedraw();
+
+   PrintSummary();
+  }
+
+//+------------------------------------------------------------------+
+//| End-of-run breakdown. This is the answer to "why isn't it        |
+//| trading" — a count per gate, not an impression.                  |
+//+------------------------------------------------------------------+
+void PrintSummary()
+  {
+   Print("======== Sentinal summary ========");
+   PrintFormat("Bars evaluated: %I64d   Orders placed: %I64d", g_barsSeen, g_ordersPlaced);
+
+   if(g_barsSeen == 0)
+     {
+      Print("No bars were evaluated at all. OnTick returned before the entry check on");
+      Print("every tick, which means TradingReady() was false throughout: no connection,");
+      Print("algo trading disabled, or the symbol was never tradeable.");
+      Print("==================================");
+      return;
+     }
+
+   for(int b = 0; b < BLK_COUNT; b++)
+     {
+      if(g_blockTally[b] == 0)
+         continue;
+      PrintFormat("  %-34s %6I64d bars (%.1f%%)",
+                  BlockName(b), g_blockTally[b],
+                  100.0 * (double)g_blockTally[b] / (double)g_barsSeen);
+     }
+
+   if(g_sizingSkips > 0)
+      PrintFormat("  %-34s %6I64d times", "passed all gates, sizing refused", g_sizingSkips);
+
+   Print("==================================");
   }
 
 //+------------------------------------------------------------------+
@@ -269,41 +349,47 @@ void OnTick()
                      InpTargetProfitPct, gainPct);
         }
      }
-   if(g_halted || !InpAutoTrade)
-      return;
-
    if(!IsNewBar())
       return;
 
    // Work out whether this bar trades, and if not, exactly why. "Nothing
-   // is happening" is the normal state for a filtered strategy, so the
-   // log has to distinguish that from something actually being broken.
-   string  block  = "";
+   // is happening" is the normal state for a filtered strategy, so this
+   // has to distinguish that from something actually being broken. Note
+   // auto-trade being off is counted as a reason rather than an early
+   // return, so a monitor-only run still reports what it would have done.
+   EBlock  blk    = BLK_ENTER;
    ESignal signal = SIGNAL_NONE;
    int     trend  = 0;
 
-   if(!WithinTradingHours())
-      block = "outside trading hours";
+   if(!InpAutoTrade)
+      blk = BLK_AUTOTRADE_OFF;
+   else if(g_halted)
+      blk = BLK_TARGET_HALT;
+   else if(!WithinTradingHours())
+      blk = BLK_HOURS;
    else if(DailyLossHit())
-      block = "daily loss limit reached";
+      blk = BLK_DAILY_LOSS;
    else if(!SpreadAcceptable())
-      block = StringFormat("spread %.0f pts too wide", CurrentSpreadPoints());
+      blk = BLK_SPREAD;
    else if(OpenPositionCount() >= InpMaxPositions)
-      block = "position limit reached";
+      blk = BLK_POSLIMIT;
    else if(InpMaxTotalRiskPct > 0.0 && OpenRiskPercent() >= InpMaxTotalRiskPct)
-      block = StringFormat("open risk %.2f%% at cap", OpenRiskPercent());
+      blk = BLK_TOTALRISK;
    else
      {
       signal = Signal();
       trend  = TrendDirection();
 
       if(signal == SIGNAL_NONE)
-         block = "no entry signal";
+         blk = BLK_NOSIGNAL;
       else if(InpUseTrendFilter && trend == 0)
-         block = "trend undecided / ADX below minimum";
+         blk = BLK_TREND_FLAT;
       else if(InpUseTrendFilter && trend != (int)signal)
-         block = "signal against higher-TF trend";
+         blk = BLK_TREND_OPPOSED;
      }
+
+   g_barsSeen++;
+   g_blockTally[blk]++;
 
    if(InpVerboseLog)
      {
@@ -314,10 +400,10 @@ void OnTick()
                   (trend > 0 ? "up" : (trend < 0 ? "down" : "flat")),
                   CurrentSpreadPoints(),
                   (atr > 0.0 ? atr / _Point : 0.0),
-                  (block == "" ? "ENTERING" : block));
+                  BlockName(blk));
      }
 
-   if(block != "")
+   if(blk != BLK_ENTER)
       return;
 
    OpenTrade(signal == SIGNAL_BUY ? ORDER_TYPE_BUY : ORDER_TYPE_SELL);
@@ -503,7 +589,10 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
 
    double lots = CalculateLots(stopDist);
    if(lots <= 0.0)
+     {
+      g_sizingSkips++;
       return;
+     }
 
    // Portfolio cap: one trade may be within its own limit and still take
    // the account's combined exposure past what it can absorb.
@@ -534,11 +623,14 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
       PrintFormat("Sentinal: order failed. retcode=%d (%s)",
                   trade.ResultRetcode(), trade.ResultRetcodeDescription());
    else
+     {
+      g_ordersPlaced++;
       PrintFormat("Sentinal: %s %.2f lots @ %s  SL=%s TP=%s  (stop %.0f pts)",
                   (type == ORDER_TYPE_BUY ? "BUY" : "SELL"), lots,
                   DoubleToString(trade.ResultPrice(), _Digits),
                   DoubleToString(sl, _Digits), DoubleToString(tp, _Digits),
                   stopDist / _Point);
+     }
   }
 
 //+------------------------------------------------------------------+

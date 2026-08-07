@@ -97,6 +97,42 @@ at `InpRiskPercent` either way.
 `InpUseTrailingStop` trails the stop at `ATR × InpATRTrailMult` behind price,
 tightening only — it can reduce risk on a trade but never widen it.
 
+## Everything scales to the live balance
+
+No setting is a fixed cash amount. Every limit is a percentage of the balance
+read at the moment it is evaluated, so the same configuration stays correct as
+the account grows, and tightens automatically in drawdown.
+
+| Input | Meaning |
+|---|---|
+| `InpRiskPercent` | Target risk per trade. Position size is derived from this and the actual stop distance |
+| `InpMaxRiskPercent` | Hard ceiling per trade. Only relevant when the broker minimum lot risks more than the target |
+| `InpMaxTotalRiskPct` | Cap on combined risk across all open positions |
+| `InpMaxDailyLossPct` | Stops new entries for the rest of the day past this loss, rebased each day |
+| `InpTargetProfitPct` | Halts new entries at this gain, as a percentage rather than a dollar figure |
+
+### The minimum-lot problem, solved proportionally
+
+On a small account the broker's minimum lot can risk more than your target. A
+$1,000 balance trading gold with a 2×ATR stop needs roughly 0.006 lots to risk
+1% — but the minimum tradeable size is 0.01.
+
+Rather than refusing (no trades ever) or blindly accepting (unbounded risk), the
+EA computes what the minimum lot would actually risk as a percentage of the
+*current* balance, and takes it only if that is within `InpMaxRiskPercent`. So:
+
+- **Small balance** — minimum lot might risk 4%, taken only if the ceiling
+  allows, and logged with the real number every time
+- **Growing balance** — the same trade becomes 2%, then 1%, then the constraint
+  disappears entirely and normal risk-based sizing takes over
+- **Drawdown** — the percentage rises automatically, and entries stop once it
+  crosses the ceiling, without you changing a setting
+
+The panel shows this live: `Risk: 1.0% target | min lot 4.41% | ceiling 5.0%`,
+turning red with `(NO TRADES)` when the minimum lot is unaffordable at the
+current balance and volatility. That row is the single best predictor of whether
+a signal will become a trade.
+
 ## Strategies
 
 | `InpStrategy` | Buy | Sell |

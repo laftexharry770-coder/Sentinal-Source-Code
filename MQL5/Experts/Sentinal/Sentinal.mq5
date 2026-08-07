@@ -55,11 +55,13 @@ input int    InpRSIOversold      = 30;     // RSI: oversold level
 input int    InpRSIOverbought    = 70;     // RSI: overbought level
 input int    InpBreakoutBars     = 20;     // Breakout: lookback bars
 
-input group "=== Risk ==="
+input group "=== Risk (all % of live balance) ==="
 input bool   InpUseRiskPercent   = true;   // Size by risk % (false = fixed lots)
-input double InpRiskPercent      = 1.0;    // Risk per trade (% of balance)
-input double InpFixedLots        = 0.01;   // Fixed lot size
-input bool   InpAllowMinLot      = false;  // Trade min lot even if it exceeds risk
+input double InpRiskPercent      = 1.0;    // Target risk per trade (%)
+input double InpMaxRiskPercent   = 5.0;    // Hard ceiling per trade (%, 0 = never exceed target)
+input double InpMaxTotalRiskPct  = 6.0;    // Max combined open risk (%, 0 = off)
+input double InpMaxDailyLossPct  = 5.0;    // Halt for the day after this loss (%, 0 = off)
+input double InpFixedLots        = 0.01;   // Fixed lot size (when not sizing by risk)
 
 input group "=== Stops (ATR-scaled) ==="
 input bool   InpUseATRStops      = true;   // Scale stops to live volatility
@@ -74,7 +76,7 @@ input double InpATRTrailMult     = 2.0;    // Trail distance = ATR x this
 input group "=== Filters ==="
 input int    InpMaxSpreadPoints  = 500;    // Max spread (points, 0 = ignore)
 input double InpMaxSpreadATR     = 0.5;    // Max spread as fraction of ATR (0 = ignore)
-input double InpTargetProfit     = 0.0;    // Halt at account profit (0 = off)
+input double InpTargetProfitPct  = 0.0;    // Halt at profit (% of start balance, 0 = off)
 input bool   InpUseTimeFilter    = false;  // Restrict trading hours
 input int    InpStartHour        = 0;      // Start hour (server time)
 input int    InpEndHour          = 24;     // End hour (server time)
@@ -90,9 +92,13 @@ input color  InpPanelColor       = clrWhite; // Panel text colour
 CTrade         trade;
 CPositionInfo  position;
 
-double   g_startBalance = 0.0;
-bool     g_halted       = false;
-datetime g_lastBar      = 0;
+double   g_startBalance    = 0.0;
+bool     g_halted          = false;
+datetime g_lastBar         = 0;
+
+double   g_dayStartBalance = 0.0;   // balance at the start of the current day
+datetime g_dayStamp        = 0;     // which day that was
+bool     g_dayHalted       = false; // daily loss limit tripped
 
 int g_hFast  = INVALID_HANDLE;
 int g_hSlow  = INVALID_HANDLE;
@@ -114,6 +120,7 @@ int OnInit()
 
    g_startBalance = AccountInfoDouble(ACCOUNT_BALANCE);
    g_halted       = false;
+   UpdateDailyTracking();
 
    // Seed the bar stamp now, so attaching mid-bar does not immediately
    // count as "a new bar" and fire an entry on stale conditions.
@@ -166,6 +173,11 @@ bool ValidateInputs()
      { Print("Sentinal: InpATRStopMult must be > 0."); return(false); }
    if(InpMaxPositions < 1)
      { Print("Sentinal: InpMaxPositions must be >= 1."); return(false); }
+   if(InpMaxRiskPercent > 0.0 && InpMaxRiskPercent < InpRiskPercent)
+     { Print("Sentinal: InpMaxRiskPercent must be >= InpRiskPercent (it is a ceiling)."); return(false); }
+   if(InpMaxTotalRiskPct > 0.0 && InpMaxTotalRiskPct < InpMaxRiskPercent)
+     Print("Sentinal: warning — InpMaxTotalRiskPct is below the per-trade ceiling; "
+           "some single trades will be rejected by the portfolio cap.");
 
    if(InpStrategy == STRAT_EMA_CROSS && InpFastEMA >= InpSlowEMA)
      { Print("Sentinal: InpFastEMA must be smaller than InpSlowEMA."); return(false); }
@@ -244,14 +256,17 @@ void OnTick()
    // trailing stops and reversals should not wait for a candle to close.
    ManageOpenPositions();
 
-   if(InpTargetProfit > 0.0 && !g_halted)
+   UpdateDailyTracking();
+
+   if(InpTargetProfitPct > 0.0 && !g_halted && g_startBalance > 0.0)
      {
-      double profit = AccountInfoDouble(ACCOUNT_EQUITY) - g_startBalance;
-      if(profit >= InpTargetProfit)
+      double gainPct = (AccountInfoDouble(ACCOUNT_EQUITY) - g_startBalance)
+                       / g_startBalance * 100.0;
+      if(gainPct >= InpTargetProfitPct)
         {
          g_halted = true;
-         PrintFormat("Sentinal: target profit %.2f reached (%.2f). Halting new entries.",
-                     InpTargetProfit, profit);
+         PrintFormat("Sentinal: target +%.2f%% reached (%.2f%%). Halting new entries.",
+                     InpTargetProfitPct, gainPct);
         }
      }
    if(g_halted || !InpAutoTrade)
@@ -269,10 +284,14 @@ void OnTick()
 
    if(!WithinTradingHours())
       block = "outside trading hours";
+   else if(DailyLossHit())
+      block = "daily loss limit reached";
    else if(!SpreadAcceptable())
       block = StringFormat("spread %.0f pts too wide", CurrentSpreadPoints());
    else if(OpenPositionCount() >= InpMaxPositions)
       block = "position limit reached";
+   else if(InpMaxTotalRiskPct > 0.0 && OpenRiskPercent() >= InpMaxTotalRiskPct)
+      block = StringFormat("open risk %.2f%% at cap", OpenRiskPercent());
    else
      {
       signal = Signal();
@@ -486,6 +505,24 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
    if(lots <= 0.0)
       return;
 
+   // Portfolio cap: one trade may be within its own limit and still take
+   // the account's combined exposure past what it can absorb.
+   if(InpMaxTotalRiskPct > 0.0)
+     {
+      double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+      if(balance > 0.0)
+        {
+         double newRiskPct = MoneyPerLot(stopDist) * lots / balance * 100.0;
+         double projected  = OpenRiskPercent() + newRiskPct;
+         if(projected > InpMaxTotalRiskPct)
+           {
+            PrintFormat("Sentinal: entry would take combined open risk to %.2f%% (cap %.2f%%). Skipped.",
+                        projected, InpMaxTotalRiskPct);
+            return;
+           }
+        }
+     }
+
    if(!MarginSufficient(type, lots, price))
       return;
 
@@ -507,47 +544,126 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
 //+------------------------------------------------------------------+
 //| Position sizing from the actual stop distance                    |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| Money risked per lot over a given price distance                 |
+//+------------------------------------------------------------------+
+double MoneyPerLot(const double priceDist)
+  {
+   double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+   double tickSize  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+   if(tickValue <= 0.0 || tickSize <= 0.0 || priceDist <= 0.0)
+      return(0.0);
+   return((priceDist / tickSize) * tickValue);
+  }
+
+//+------------------------------------------------------------------+
+//| Combined risk of everything currently open, as % of balance      |
+//+------------------------------------------------------------------+
+double OpenRiskPercent()
+  {
+   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   if(balance <= 0.0)
+      return(0.0);
+
+   double total = 0.0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+      if(!position.SelectByIndex(i))
+         continue;
+      if(position.Symbol() != _Symbol || position.Magic() != InpMagicNumber)
+         continue;
+
+      double sl = position.StopLoss();
+      if(sl <= 0.0)
+         continue;
+      total += MoneyPerLot(MathAbs(position.PriceOpen() - sl)) * position.Volume();
+     }
+
+   return(total / balance * 100.0);
+  }
+
+//+------------------------------------------------------------------+
+//| Position sizing — everything scales off the LIVE balance, so the |
+//| same settings stay correct as the account grows or shrinks.      |
+//+------------------------------------------------------------------+
 double CalculateLots(const double stopDist)
   {
-   double minLot  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
-   double lots;
-
    if(!InpUseRiskPercent)
-      lots = InpFixedLots;
-   else
+      return(NormalizeLots(InpFixedLots));
+
+   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   if(balance <= 0.0)
+      return(0.0);
+
+   double lossPerLot = MoneyPerLot(stopDist);
+   if(lossPerLot <= 0.0)
      {
-      double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
-      double tickSize  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
-      if(tickValue <= 0.0 || tickSize <= 0.0 || stopDist <= 0.0)
+      Print("Sentinal: cannot size by risk (bad tick value/size).");
+      return(0.0);
+     }
+
+   double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double lots   = (balance * InpRiskPercent / 100.0) / lossPerLot;
+
+   if(lots < minLot)
+     {
+      // The smallest tradeable position risks more than the target. Take
+      // it only while that stays under the ceiling — which is itself a
+      // percentage, so this constraint dissolves as the balance grows
+      // and tightens automatically if the account draws down.
+      double minLotPct = lossPerLot * minLot / balance * 100.0;
+
+      if(InpMaxRiskPercent <= 0.0 || minLotPct > InpMaxRiskPercent)
         {
-         Print("Sentinal: cannot size by risk (bad tick value/size).");
+         PrintFormat("Sentinal: min lot %.2f risks %.2f%% of %.2f (target %.2f%%, ceiling %.2f%%). Skipped.",
+                     minLot, minLotPct, balance, InpRiskPercent, InpMaxRiskPercent);
          return(0.0);
         }
 
-      double riskMoney  = AccountInfoDouble(ACCOUNT_BALANCE) * InpRiskPercent / 100.0;
-      double lossPerLot = (stopDist / tickSize) * tickValue;
-      if(lossPerLot <= 0.0)
-         return(0.0);
-
-      lots = riskMoney / lossPerLot;
-
-      // Refuse to silently exceed the configured risk. On gold the min
-      // lot can risk more than 1% of a small account in one trade.
-      if(lots < minLot)
-        {
-         if(!InpAllowMinLot)
-           {
-            PrintFormat("Sentinal: min lot %.2f exceeds %.1f%% risk on a %.0f point stop. "
-                        "Trade skipped. Raise InpRiskPercent or set InpAllowMinLot.",
-                        minLot, InpRiskPercent, stopDist / _Point);
-            return(0.0);
-           }
-         PrintFormat("Sentinal: sizing up to min lot %.2f — this trade risks more "
-                     "than %.1f%%.", minLot, InpRiskPercent);
-        }
+      PrintFormat("Sentinal: min lot %.2f risks %.2f%% vs %.2f%% target — within the %.2f%% ceiling, taking it.",
+                  minLot, minLotPct, InpRiskPercent, InpMaxRiskPercent);
+      lots = minLot;
      }
 
    return(NormalizeLots(lots));
+  }
+
+//+------------------------------------------------------------------+
+//| Daily loss limit, rebased to balance at the start of each day    |
+//+------------------------------------------------------------------+
+void UpdateDailyTracking()
+  {
+   MqlDateTime t;
+   TimeToStruct(TimeCurrent(), t);
+   t.hour = 0; t.min = 0; t.sec = 0;
+   datetime today = StructToTime(t);
+
+   if(today != g_dayStamp)
+     {
+      g_dayStamp        = today;
+      g_dayStartBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+      g_dayHalted       = false;
+     }
+  }
+
+bool DailyLossHit()
+  {
+   if(InpMaxDailyLossPct <= 0.0 || g_dayStartBalance <= 0.0)
+      return(false);
+   if(g_dayHalted)
+      return(true);
+
+   double change = (AccountInfoDouble(ACCOUNT_EQUITY) - g_dayStartBalance)
+                   / g_dayStartBalance * 100.0;
+
+   if(change <= -InpMaxDailyLossPct)
+     {
+      g_dayHalted = true;
+      PrintFormat("Sentinal: daily loss limit hit (%.2f%% of %.2f). No new entries today.",
+                  change, g_dayStartBalance);
+      return(true);
+     }
+   return(false);
   }
 
 double NormalizeLots(double lots)
@@ -762,6 +878,7 @@ void PanelUpdate()
    if(!connected)         { state = "DISCONNECTED";    stateColor = clrOrangeRed; }
    else if(!MarketOpen()) { state = "MARKET CLOSED";   stateColor = clrGold;      }
    else if(g_halted)      { state = "HALTED (target)"; stateColor = clrGold;      }
+   else if(g_dayHalted)   { state = "HALTED (daily loss)"; stateColor = clrOrangeRed; }
    else if(!expertsOn)    { state = "TRADING BLOCKED"; stateColor = clrOrangeRed; }
    else if(!InpAutoTrade) { state = "MONITOR ONLY";    stateColor = clrGold;      }
    else                   { state = "LIVE";            stateColor = clrLime;      }
@@ -801,6 +918,27 @@ void PanelUpdate()
    PanelLine(row++, "Equity",    InpPanelColor,
              DoubleToString(equity, 2) + "   P/L " +
              DoubleToString(equity - g_startBalance, 2));
+
+   // What the smallest tradeable position would risk right now, as a
+   // share of the live balance. This is the number that decides whether
+   // a signal becomes a trade on a small account.
+   double balance   = AccountInfoDouble(ACCOUNT_BALANCE);
+   double minLotPct = 0.0;
+   if(atr > 0.0 && balance > 0.0)
+     {
+      double sd     = (InpUseATRStops ? atr * InpATRStopMult
+                                      : InpStopLossPoints * _Point);
+      double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+      minLotPct     = MoneyPerLot(sd) * minLot / balance * 100.0;
+     }
+
+   bool affordable = (minLotPct > 0.0 && minLotPct <= InpMaxRiskPercent);
+   PanelLine(row++, "Risk", (minLotPct > 0.0 && !affordable ? clrOrangeRed : InpPanelColor),
+             StringFormat("%.1f%% target | min lot %.2f%% | ceiling %.1f%%%s",
+                          InpRiskPercent, minLotPct, InpMaxRiskPercent,
+                          (minLotPct > 0.0 && !affordable ? "  (NO TRADES)" : "")));
+   PanelLine(row++, "Open risk", InpPanelColor,
+             StringFormat("%.2f%% / %.1f%%", OpenRiskPercent(), InpMaxTotalRiskPct));
 
    ChartRedraw();
   }

@@ -1,124 +1,153 @@
-# Sentinal — MT5 Expert Advisor
+# Sentinal — trend-adaptive MT5 Expert Advisor
 
-A trading bot for MetaTrader 5. It places real trades: pick a strategy, set your
-risk, and switch `InpAutoTrade` on.
+A trading bot for MetaTrader 5, with defaults tuned for **XAUUSD**. It reads the
+higher-timeframe trend, sizes every position from live volatility, trails its
+stop as a trade moves, and exits when the trend turns against it.
 
 ## Why this replaces the MetaApi work
 
-MetaApi exists to reach an MT account from *outside* the terminal — that is what
-a web dashboard needs. An Expert Advisor runs *inside* the terminal, so it reads
-live prices, candle history and account state natively.
+MetaApi exists to reach an MT account from *outside* the terminal — what a web
+dashboard needs. An EA runs *inside* it, so live prices, candle history, account
+state and order execution are all native.
 
-Nothing in this EA needs a MetaApi token, a deployed account, a region, or a
-network round trip. The chart status panel reads terminal state directly, so it
-reports what is actually true rather than what a cloud bridge last reported.
+No API token, no deployed account, no region, no backend functions, no network
+round trip. The status panel reads terminal state directly, so it reports what
+is actually true.
+
+## Points, not pips — and why gold broke before
+
+Every distance in this EA is in **points**: the smallest quote increment for the
+symbol. On 2-digit gold, 1 point = `0.01`, so 100 points = $1.00 of price.
+
+Version 1 used "pips" and computed them as `10 × point` only on 5- and 3-digit
+symbols. Gold quotes at 2 digits, so it fell through to 1 pip = 1 point = `0.01`
+— meaning a "30 pip" stop was **30 cents on gold**, far inside any broker's
+minimum stop distance. Every order would have been rejected by the pre-trade
+check, and the bot would have run without ever placing a trade.
+
+Points remove the ambiguity, and ATR-based stops remove the guesswork.
 
 ## Install
 
 1. In MT5: **File → Open Data Folder**
 2. Copy `Sentinal.mq5` into `MQL5/Experts/Sentinal/`
-3. In MetaEditor (F4), open the file and press **F7** to compile
-4. Back in MT5, refresh the Navigator and drag **Sentinal** onto a chart
-5. On the Common tab, tick **Allow Algo Trading**, and make sure the toolbar
+3. In MetaEditor (F4), open it and press **F7** to compile
+4. Refresh the Navigator, drag **Sentinal** onto an **XAUUSD** chart (M15 is a
+   reasonable starting timeframe)
+5. On the Common tab tick **Allow Algo Trading**, and make sure the toolbar
    **Algo Trading** button is green
 
-The chart symbol and timeframe are the ones the EA trades — attach it to the
-chart you want, e.g. XAUUSD M15.
+The chart's symbol and timeframe are what it trades.
+
+## Turning it on
+
+Two switches, both off by default:
+
+1. MT5's **Algo Trading** toolbar button green
+2. **`InpAutoTrade` → `true`**
+
+With `InpAutoTrade` off it evaluates everything and updates the panel but sends
+no orders. That is deliberate: attaching the EA is never itself the thing that
+starts trading your account.
+
+## How it adapts to the trend
+
+Three mechanisms, all live:
+
+**Direction gate.** `TrendDirection()` compares price to a 200 EMA on a higher
+timeframe (`InpTrendTF`, default H1) while the chart runs on a lower one. An
+entry signal is only taken if it agrees with that direction — a buy signal in a
+downtrend is discarded.
+
+**Strength gate.** ADX measures how *strongly* a market is trending, not which
+way. Below `InpADXMin` (default 20) the market is ranging, where trend-following
+entries bleed, and no trade is taken at all.
+
+**Reversal exit.** With `InpCloseOnReverse`, an open position is closed as soon
+as the higher-timeframe trend flips against it, rather than sitting through the
+move waiting for the stop.
+
+Trend and ADX are re-evaluated every tick, not once per bar, so reversal exits
+and trailing stops do not wait for a candle to close. Entries are still gated to
+new bars so signals read closed candles.
+
+## How it adapts to volatility
+
+With `InpUseATRStops` (default on), stop and target are `ATR × multiplier`
+rather than fixed distances. Gold's range varies enormously between the Asian
+session and a CPI release; a fixed 3000-point stop is too wide in one and too
+tight in the other. ATR rescales automatically.
+
+Position size is then derived from that *actual* stop distance, so a wider
+volatility-driven stop produces a smaller position and the money at risk stays
+at `InpRiskPercent` either way.
+
+`InpUseTrailingStop` trails the stop at `ATR × InpATRTrailMult` behind price,
+tightening only — it can reduce risk on a trade but never widen it.
+
+## Strategies
+
+| `InpStrategy` | Buy | Sell |
+|---|---|---|
+| `STRAT_EMA_CROSS` | Fast EMA crosses above slow | Fast crosses below slow |
+| `STRAT_RSI_REVERSION` | RSI climbs back above oversold | RSI drops back below overbought |
+| `STRAT_BREAKOUT` | Close above prior N-bar high | Close below prior N-bar low |
+
+All read closed candles only. The breakout range spans bars 2..N+1, excluding
+the candle that just closed, so that candle's close is tested against a range it
+did not help form.
+
+These are standard textbook entries — a tunable starting point, not an edge.
 
 ## Status panel
-
-Drawn top-left of the chart, refreshed each tick. `Sentinal:` shows one of:
 
 | State | Meaning |
 |---|---|
 | `LIVE` | Connected, algo trading permitted, auto-trade on |
-| `MONITOR ONLY` | Everything healthy, `InpAutoTrade` is `false` |
-| `TRADING BLOCKED` | Algo trading disabled — terminal button, account, or EA settings |
-| `DISCONNECTED` | No connection to the broker |
+| `MONITOR ONLY` | Healthy, `InpAutoTrade` is `false` |
+| `MARKET CLOSED` | Symbol not currently tradeable (gold's daily break) |
+| `TRADING BLOCKED` | Algo trading disabled somewhere |
+| `DISCONNECTED` | No broker connection |
 | `HALTED (target)` | `InpTargetProfit` reached; no new entries |
 
-The remaining rows show server, login, DEMO/REAL, symbol and timeframe, bid/ask,
-spread in pips, last tick time, open positions, and equity with running P/L.
+Plus server, login with `[DEMO]`/`[REAL]`, symbol and timeframe, strategy,
+**live trend direction**, bid/ask, spread in points, **current ATR in points**,
+open positions, and equity with running P/L.
 
-## Turning it on
+## Trading around the clock
 
-Two switches must both be on before a single order is placed:
+Gold trades roughly 23 hours a day. `InpUseTimeFilter` defaults to **off**, so
+the EA is active whenever the market is. `MarketOpen()` checks the symbol's
+trade mode and requires a valid two-sided tick, so the daily break shows as
+`MARKET CLOSED` rather than producing failed orders.
 
-1. MT5's **Algo Trading** toolbar button must be green
-2. **`InpAutoTrade` must be set to `true`** — it ships as `false`
+`InpMaxSpreadPoints` (default 50) blocks entries while the spread is abnormally
+wide — which on gold is exactly the rollover window and the first seconds after
+high-impact news.
 
-With `InpAutoTrade` off the EA evaluates signals and updates the panel but never
-sends an order. That is the default on purpose, so attaching the EA is never
-itself the thing that starts trading your account.
+## Fixes in v2
 
-## Strategies
+- **Gold pip bug** — points throughout; the old formula made stops ~10× too
+  tight on XAUUSD and would have blocked every order
+- **Stops now widen** to the broker's minimum distance instead of the trade
+  being skipped, and account for the spread (a stop inside the spread is hit
+  the moment it is placed)
+- **Margin check** via `OrderCalcMargin` before ordering, instead of letting
+  the broker reject it
+- **Min-lot risk guard** — if the broker's minimum lot would risk more than
+  `InpRiskPercent`, the trade is skipped and logged rather than silently
+  exceeding your risk setting. `InpAllowMinLot` overrides
+- **`IsNewBar()`** is seeded in `OnInit`, so attaching mid-candle no longer
+  counts as a new bar and fires an immediate entry on stale conditions
+- **Trailing stop** only ever tightens, symmetrically for buys and sells
+- **Freeze level** honoured alongside stop level
+- Per-strategy input validation with clear messages in the Experts tab
 
-Set `InpStrategy`. All three are evaluated on the first tick of a new bar, so
-they read closed candles — the forming candle is never used for an entry.
+## Before real money
 
-| Strategy | Buy when | Sell when |
-|---|---|---|
-| `STRAT_EMA_CROSS` | Fast EMA crosses above slow EMA | Fast crosses below slow |
-| `STRAT_RSI_REVERSION` | RSI climbs back above the oversold level | RSI drops back below overbought |
-| `STRAT_BREAKOUT` | Last close is above the high of the prior N bars | Last close is below the low |
+Run **Strategy Tester** first, then **demo**. The panel tags the account
+`[DEMO]` or `[REAL]` so it is never ambiguous which you are on.
 
-The breakout range spans bars 2..N+1, excluding the candle that just closed, so
-that candle's close is tested against a range it did not help form.
-
-These are standard textbook entries. They are a working, tunable starting point
-— not an edge, and not a claim that any of them is profitable on your symbol or
-timeframe. Which one earns money on XAUUSD M15 is an empirical question, and the
-Strategy Tester is what answers it.
-
-## Inputs
-
-**Strategy** — `InpStrategy`, `InpFastEMA`, `InpSlowEMA`, `InpRSIPeriod`,
-`InpRSIOversold`, `InpRSIOverbought`, `InpBreakoutBars`.
-
-**Trading** — `InpAutoTrade` (default `false`), `InpMagicNumber`,
-`InpMaxPositions`.
-
-**Risk** — `InpUseRiskPercent`, `InpRiskPercent`, `InpFixedLots`,
-`InpStopLossPips`, `InpTakeProfitPips`.
-
-**Filters** — `InpMaxSpreadPips`, `InpTargetProfit` (account profit at which new
-entries stop; `0` disables).
-
-**Display** — `InpShowPanel`, `InpPanelColor`.
-
-Risk-based sizing converts your risk percentage into lots using the broker's
-tick value and tick size, then clamps to the symbol's min/max/step. It requires
-a stop loss — the EA refuses to initialise with `InpUseRiskPercent` on and
-`InpStopLossPips` at `0`, because without a stop there is no defined risk to
-size against.
-
-## Adding your own strategy
-
-`Signal()` dispatches on `InpStrategy` to `SignalEmaCross()`,
-`SignalRsiReversion()` or `SignalBreakout()`. To add your own, write another
-function returning `SIGNAL_BUY` / `SIGNAL_SELL` / `SIGNAL_NONE`, add a value to
-the `EStrategy` enum, and add one `case` to the switch. Candle data needs no
-external API:
-
-```mql5
-MqlRates r[];
-ArraySetAsSeries(r, true);
-if(CopyRates(_Symbol, PERIOD_CURRENT, 0, 50, r) < 50)
-   return(SIGNAL_NONE);
-// r[1] is the last closed candle, r[2] the one before it.
-```
-
-If your strategy needs an indicator, create its handle in `CreateIndicators()`
-and release it in `OnDeinit()`. Sizing, stop/target placement, broker minimum
-stop distance, spread filtering, position limits and execution are handled
-around whatever `Signal()` returns.
-
-## Before running on real money
-
-Test in **Strategy Tester** first, then on a **demo** account. The panel labels
-the account `[DEMO]` or `[REAL]` so you can tell at a glance which you are on.
-
-`InpAutoTrade` defaults to `false` deliberately: attach it, watch the panel, and
-only turn auto-trade on once the status reads as you expect. An EA with a live
-`Signal()` places real orders at machine speed, and a stop loss is the only
-thing bounding the loss on any one of them.
+Risk defaults to 1% per trade with an ATR-scaled stop, which is survivable
+through a losing run. The EA will not start with risk-based sizing and no stop,
+because without a stop there is no defined risk to size against.

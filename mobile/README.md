@@ -1,29 +1,48 @@
-# Sentinal Mobile
+# Sentinal Trader — mobile
 
-A phone app for the same bot: sign in, watch the connection, toggle auto-trade,
-see live price and candles. One file, no build step, no app store.
+Connect a broker account, press START, press STOP. Three tabs: Home, MetaTrader,
+Settings. One HTML file, no build step, no app store.
 
 ## Why it needs MetaApi
 
 A phone cannot log into an MT5 account directly. MT5's trading protocol is
-proprietary and there is no public API that accepts a broker login, password and
-server from third-party code — only MetaQuotes' own app can do that.
+proprietary and there is no public API that accepts a broker login from
+third-party code — only MetaQuotes' own app can do that.
 
-So MetaApi runs a real MT5 terminal in the cloud, logged into your broker
-account, and exposes it over HTTPS. This app talks to that. Your broker password
-lives with MetaApi and never reaches this page.
+MetaApi solves it by provisioning a real MT5 terminal in the cloud from your
+broker credentials and exposing it over HTTPS. This app sends your broker login
+straight to MetaApi and drives the terminal from there.
 
-## Sign in
+## First run
 
-Two values, both from [app.metaapi.cloud](https://app.metaapi.cloud):
+**Settings → MetaApi service key.** Paste a token from
+[app.metaapi.cloud](https://app.metaapi.cloud) → API Access. Once, on this
+device.
 
-| Field | Where |
-|---|---|
-| **API token** | API Access section |
-| **Account ID** | Accounts page, the UUID next to your account |
+Commercial apps of this kind keep that key on their own server, so their users
+only ever see broker fields. Without a backend of your own, the key lives here
+instead. Everything after this step matches.
 
-The account must show **DEPLOYED** on MetaApi before anything can trade. If it
-is not, the connection panel says so in those words and names the actual state.
+**MetaTrader → Connect MT Account.** Pick your broker, pick or type the exact
+server name, enter your login ID and password, tap **CONNECT ACCOUNT**.
+
+The app then creates the cloud account, deploys it, and waits for the broker to
+accept the login — reporting each stage as it happens. When the broker connects,
+the screen becomes **Account Connected** with Update and Disconnect.
+
+The server string has to match exactly what MT5 shows under
+*File → Open an Account* — `Exness-MT5Trial9`, `JustMarkets-MT5-Demo-3`. A wrong
+server is the most common failure, and the error names it rather than hanging.
+
+## Running the bot
+
+**Home → START.** The card flips to **RUNNING** and the status line below it
+says what the bot is doing: armed and watching, or idle with the reason —
+outside the New York session, position limit reached, spread too wide, account
+not deployed. **STOP** halts new entries immediately.
+
+Home also shows balance, equity, running P/L, open positions, the live recovery
+step, bid/ask, spread against your cap, session state, and a candlestick chart.
 
 ## Running it
 
@@ -48,24 +67,15 @@ For unattended trading, use the MT5 Expert Advisor in `MQL5/Experts/Sentinal/`
 on a PC or a VPS. That is what an always-on setup looks like. This app is best
 understood as a remote control and monitor that can also trade while you watch.
 
-## What it does
+## Settings
 
-**Connection panel** — MetaApi state (`DEPLOYED` or the real value), broker
-connection status, region, account login, balance, equity, open positions. Every
-failure prints the exact HTTP status and response body rather than a generic
-message.
+Symbol, timeframe, initial lot, max positions, dollar stop and target,
+martingale multiplier and recovery depth, loss-to-recover trigger, daily profit
+target, max total loss, New York session window, spread cap. Saved to the
+device.
 
-**Auto-trade toggle** — off on load. When off, everything updates but no orders
-are sent. When on, the status line names what it is waiting for, or why it is
-idle: outside the New York session, position limit reached, spread too wide,
-account not deployed.
-
-**Market** — live bid/ask, spread in points against your limit, session state,
-and a candlestick chart drawn from MetaApi's historical data.
-
-**Settings** — symbol, timeframe, initial lot, max positions, dollar stop and
-target, martingale multiplier and recovery depth, daily profit target, max total
-loss, New York session window, spread cap. Saved to the device.
+The martingale panel previews the actual ladder — `0.01 → 0.02 → 0.04 → 0.08`
+— so the escalation is visible before it happens rather than after.
 
 ## Differences from the EA
 

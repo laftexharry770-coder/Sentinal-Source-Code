@@ -52,9 +52,13 @@
          which is exactly the situation that leaves a blank page. app.js marks
          the page "ready" once it has painted. If that has not happened, show
          everything anyway and offer a one-tap repair. */
-      setTimeout(function () {
-        var root = document.documentElement;
-        if (root.className.indexOf('ready') > -1) return;
+      var armed = Date.now(), waitTimer;
+      var isReady = function () {
+        return document.documentElement.className.indexOf('ready') > -1;
+      };
+
+      function showStale() {
+        if (isReady() || document.getElementById('stalePage')) return;
 
         var style = document.createElement('style');
         style.textContent =
@@ -86,7 +90,36 @@
             .then(function () { location.replace(location.pathname + '?reload=' + Date.now()); });
         };
         document.body.appendChild(bar);
-      }, 8000);
+      }
+
+      /* Slow is not broken. The catalogue is a single large file, and on a
+         weak connection it can take half a minute to arrive — a phone at
+         68 KB/s needs about thirty seconds for it alone. A fixed timer called
+         that a failure and told the customer the shop was broken while it was
+         quietly still loading, and the repair button then threw away the cache
+         and started the whole download again.
+
+         So: while the browser is still fetching, keep waiting. Only give up if
+         nothing has arrived for a long stretch. */
+      function considerStale() {
+        if (isReady()) return;
+        if (document.readyState !== 'complete' && Date.now() - armed < 60000) {
+          waitTimer = setTimeout(considerStale, 2000);
+          return;
+        }
+        showStale();
+      }
+      waitTimer = setTimeout(considerStale, 8000);
+
+      /* A script that actually fails is a different thing from a slow one —
+         there is nothing left to wait for, so say so straight away. */
+      window.addEventListener('error', function (e) {
+        var el = e.target;
+        if (el && el.tagName === 'SCRIPT' && /\/(data|app)\.js/.test(el.src || '')) {
+          clearTimeout(waitTimer);
+          showStale();
+        }
+      }, true);
     })();
   </script>
 </head>

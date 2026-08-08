@@ -88,19 +88,19 @@ string BlockName(const int b)
 input group "=== Trading ==="
 input bool   InpAutoTrade        = false;  // Auto-trade (false = monitor only)
 input long   InpMagicNumber      = 770001; // Magic number
-input int    InpMaxPositions     = 1;      // Max simultaneous positions
+input int    InpMaxPositions     = 5;      // Maximum simultaneous positions
 
 input group "=== Trend adaptation ==="
-input bool   InpUseTrendFilter   = true;   // Only trade with the higher-TF trend
-input ENUM_TIMEFRAMES InpTrendTF = PERIOD_H1; // Trend timeframe
+input bool   InpUseTrendFilter   = false;  // Only trade with the higher-TF trend
+input ENUM_TIMEFRAMES InpTrendTF = PERIOD_H4; // Trend timeframe
 input int    InpTrendEMA         = 200;    // Trend EMA period
-input bool   InpUseADX           = true;   // Require a trending market
+input bool   InpUseADX           = false;  // Require a trending market
 input int    InpADXPeriod        = 14;     // ADX period
 input double InpADXMin           = 20.0;   // Min ADX to trade
 input bool   InpCloseOnReverse   = true;   // Close position when trend flips
 
 input group "=== Entry ==="
-input bool   InpIntrabarSignals  = false;  // React inside the candle (faster, signals can flip)
+input bool   InpIntrabarSignals  = true;   // React inside the candle (executes immediately)
 input EDirection InpDirection    = DIR_BOTH;        // Allowed trade direction
 input EStrategy InpStrategy      = STRAT_EMA_CROSS; // Entry strategy
 input int    InpFastEMA          = 12;     // EMA cross: fast period
@@ -111,24 +111,24 @@ input int    InpRSIOverbought    = 70;     // RSI: overbought level
 input int    InpBreakoutBars     = 20;     // Breakout: lookback bars
 
 input group "=== Trade Settings ==="
-input bool   InpUseDollarStops   = false;  // Use $ stop/target instead of ATR
+input bool   InpUseDollarStops   = true;   // Use $ stop/target instead of ATR
 input double InpInitialLot       = 0.01;   // Initial lot size (MINIMUM)
 input double InpStopLossUSD      = 2.0;    // Stop loss per trade ($)
 input double InpTakeProfitUSD    = 1.0;    // Take profit per trade ($)
 input double InpLossTriggerUSD   = 0.5;    // Loss to trigger recovery ($)
 
 input group "=== Martingale Settings ==="
-input bool   InpUseMartingale    = false;  // Enable martingale recovery
+input bool   InpUseMartingale    = true;   // Enable martingale recovery
 input double InpMartingaleMult   = 2.0;    // Martingale multiplier
 input int    InpMaxRecovery      = 3;      // Maximum recovery attempts
 
 input group "=== Session ==="
-input bool   InpNewYorkOnly      = false;  // Trade the New York session only
+input bool   InpNewYorkOnly      = true;   // Trade the New York session only
 input int    InpNYStartHour      = 15;     // NY session start (server time)
 input int    InpNYEndHour        = 24;     // NY session end (server time)
 
 input group "=== Risk (all % of live balance) ==="
-input double InpDailyProfitUSD   = 0.0;    // Daily profit target ($, 0 = off)
+input double InpDailyProfitUSD   = 100.0;  // Daily profit target ($, 0 = off)
 input double InpMaxLossPctBal    = 50.0;   // Max total loss (% of balance, 0 = off)
 input bool   InpUseRiskPercent   = true;   // Size by risk % (false = fixed lots)
 input double InpRiskPercent      = 1.0;    // Target risk per trade (%)
@@ -322,6 +322,28 @@ bool ValidateInputs()
 
    if(InpUseTimeFilter && (InpStartHour < 0 || InpEndHour > 24 || InpStartHour >= InpEndHour))
      { Print("Sentinal: need 0 <= StartHour < EndHour <= 24."); return(false); }
+
+   if(InpUseDollarStops)
+     {
+      if(InpInitialLot <= 0.0)
+        { Print("Sentinal: InpInitialLot must be > 0."); return(false); }
+      if(InpStopLossUSD <= 0.0)
+        { Print("Sentinal: InpStopLossUSD must be > 0 in dollar-stop mode."); return(false); }
+     }
+
+   if(InpUseMartingale)
+     {
+      if(InpMartingaleMult < 1.0)
+        { Print("Sentinal: InpMartingaleMult must be >= 1.0."); return(false); }
+      if(InpMaxRecovery < 0)
+        { Print("Sentinal: InpMaxRecovery cannot be negative."); return(false); }
+      if(InpLossTriggerUSD < 0.0)
+        { Print("Sentinal: InpLossTriggerUSD cannot be negative."); return(false); }
+     }
+
+   if(InpNewYorkOnly && (InpNYStartHour < 0 || InpNYStartHour > 23 ||
+                         InpNYEndHour   < 1 || InpNYEndHour   > 24))
+     { Print("Sentinal: NY hours must be 0-23 (start) and 1-24 (end)."); return(false); }
 
    return(true);
   }

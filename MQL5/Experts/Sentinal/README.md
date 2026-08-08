@@ -1,8 +1,34 @@
-# Sentinal — trend-adaptive MT5 Expert Advisor
+# Sentinal — MT5 Expert Advisor
 
-A trading bot for MetaTrader 5, with defaults tuned for **XAUUSD**. It reads the
-higher-timeframe trend, sizes every position from live volatility, trails its
-stop as a trade moves, and exits when the trend turns against it.
+A trading bot for MetaTrader 5, tuned for **XAUUSD on H1**.
+
+Out of the box it runs as a **martingale scalper**: fixed dollar stop and target
+per trade, a capped recovery ladder after losses, entries restricted to the New
+York session, and immediate intrabar execution.
+
+## Defaults on attach
+
+| Setting | Value |
+|---|---|
+| Stop loss per trade | $2.00 |
+| Take profit per trade | $1.00 |
+| Initial lot | 0.01 (minimum) |
+| Martingale multiplier | 2.0 |
+| Maximum recovery attempts | 3 |
+| Loss to trigger recovery | $0.50 |
+| Maximum simultaneous positions | 5 |
+| Daily profit target | $100 |
+| Max total loss | 50% of balance |
+| Session | New York only |
+| Execution | Intrabar — fires the moment a signal appears |
+
+**`InpAutoTrade` still ships as `false`.** It is the one switch you turn on
+yourself, so that dragging the EA onto a chart is never the act that starts
+trading the account. Set it to `true` and it runs.
+
+The volatility-based mode is still available — set `InpUseDollarStops` and
+`InpUseMartingale` to `false` for ATR-scaled stops with percent-of-balance
+sizing, and turn `InpUseTrendFilter` back on for higher-timeframe filtering.
 
 ## Why this replaces the MetaApi work
 

@@ -50,6 +50,8 @@ enum EBlock
    BLK_TREND_FLAT,
    BLK_TREND_OPPOSED,
    BLK_DIRECTION,
+   BLK_SESSION,
+   BLK_MAXLOSS,
    BLK_COUNT
   };
 
@@ -69,6 +71,8 @@ string BlockName(const int b)
       case BLK_TREND_FLAT:    return("trend flat / ADX below minimum");
       case BLK_TREND_OPPOSED: return("signal against higher-TF trend");
       case BLK_DIRECTION:     return("direction disabled (long/short filter)");
+      case BLK_SESSION:       return("outside New York session");
+      case BLK_MAXLOSS:       return("max total loss reached");
      }
    return("unknown");
   }
@@ -106,7 +110,26 @@ input int    InpRSIOversold      = 30;     // RSI: oversold level
 input int    InpRSIOverbought    = 70;     // RSI: overbought level
 input int    InpBreakoutBars     = 20;     // Breakout: lookback bars
 
+input group "=== Trade Settings ==="
+input bool   InpUseDollarStops   = false;  // Use $ stop/target instead of ATR
+input double InpInitialLot       = 0.01;   // Initial lot size (MINIMUM)
+input double InpStopLossUSD      = 2.0;    // Stop loss per trade ($)
+input double InpTakeProfitUSD    = 1.0;    // Take profit per trade ($)
+input double InpLossTriggerUSD   = 0.5;    // Loss to trigger recovery ($)
+
+input group "=== Martingale Settings ==="
+input bool   InpUseMartingale    = false;  // Enable martingale recovery
+input double InpMartingaleMult   = 2.0;    // Martingale multiplier
+input int    InpMaxRecovery      = 3;      // Maximum recovery attempts
+
+input group "=== Session ==="
+input bool   InpNewYorkOnly      = false;  // Trade the New York session only
+input int    InpNYStartHour      = 15;     // NY session start (server time)
+input int    InpNYEndHour        = 24;     // NY session end (server time)
+
 input group "=== Risk (all % of live balance) ==="
+input double InpDailyProfitUSD   = 0.0;    // Daily profit target ($, 0 = off)
+input double InpMaxLossPctBal    = 50.0;   // Max total loss (% of balance, 0 = off)
 input bool   InpUseRiskPercent   = true;   // Size by risk % (false = fixed lots)
 input double InpRiskPercent      = 1.0;    // Target risk per trade (%)
 input double InpMaxRiskPercent   = 5.0;    // Hard ceiling per trade (%, 0 = never exceed target)
@@ -152,6 +175,9 @@ double   g_dayStartBalance = 0.0;   // balance at the start of the current day
 datetime g_dayStamp        = 0;     // which day that was
 bool     g_dayHalted       = false; // daily loss limit tripped
 
+int      g_recoveryStep    = 0;     // consecutive martingale escalations
+datetime g_lastDealTime    = 0;     // newest closed deal already accounted for
+
 long     g_blockTally[BLK_COUNT];   // why each evaluated bar did not trade
 long     g_barsSeen        = 0;
 long     g_ordersPlaced    = 0;
@@ -188,6 +214,16 @@ int OnInit()
 
    if(!CreateIndicators())
       return(INIT_FAILED);
+
+   if(InpUseMartingale)
+     {
+      double worst = 0.0;
+      for(int k = 0; k <= InpMaxRecovery; k++)
+         worst += InpInitialLot * MathPow(InpMartingaleMult, k);
+      PrintFormat("Sentinal: MARTINGALE ON. Ladder %d steps x%.2f. A full losing "
+                  "sequence stakes %.2f lots in total before the ladder resets.",
+                  InpMaxRecovery, InpMartingaleMult, worst);
+     }
 
    if(InpIntrabarSignals)
       Print("Sentinal: INTRABAR mode — rules read the forming candle. Entries are "
@@ -354,6 +390,18 @@ void OnTick()
    ManageOpenPositions();
 
    UpdateDailyTracking();
+   UpdateRecoveryState();
+
+   if(InpDailyProfitUSD > 0.0 && !g_dayHalted && g_dayStartBalance > 0.0)
+     {
+      double dayProfit = AccountInfoDouble(ACCOUNT_EQUITY) - g_dayStartBalance;
+      if(dayProfit >= InpDailyProfitUSD)
+        {
+         g_dayHalted = true;
+         PrintFormat("Sentinal: daily profit target %.2f reached (%.2f). Done for today.",
+                     InpDailyProfitUSD, dayProfit);
+        }
+     }
 
    if(InpTargetProfitPct > 0.0 && !g_halted && g_startBalance > 0.0)
      {
@@ -387,6 +435,10 @@ void OnTick()
       blk = BLK_AUTOTRADE_OFF;
    else if(g_halted)
       blk = BLK_TARGET_HALT;
+   else if(MaxTotalLossHit())
+      blk = BLK_MAXLOSS;
+   else if(!WithinNewYorkSession())
+      blk = BLK_SESSION;
    else if(!WithinTradingHours())
       blk = BLK_HOURS;
    else if(DailyLossHit())
@@ -624,9 +676,39 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
    if(price <= 0.0)
       return;
 
-   double stopDist, targetDist;
-   if(!StopDistances(stopDist, targetDist))
-      return;
+   double stopDist = 0.0, targetDist = 0.0, lots = 0.0;
+
+   if(InpUseDollarStops)
+     {
+      // Dollar mode: the stop is a fixed cash amount, so lot size has to
+      // be decided first and the price distance derived from it.
+      lots = MartingaleLots();
+      if(lots <= 0.0)
+        {
+         g_sizingSkips++;
+         return;
+        }
+
+      stopDist   = UsdToPriceDist(InpStopLossUSD,   lots);
+      targetDist = UsdToPriceDist(InpTakeProfitUSD, lots);
+
+      double minDist = MinStopDistance();
+      if(stopDist   < minDist) stopDist   = minDist;
+      if(targetDist > 0.0 && targetDist < minDist) targetDist = minDist;
+
+      if(stopDist <= 0.0)
+        {
+         Print("Sentinal: could not convert $ stop into a price distance.");
+         g_sizingSkips++;
+         return;
+        }
+     }
+   else
+     {
+      if(!StopDistances(stopDist, targetDist))
+         return;
+      lots = CalculateLots(stopDist);
+     }
 
    double sl = (type == ORDER_TYPE_BUY) ? price - stopDist : price + stopDist;
    double tp = 0.0;
@@ -636,7 +718,6 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
    sl = NormalizeDouble(sl, _Digits);
    tp = (tp > 0.0) ? NormalizeDouble(tp, _Digits) : 0.0;
 
-   double lots = CalculateLots(stopDist);
    if(lots <= 0.0)
      {
       g_sizingSkips++;
@@ -767,6 +848,126 @@ double CalculateLots(const double stopDist)
      }
 
    return(NormalizeLots(lots));
+  }
+
+//+------------------------------------------------------------------+
+//| Convert a dollar risk into a price distance for a given lot size |
+//+------------------------------------------------------------------+
+double UsdToPriceDist(const double usd, const double lots)
+  {
+   double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+   double tickSize  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+   if(tickValue <= 0.0 || tickSize <= 0.0 || lots <= 0.0 || usd <= 0.0)
+      return(0.0);
+   return((usd * tickSize) / (tickValue * lots));
+  }
+
+//+------------------------------------------------------------------+
+//| Martingale state.                                                |
+//|                                                                  |
+//| After a closing deal loses more than InpLossTriggerUSD the next   |
+//| position is multiplied, up to InpMaxRecovery escalations. Any     |
+//| winning deal resets the ladder. The escalation is capped rather   |
+//| than unbounded, which is the whole of the "safer" in this scheme: |
+//| the sequence still ends in one large loss, it just ends sooner.   |
+//+------------------------------------------------------------------+
+void UpdateRecoveryState()
+  {
+   if(!InpUseMartingale)
+      return;
+
+   if(!HistorySelect(g_lastDealTime, TimeCurrent() + 60))
+      return;
+
+   int total = HistoryDealsTotal();
+   for(int i = 0; i < total; i++)
+     {
+      ulong ticket = HistoryDealGetTicket(i);
+      if(ticket == 0)
+         continue;
+      if(HistoryDealGetString(ticket, DEAL_SYMBOL) != _Symbol)
+         continue;
+      if(HistoryDealGetInteger(ticket, DEAL_MAGIC) != InpMagicNumber)
+         continue;
+      if(HistoryDealGetInteger(ticket, DEAL_ENTRY) != DEAL_ENTRY_OUT)
+         continue;
+
+      datetime dt = (datetime)HistoryDealGetInteger(ticket, DEAL_TIME);
+      if(dt <= g_lastDealTime)
+         continue;
+      g_lastDealTime = dt;
+
+      double net = HistoryDealGetDouble(ticket, DEAL_PROFIT)
+                 + HistoryDealGetDouble(ticket, DEAL_SWAP)
+                 + HistoryDealGetDouble(ticket, DEAL_COMMISSION);
+
+      if(net < -InpLossTriggerUSD)
+        {
+         if(g_recoveryStep < InpMaxRecovery)
+           {
+            g_recoveryStep++;
+            PrintFormat("Sentinal: loss %.2f -> recovery step %d of %d (next lot x%.2f).",
+                        net, g_recoveryStep, InpMaxRecovery,
+                        MathPow(InpMartingaleMult, g_recoveryStep));
+           }
+         else
+           {
+            PrintFormat("Sentinal: loss %.2f at max recovery (%d). Ladder reset to base lot.",
+                        net, InpMaxRecovery);
+            g_recoveryStep = 0;
+           }
+        }
+      else if(net > 0.0)
+        {
+         if(g_recoveryStep > 0)
+            PrintFormat("Sentinal: win %.2f — recovery ladder reset.", net);
+         g_recoveryStep = 0;
+        }
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Lot size for the fixed-lot / martingale path                     |
+//+------------------------------------------------------------------+
+double MartingaleLots()
+  {
+   double lots = InpInitialLot;
+   if(InpUseMartingale && g_recoveryStep > 0)
+      lots = InpInitialLot * MathPow(InpMartingaleMult, g_recoveryStep);
+   return(NormalizeLots(lots));
+  }
+
+//+------------------------------------------------------------------+
+//| Total loss guard, measured against the balance at attach         |
+//+------------------------------------------------------------------+
+bool MaxTotalLossHit()
+  {
+   if(InpMaxLossPctBal <= 0.0 || g_startBalance <= 0.0)
+      return(false);
+
+   double changePct = (AccountInfoDouble(ACCOUNT_EQUITY) - g_startBalance)
+                      / g_startBalance * 100.0;
+   return(changePct <= -InpMaxLossPctBal);
+  }
+
+//+------------------------------------------------------------------+
+//| New York session. Hours are SERVER time, which is usually not    |
+//| your local time — the panel prints the server clock so the       |
+//| window can be calibrated against it.                             |
+//+------------------------------------------------------------------+
+bool WithinNewYorkSession()
+  {
+   if(!InpNewYorkOnly)
+      return(true);
+
+   MqlDateTime t;
+   TimeToStruct(TimeCurrent(), t);
+
+   if(InpNYStartHour <= InpNYEndHour)
+      return(t.hour >= InpNYStartHour && t.hour < InpNYEndHour);
+
+   // Window wraps past midnight.
+   return(t.hour >= InpNYStartHour || t.hour < InpNYEndHour);
   }
 
 //+------------------------------------------------------------------+
@@ -1080,6 +1281,20 @@ void PanelUpdate()
                           (minLotPct > 0.0 && !affordable ? "  (NO TRADES)" : "")));
    PanelLine(row++, "Open risk", InpPanelColor,
              StringFormat("%.2f%% / %.1f%%", OpenRiskPercent(), InpMaxTotalRiskPct));
+
+   MqlDateTime st;
+   TimeToStruct(TimeCurrent(), st);
+   PanelLine(row++, "Server", InpPanelColor,
+             StringFormat("%02d:%02d%s", st.hour, st.min,
+                          (InpNewYorkOnly
+                           ? (WithinNewYorkSession() ? "   NY session OPEN"
+                                                     : "   outside NY session")
+                           : "")));
+
+   if(InpUseMartingale)
+      PanelLine(row++, "Recovery", (g_recoveryStep > 0 ? clrOrangeRed : InpPanelColor),
+                StringFormat("step %d / %d   next lot %.2f",
+                             g_recoveryStep, InpMaxRecovery, MartingaleLots()));
 
    ChartRedraw();
   }

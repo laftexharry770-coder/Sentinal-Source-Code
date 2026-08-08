@@ -147,6 +147,54 @@ did not help form.
 
 These are standard textbook entries — a tunable starting point, not an edge.
 
+## Martingale mode
+
+`InpUseMartingale` reproduces the recovery scheme used by AXIOM-style scalpers.
+It is **off by default**. Read this before switching it on.
+
+**How it works.** After a closing deal loses more than `InpLossTriggerUSD`, the
+next position is multiplied by `InpMartingaleMult`, up to `InpMaxRecovery`
+escalations. Any winning deal resets the ladder to `InpInitialLot`.
+
+At the defaults (0.01 base, ×2.0, 3 attempts) the sequence is:
+
+| Step | Lot | Cumulative staked |
+|---|---|---|
+| 0 | 0.01 | 0.01 |
+| 1 | 0.02 | 0.03 |
+| 2 | 0.04 | 0.07 |
+| 3 | 0.08 | 0.15 |
+
+**Why it looks flawless.** With `InpTakeProfitUSD` well below
+`InpStopLossUSD`, most trades win. The equity curve climbs in small steady
+steps, and the doubling means a single win recovers the whole preceding losing
+run. Screen recordings of martingale bots look extraordinary for exactly this
+reason — you are watching the good part of the cycle.
+
+**What it costs.** The scheme risks $2 to make $1 at the default settings, so
+it needs roughly a **67% win rate just to break even** before any doubling. The
+losses are not avoided, they are deferred and concentrated: four consecutive
+losses put 0.15 lots through the ladder and then reset, having lost every step.
+Capping recovery at 3 is what "safer" means here — it bounds the size of the
+disaster, it does not prevent it.
+
+**Guards that apply in this mode:** `InpMaxLossPctBal` halts everything once
+equity is down that percentage from the balance at attach, and
+`InpDailyProfitUSD` stops for the day once hit. `MarginSufficient()` still
+rejects any escalation the account cannot cover. The panel shows a live
+`Recovery: step N / M   next lot X` row, red whenever the ladder is active.
+
+## New York session
+
+`InpNewYorkOnly` restricts entries to `InpNYStartHour`–`InpNYEndHour`, which are
+**server time, not your local time**. Broker servers commonly run GMT+2 or GMT+3,
+so the New York session (roughly 13:00–22:00 UTC) usually lands around 15:00–24:00
+server time — the default.
+
+Calibrate rather than assume: the panel prints the live server clock and whether
+the session is open, so compare it against a known New York time once and adjust
+the two hours. A window that wraps past midnight is handled.
+
 ## Bar-close vs intrabar entries
 
 `InpIntrabarSignals` decides which candle the rules read.

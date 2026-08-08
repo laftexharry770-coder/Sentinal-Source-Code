@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sentinal Mobile</title>
+<style>
+  :root{
+    --bg:#0d0f14; --panel:#161a22; --panel2:#1e2430; --line:#2a3240;
+    --text:#e8ecf3; --dim:#8b95a7; --accent:#4a9eff;
+    --ok:#33d17a; --warn:#f0b429; --bad:#ff5c5c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    overscroll-behavior-y:contain;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:12px 12px 90px}
+  h1{font-size:19px;margin:6px 0 2px;letter-spacing:.2px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);margin:0 0 12px}
+  label{display:block;font-size:12px;color:var(--dim);margin:10px 0 5px}
+  input,select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    border-radius:9px;padding:12px;font-size:16px;font-family:inherit;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{
+    width:100%;border:0;border-radius:10px;padding:14px;font-size:15px;font-weight:600;
+    font-family:inherit;background:var(--accent);color:#fff;margin-top:14px;cursor:pointer;
+  }
+  button.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  button:disabled{opacity:.5}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .row:last-child{border-bottom:0}
+  .row .k{color:var(--dim)}
+  .row .v{text-align:right;font-variant-numeric:tabular-nums;word-break:break-word}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.5px}
+  .ok{background:rgba(51,209,122,.15);color:var(--ok)}
+  .warn{background:rgba(240,180,41,.15);color:var(--warn)}
+  .bad{background:rgba(255,92,92,.15);color:var(--bad)}
+  .err{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.35);color:#ffb3b3;
+       border-radius:9px;padding:11px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+       white-space:pre-wrap;word-break:break-all;margin-top:10px}
+  canvas{width:100%;height:220px;display:block;background:var(--panel2);border-radius:10px}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px}
+  .switch{position:relative;width:60px;height:34px;flex:0 0 60px}
+  .switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;z-index:2}
+  .slider{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line);
+          border-radius:999px;transition:.2s}
+  .slider:before{content:"";position:absolute;width:26px;height:26px;left:3px;top:3px;
+                 background:var(--dim);border-radius:50%;transition:.2s}
+  .switch input:checked+.slider{background:rgba(51,209,122,.25);border-color:var(--ok)}
+  .switch input:checked+.slider:before{transform:translateX(26px);background:var(--ok)}
+  .hint{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5}
+  .log{font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dim);
+       max-height:190px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hidden{display:none}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+       padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
+  .bar button{margin:0;flex:1;max-width:200px;padding:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Sentinal Mobile</h1>
+  <div class="sub">MT5 auto-trading via MetaApi</div>
+
+  <!-- ---------------- LOGIN ---------------- -->
+  <section id="loginView">
+    <div class="card">
+      <h2>Sign in</h2>
+
+      <label>MetaApi API token</label>
+      <input id="inToken" type="password" placeholder="Paste your MetaApi token" autocomplete="off">
+
+      <label>MetaApi account ID</label>
+      <input id="inAccount" type="text" placeholder="e.g. 8f2c1b4a-..." autocomplete="off">
+
+      <button id="btnConnect">Connect</button>
+      <div id="loginErr" class="err hidden"></div>
+
+      <div class="hint">
+        Both values come from <b>app.metaapi.cloud</b> — the token from API Access,
+        the account ID from the Accounts page. The account must be
+        <b>DEPLOYED</b> there before it can trade. Your broker login and password
+        stay with MetaApi; this app never sees them.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Before you start</h2>
+      <div class="hint" style="font-size:12px">
+        This page only trades while it is <b>open and on screen</b>. Phones suspend
+        background tabs within seconds, so closing it stops the bot mid-position —
+        open trades keep their stop and target on the broker, but no new entries,
+        trailing or recovery steps happen. For unattended trading, run the MT5
+        Expert Advisor in <code>MQL5/Experts/Sentinal/</code> on a PC or VPS instead.
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- MAIN ---------------- -->
+  <section id="mainView" class="hidden">
+
+    <div class="card">
+      <h2>Connection</h2>
+      <div id="connRows"></div>
+      <div id="connErr" class="err hidden"></div>
+    </div>
+
+    <div class="card">
+      <h2>Auto-trade</h2>
+      <div class="toggle">
+        <div>
+          <div id="autoLabel" style="font-weight:600">Off — monitoring only</div>
+          <div class="hint" style="margin-top:2px">Places live orders when on.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="autoState" class="hint"></div>
+    </div>
+
+    <div class="card">
+      <h2>Market</h2>
+      <div id="priceRows"></div>
+      <canvas id="chart" width="640" height="220"></canvas>
+      <div class="hint" id="chartInfo">Loading candles…</div>
+    </div>
+
+    <div class="card">
+      <h2>Trade settings</h2>
+      <div class="grid2">
+        <div><label>Symbol</label><input id="sSymbol" value="XAUUSD"></div>
+        <div><label>Timeframe</label>
+          <select id="sTimeframe">
+            <option>1m</option><option>5m</option><option selected>15m</option>
+            <option>30m</option><option>1h</option><option>4h</option>
+          </select></div>
+        <div><label>Initial lot</label><input id="sLot" type="number" step="0.01" value="0.01"></div>
+        <div><label>Max positions</label><input id="sMaxPos" type="number" step="1" value="5"></div>
+        <div><label>Stop loss ($)</label><input id="sSL" type="number" step="0.1" value="2.0"></div>
+        <div><label>Take profit ($)</label><input id="sTP" type="number" step="0.1" value="1.0"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Martingale</h2>
+      <div class="grid2">
+        <div><label>Multiplier</label><input id="sMult" type="number" step="0.1" value="2.0"></div>
+        <div><label>Max recovery</label><input id="sMaxRec" type="number" step="1" value="3"></div>
+        <div><label>Loss to recover ($)</label><input id="sTrigger" type="number" step="0.1" value="0.5"></div>
+        <div><label>Enabled</label>
+          <select id="sMart"><option value="1" selected>Yes</option><option value="0">No</option></select></div>
+      </div>
+      <div id="recoveryRow" class="hint"></div>
+    </div>
+
+    <div class="card">
+      <h2>Risk &amp; session</h2>
+      <div class="grid2">
+        <div><label>Daily profit target ($)</label><input id="sDayTarget" type="number" step="1" value="100"></div>
+        <div><label>Max total loss (%)</label><input id="sMaxLoss" type="number" step="1" value="50"></div>
+        <div><label>NY start (UTC)</label><input id="sNYStart" type="number" step="1" value="13"></div>
+        <div><label>NY end (UTC)</label><input id="sNYEnd" type="number" step="1" value="22"></div>
+        <div><label>New York only</label>
+          <select id="sNYOnly"><option value="1" selected>Yes</option><option value="0">No</option></select></div>
+        <div><label>Max spread (points)</label><input id="sMaxSpread" type="number" step="1" value="500"></div>
+      </div>
+      <button class="ghost" id="btnSave">Save settings</button>
+    </div>
+
+    <div class="card">
+      <h2>Activity</h2>
+      <div id="log" class="log"></div>
+    </div>
+  </section>
+</div>
+
+<div class="bar hidden" id="bottomBar">
+  <button class="ghost" id="btnRefresh">Refresh</button>
+  <button class="ghost" id="btnLogout">Sign out</button>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------
+   MetaApi REST client.
+
+   The phone cannot speak MT5's protocol, so MetaApi runs a real
+   terminal in the cloud and exposes it over HTTPS. Every failure is
+   surfaced with its exact status and body rather than a generic
+   message - a wrong region or an undeployed account should say so.
+------------------------------------------------------------------- */
+const PROVISIONING = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
+const clientBase = region =>
+  `https://mt-client-api-v1.${region}.agiliumtrade.agiliumtrade.ai`;
+
+const S = {
+  token: "", accountId: "", region: "", state: "", connStatus: "",
+  account: null, price: null, candles: [], positions: [],
+  balance: 0, equity: 0, startEquity: 0, dayStartEquity: 0, dayStamp: "",
+  auto: false, recoveryStep: 0, lastDealId: "", halted: "", timer: null,
+  lastBarTime: 0, lastEntryBar: 0
+};
+
+const $ = id => document.getElementById(id);
+const nowUTC = () => new Date();
+
+function log(msg, kind) {
+  const el = $("log");
+  const t = new Date().toTimeString().slice(0, 8);
+  const mark = kind === "bad" ? "!" : kind === "ok" ? "+" : "·";
+  el.textContent = `${t} ${mark} ${msg}\n` + el.textContent;
+  if (el.textContent.length > 9000) el.textContent = el.textContent.slice(0, 9000);
+}
+
+async function api(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { "auth-token": S.token, "Content-Type": "application/json", ...(opts.headers || {}) }
+  });
+  const text = await res.text();
+  let body; try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  if (!res.ok) {
+    const detail = typeof body === "string" ? body : JSON.stringify(body, null, 2);
+    const err = new Error(`HTTP ${res.status} ${res.statusText}\n${detail}`);
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+
+/* ---------------- settings ---------------- */
+const FIELDS = ["sSymbol","sTimeframe","sLot","sMaxPos","sSL","sTP","sMult","sMaxRec",
+                "sTrigger","sMart","sDayTarget","sMaxLoss","sNYStart","sNYEnd","sNYOnly","sMaxSpread"];
+
+function saveSettings() {
+  const o = {}; FIELDS.forEach(f => o[f] = $(f).value);
+  localStorage.setItem("sentinal.settings", JSON.stringify(o));
+  log("Settings saved.", "ok");
+}
+function loadSettings() {
+  try {
+    const o = JSON.parse(localStorage.getItem("sentinal.settings") || "{}");
+    FIELDS.forEach(f => { if (o[f] !== undefined) $(f).value = o[f]; });
+  } catch {}
+}
+const cfg = () => ({
+  symbol: $("sSymbol").value.trim(),
+  timeframe: $("sTimeframe").value,
+  lot: +$("sLot").value, maxPos: +$("sMaxPos").value,
+  sl: +$("sSL").value, tp: +$("sTP").value,
+  mult: +$("sMult").value, maxRec: +$("sMaxRec").value,
+  trigger: +$("sTrigger").value, martingale: $("sMart").value === "1",
+  dayTarget: +$("sDayTarget").value, maxLoss: +$("sMaxLoss").value,
+  nyStart: +$("sNYStart").value, nyEnd: +$("sNYEnd").value,
+  nyOnly: $("sNYOnly").value === "1", maxSpread: +$("sMaxSpread").value
+});
+
+/* ---------------- connect ---------------- */
+async function connect() {
+  const token = $("inToken").value.trim();
+  const accountId = $("inAccount").value.trim();
+  $("loginErr").classList.add("hidden");
+
+  if (!token || !accountId) {
+    showLoginError("Both the MetaApi token and the account ID are required.");
+    return;
+  }
+  $("btnConnect").disabled = true;
+  $("btnConnect").textContent = "Connecting…";
+
+  S.token = token; S.accountId = accountId;
+  try {
+    const acc = await api(`${PROVISIONING}/users/current/accounts/${accountId}`);
+    S.account = acc;
+    S.region  = acc.region || "new-york";
+    S.state   = acc.state || "UNKNOWN";
+    S.connStatus = acc.connectionStatus || "UNKNOWN";
+
+    localStorage.setItem("sentinal.auth", JSON.stringify({ token, accountId }));
+    log(`Account ${acc.name || accountId} — ${S.state} in ${S.region}.`, "ok");
+
+    $("loginView").classList.add("hidden");
+    $("mainView").classList.remove("hidden");
+    $("bottomBar").classList.remove("hidden");
+
+    await refresh();
+    S.timer = setInterval(tick, 5000);
+  } catch (e) {
+    showLoginError(e.message);
+  } finally {
+    $("btnConnect").disabled = false;
+    $("btnConnect").textContent = "Connect";
+  }
+}
+
+function showLoginError(msg) {
+  const el = $("loginErr");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+/* ---------------- polling ---------------- */
+async function refresh() {
+  const c = cfg();
+  $("connErr").classList.add("hidden");
+  try {
+    const acc = await api(`${PROVISIONING}/users/current/accounts/${S.accountId}`);
+    S.account = acc; S.region = acc.region || S.region;
+    S.state = acc.state; S.connStatus = acc.connectionStatus;
+
+    if (acc.state !== "DEPLOYED") {
+      renderConnection();
+      showConnError(
+        `Account state is ${acc.state}, not DEPLOYED.\n` +
+        `Open app.metaapi.cloud/accounts and deploy it. Nothing can trade until then.`);
+      return;
+    }
+
+    const base = clientBase(S.region);
+    const [info, price, positions] = await Promise.all([
+      api(`${base}/users/current/accounts/${S.accountId}/account-information`),
+      api(`${base}/users/current/accounts/${S.accountId}/symbols/${encodeURIComponent(c.symbol)}/current-price`),
+      api(`${base}/users/current/accounts/${S.accountId}/positions`)
+    ]);
+
+    S.balance = info.balance; S.equity = info.equity;
+    S.price = price; S.positions = positions || [];
+    if (!S.startEquity) S.startEquity = info.equity;
+
+    const day = new Date().toISOString().slice(0, 10);
+    if (S.dayStamp !== day) { S.dayStamp = day; S.dayStartEquity = info.equity; S.halted = ""; }
+
+    await loadCandles();
+    renderConnection(); renderPrice(); drawChart();
+  } catch (e) {
+    renderConnection();
+    showConnError(e.message);
+  }
+}
+
+function showConnError(msg) {
+  const el = $("connErr");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+async function loadCandles() {
+  const c = cfg();
+  const base = clientBase(S.region);
+  const url = `${base}/users/current/accounts/${S.accountId}` +
+              `/historical-market-data/symbols/${encodeURIComponent(c.symbol)}` +
+              `/timeframes/${c.timeframe}/candles?limit=120`;
+  const data = await api(url);
+  S.candles = Array.isArray(data) ? data : [];
+  $("chartInfo").textContent =
+    S.candles.length ? `${S.candles.length} candles · ${c.symbol} ${c.timeframe}`
+                     : "No candle data returned for this symbol.";
+}
+
+/* ---------------- render ---------------- */
+function rows(target, pairs) {
+  $(target).innerHTML = pairs.map(([k, v, cls]) =>
+    `<div class="row"><span class="k">${k}</span><span class="v ${cls || ""}">${v}</span></div>`
+  ).join("");
+}
+
+function renderConnection() {
+  const a = S.account || {};
+  const deployed = S.state === "DEPLOYED";
+  const connected = S.connStatus === "CONNECTED";
+  const pill = (t, c) => `<span class="pill ${c}">${t}</span>`;
+
+  rows("connRows", [
+    ["State", deployed ? pill("DEPLOYED", "ok") : pill(S.state || "UNKNOWN", "bad")],
+    ["Broker link", connected ? pill("CONNECTED", "ok") : pill(S.connStatus || "—", "warn")],
+    ["Region", S.region || "—"],
+    ["Account", a.login ? `${a.login} (${a.name || ""})` : "—"],
+    ["Balance", S.balance ? S.balance.toFixed(2) : "—"],
+    ["Equity", S.equity ? S.equity.toFixed(2) : "—"],
+    ["Open positions", `${S.positions.length} / ${cfg().maxPos}`]
+  ]);
+}
+
+function renderPrice() {
+  const p = S.price || {};
+  const c = cfg();
+  const spread = (p.ask != null && p.bid != null) ? (p.ask - p.bid) : null;
+  const digits = (S.candles[0] && String(S.candles[0].close).split(".")[1]?.length) || 2;
+  const point = Math.pow(10, -digits);
+  const spreadPts = spread != null ? spread / point : null;
+
+  rows("priceRows", [
+    ["Symbol", c.symbol],
+    ["Bid / Ask", p.bid != null ? `${p.bid} / ${p.ask}` : "—"],
+    ["Spread", spreadPts != null
+      ? `${spreadPts.toFixed(0)} / ${c.maxSpread} pts` +
+        (spreadPts > c.maxSpread ? "  (too wide)" : "")
+      : "—",
+      spreadPts != null && spreadPts > c.maxSpread ? "" : ""],
+    ["Session", c.nyOnly ? (inSession() ? "NY open" : "outside NY") : "always on"],
+    ["Recovery", c.martingale ? `step ${S.recoveryStep} / ${c.maxRec} · next lot ${nextLot().toFixed(2)}` : "off"]
+  ]);
+  $("recoveryRow").textContent = c.martingale
+    ? `Ladder: ${Array.from({length: c.maxRec + 1}, (_, i) => (c.lot * Math.pow(c.mult, i)).toFixed(2)).join(" → ")}`
+    : "Martingale disabled — every entry uses the initial lot.";
+}
+
+function drawChart() {
+  const cv = $("chart"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const data = S.candles.slice(-70);
+  if (!data.length) return;
+
+  const highs = data.map(d => d.high), lows = data.map(d => d.low);
+  const hi = Math.max(...highs), lo = Math.min(...lows);
+  const pad = (hi - lo) * 0.08 || 1;
+  const top = hi + pad, bot = lo - pad;
+  const y = v => H - ((v - bot) / (top - bot)) * H;
+  const bw = W / data.length;
+
+  ctx.strokeStyle = "#2a3240"; ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    const gy = (H / 4) * i;
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
+  data.forEach((d, i) => {
+    const x = i * bw + bw / 2;
+    const up = d.close >= d.open;
+    ctx.strokeStyle = ctx.fillStyle = up ? "#33d17a" : "#ff5c5c";
+    ctx.beginPath(); ctx.moveTo(x, y(d.high)); ctx.lineTo(x, y(d.low)); ctx.stroke();
+    const yo = y(d.open), yc = y(d.close);
+    ctx.fillRect(x - bw * 0.32, Math.min(yo, yc), bw * 0.64, Math.max(1, Math.abs(yc - yo)));
+  });
+}
+
+/* ---------------- strategy (mirrors the EA) ---------------- */
+function ema(values, period) {
+  const k = 2 / (period + 1);
+  let e = values[0], out = [e];
+  for (let i = 1; i < values.length; i++) { e = values[i] * k + e * (1 - k); out.push(e); }
+  return out;
+}
+
+function signal() {
+  const closes = S.candles.map(c => c.close);
+  if (closes.length < 40) return 0;
+  const f = ema(closes, 12), s = ema(closes, 26);
+  const n = closes.length - 1;
+  if (f[n - 1] <= s[n - 1] && f[n] > s[n]) return 1;
+  if (f[n - 1] >= s[n - 1] && f[n] < s[n]) return -1;
+  return 0;
+}
+
+function inSession() {
+  const c = cfg();
+  if (!c.nyOnly) return true;
+  const h = nowUTC().getUTCHours();
+  return c.nyStart <= c.nyEnd ? (h >= c.nyStart && h < c.nyEnd)
+                              : (h >= c.nyStart || h < c.nyEnd);
+}
+
+function nextLot() {
+  const c = cfg();
+  if (!c.martingale || S.recoveryStep <= 0) return c.lot;
+  return +(c.lot * Math.pow(c.mult, S.recoveryStep)).toFixed(2);
+}
+
+function blockedReason() {
+  const c = cfg();
+  if (!S.auto) return "auto-trade off";
+  if (S.state !== "DEPLOYED") return `account ${S.state}`;
+  if (S.halted) return S.halted;
+  if (!inSession()) return "outside New York session";
+  if (S.positions.length >= c.maxPos) return "position limit reached";
+
+  const p = S.price;
+  if (!p || p.bid == null) return "no price";
+  if (S.candles.length < 40) return "not enough candles";
+  return "";
+}
+
+async function tick() {
+  await refresh();
+  const c = cfg();
+
+  // Halt conditions, both proportional to the account.
+  if (c.dayTarget > 0 && S.dayStartEquity && (S.equity - S.dayStartEquity) >= c.dayTarget) {
+    if (S.halted !== "daily profit target reached") log("Daily profit target reached — stopping for today.", "ok");
+    S.halted = "daily profit target reached";
+  }
+  if (c.maxLoss > 0 && S.startEquity &&
+      ((S.equity - S.startEquity) / S.startEquity * 100) <= -c.maxLoss) {
+    if (S.halted !== "max total loss reached") log("Max total loss reached — halted.", "bad");
+    S.halted = "max total loss reached";
+  }
+
+  const reason = blockedReason();
+  $("autoState").textContent = reason ? `Idle — ${reason}.` : "Armed — waiting for a signal.";
+  if (reason) return;
+
+  // One entry per candle.
+  const last = S.candles[S.candles.length - 1];
+  const barTime = last ? new Date(last.time).getTime() : 0;
+  if (barTime && barTime === S.lastEntryBar) return;
+
+  const sig = signal();
+  if (!sig) return;
+
+  const spread = S.price.ask - S.price.bid;
+  await placeOrder(sig > 0 ? "ORDER_TYPE_BUY" : "ORDER_TYPE_SELL", spread);
+  S.lastEntryBar = barTime;
+}
+
+async function placeOrder(actionType, spread) {
+  const c = cfg();
+  const lot = nextLot();
+  const p = S.price;
+  const isBuy = actionType === "ORDER_TYPE_BUY";
+  const entry = isBuy ? p.ask : p.bid;
+
+  // Dollar stop/target converted to a price distance for this lot size.
+  // contractSize x lot gives money per 1.0 of price movement.
+  const contract = (S.account && S.account.contractSize) || 100;
+  const perPrice = contract * lot;
+  if (perPrice <= 0) { log("Cannot size order — contract size unknown.", "bad"); return; }
+
+  let slDist = c.sl / perPrice;
+  let tpDist = c.tp / perPrice;
+  const minDist = spread * 2;
+  if (slDist < minDist) slDist = minDist;
+  if (tpDist < minDist) tpDist = minDist;
+
+  const sl = +(isBuy ? entry - slDist : entry + slDist).toFixed(3);
+  const tp = +(isBuy ? entry + tpDist : entry - tpDist).toFixed(3);
+
+  try {
+    const base = clientBase(S.region);
+    const res = await api(`${base}/users/current/accounts/${S.accountId}/trade`, {
+      method: "POST",
+      body: JSON.stringify({
+        actionType, symbol: c.symbol, volume: lot,
+        stopLoss: sl, takeProfit: tp, comment: "Sentinal"
+      })
+    });
+    log(`${isBuy ? "BUY" : "SELL"} ${lot} @ ${entry} · SL ${sl} · TP ${tp}` +
+        (res && res.orderId ? ` · #${res.orderId}` : ""), "ok");
+  } catch (e) {
+    log(`Order rejected: ${e.message.split("\n")[0]}`, "bad");
+    showConnError(e.message);
+  }
+}
+
+/* ---------------- auto-trade toggle ---------------- */
+$("autoToggle").addEventListener("change", e => {
+  S.auto = e.target.checked;
+  $("autoLabel").textContent = S.auto ? "On — placing live orders" : "Off — monitoring only";
+  $("autoLabel").style.color = S.auto ? "var(--ok)" : "var(--text)";
+  log(S.auto ? "Auto-trade ENABLED." : "Auto-trade disabled.", S.auto ? "ok" : null);
+  if (S.auto && S.state !== "DEPLOYED")
+    log(`Account is ${S.state}; nothing will trade until it is DEPLOYED.`, "bad");
+});
+
+$("btnConnect").addEventListener("click", connect);
+$("btnSave").addEventListener("click", saveSettings);
+$("btnRefresh").addEventListener("click", () => { log("Manual refresh."); refresh(); });
+$("btnLogout").addEventListener("click", () => {
+  clearInterval(S.timer);
+  localStorage.removeItem("sentinal.auth");
+  location.reload();
+});
+
+/* ---------------- boot ---------------- */
+loadSettings();
+try {
+  const saved = JSON.parse(localStorage.getItem("sentinal.auth") || "null");
+  if (saved && saved.token) {
+    $("inToken").value = saved.token;
+    $("inAccount").value = saved.accountId;
+  }
+} catch {}
+</script>
+</body>
+</html>

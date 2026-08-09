@@ -303,3 +303,29 @@ Run **Strategy Tester** first, then **demo**. The panel tags the account
 Risk defaults to 1% per trade with an ATR-scaled stop, which is survivable
 through a losing run. The EA will not start with risk-based sizing and no stop,
 because without a stop there is no defined risk to size against.
+
+## Why the ladder distances are pinned to the initial lot
+
+Stop, target and trail distances are all derived from `InpInitialLot`, never
+from the escalated lot.
+
+Derive them from the current lot and the martingale cancels itself out exactly.
+Doubling the lot halves the price distance needed for the same dollar amount, so
+at recovery step 3 a win pays one unit of target while three losses cost three
+units of stop — the recovery can never recover. Pinning the distances means 0.08
+lots reaching the same target pays 8 × $1 = $8, covering the $6 lost getting
+there.
+
+The consequence is that **money at risk escalates with the ladder**, which is
+what a martingale is:
+
+| Step | Lot | Risk | Cumulative |
+|---|---|---|---|
+| 0 | 0.01 | $2 | $2 |
+| 1 | 0.02 | $4 | $6 |
+| 2 | 0.04 | $8 | $14 |
+| 3 | 0.08 | $16 | $30 |
+
+The panel's `Risk` row prints both the next entry's exposure and the full
+ladder's, as cash and as a share of balance, and flags `OVER CAP` when the
+ladder exceeds `InpMaxLossPctBal`.

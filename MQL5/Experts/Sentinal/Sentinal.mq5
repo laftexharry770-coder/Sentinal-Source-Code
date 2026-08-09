@@ -713,8 +713,15 @@ void OpenTrade(const ENUM_ORDER_TYPE type)
          return;
         }
 
-      stopDist   = UsdToPriceDist(InpStopLossUSD,   lots);
-      targetDist = UsdToPriceDist(InpTakeProfitUSD, lots);
+      // Distances are pinned to the INITIAL lot, not the escalated one.
+      // Derive them from the current lot instead and the martingale
+      // cancels itself out exactly: doubling the lot would halve the
+      // price distance, so a win at step 3 pays one unit of target while
+      // three losses cost three units of stop. Fixed distances mean 0.08
+      // lots pays eight times the target, which is what lets a recovery
+      // actually recover.
+      stopDist   = UsdToPriceDist(InpStopLossUSD,   InpInitialLot);
+      targetDist = UsdToPriceDist(InpTakeProfitUSD, InpInitialLot);
 
       double minDist = MinStopDistance();
       if(stopDist   < minDist) stopDist   = minDist;
@@ -1108,8 +1115,10 @@ void ManageOpenPositions()
       double trailDist, startDist;
       if(InpUseDollarStops)
         {
-         trailDist = UsdToPriceDist(InpTrailDistUSD,  position.Volume());
-         startDist = UsdToPriceDist(InpTrailStartUSD, position.Volume());
+         // Pinned to the initial lot for the same reason the stop is, so
+         // the trail stays the same price distance as the ladder climbs.
+         trailDist = UsdToPriceDist(InpTrailDistUSD,  InpInitialLot);
+         startDist = UsdToPriceDist(InpTrailStartUSD, InpInitialLot);
         }
       else
         {
@@ -1310,24 +1319,47 @@ void PanelUpdate()
              DoubleToString(equity, 2) + "   P/L " +
              DoubleToString(equity - g_startBalance, 2));
 
-   // What the smallest tradeable position would risk right now, as a
-   // share of the live balance. This is the number that decides whether
-   // a signal becomes a trade on a small account.
-   double balance   = AccountInfoDouble(ACCOUNT_BALANCE);
-   double minLotPct = 0.0;
-   if(atr > 0.0 && balance > 0.0)
-     {
-      double sd     = (InpUseATRStops ? atr * InpATRStopMult
-                                      : InpStopLossPoints * _Point);
-      double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
-      minLotPct     = MoneyPerLot(sd) * minLot / balance * 100.0;
-     }
+   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
 
-   bool affordable = (minLotPct > 0.0 && minLotPct <= InpMaxRiskPercent);
-   PanelLine(row++, "Risk", (minLotPct > 0.0 && !affordable ? clrOrangeRed : InpPanelColor),
-             StringFormat("%.1f%% target | min lot %.2f%% | ceiling %.1f%%%s",
-                          InpRiskPercent, minLotPct, InpMaxRiskPercent,
-                          (minLotPct > 0.0 && !affordable ? "  (NO TRADES)" : "")));
+   if(InpUseDollarStops)
+     {
+      // With distances pinned to the initial lot, the money at risk now
+      // scales with the ladder — which is what a martingale is. Show what
+      // the next entry stands to lose and what a full failed sequence
+      // costs, so the escalation is visible before it happens.
+      double nextRisk = InpStopLossUSD * (MartingaleLots() / InpInitialLot);
+      double ladder   = 0.0;
+      if(InpUseMartingale)
+         for(int k = 0; k <= InpMaxRecovery; k++)
+            ladder += InpStopLossUSD * MathPow(InpMartingaleMult, k);
+      else
+         ladder = nextRisk;
+
+      double ladderPct = (balance > 0.0) ? ladder / balance * 100.0 : 0.0;
+      bool   heavy     = (InpMaxLossPctBal > 0.0 && ladderPct > InpMaxLossPctBal);
+
+      PanelLine(row++, "Risk", (heavy ? clrOrangeRed : InpPanelColor),
+                StringFormat("next %.2f  |  full ladder %.2f (%.1f%%)%s",
+                             nextRisk, ladder, ladderPct,
+                             (heavy ? "  OVER CAP" : "")));
+     }
+   else
+     {
+      // ATR mode: whether the smallest tradeable position fits the risk
+      // budget is what decides if a signal becomes a trade at all.
+      double minLotPct = 0.0;
+      if(atr > 0.0 && balance > 0.0)
+        {
+         double sd     = atr * InpATRStopMult;
+         double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+         minLotPct     = MoneyPerLot(sd) * minLot / balance * 100.0;
+        }
+      bool affordable = (minLotPct > 0.0 && minLotPct <= InpMaxRiskPercent);
+      PanelLine(row++, "Risk", (minLotPct > 0.0 && !affordable ? clrOrangeRed : InpPanelColor),
+                StringFormat("%.1f%% target | min lot %.2f%% | ceiling %.1f%%%s",
+                             InpRiskPercent, minLotPct, InpMaxRiskPercent,
+                             (minLotPct > 0.0 && !affordable ? "  (NO TRADES)" : "")));
+     }
    PanelLine(row++, "Open risk", InpPanelColor,
              StringFormat("%.2f%% / %.1f%%", OpenRiskPercent(), InpMaxTotalRiskPct));
 

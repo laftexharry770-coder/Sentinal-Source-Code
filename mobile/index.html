@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sentinal Trader</title>
+<style>
+  :root{
+    --bg:#0a0a0f; --card:#14141d; --card2:#1c1c28; --line:#2a2a3a;
+    --text:#f0f2f8; --dim:#8a8fa3;
+    --red:#ff3b47; --redglow:rgba(255,59,71,.35);
+    --green:#22e06a; --amber:#ffc043; --blue:#4a9eff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior-y:contain;
+  }
+  .app{max-width:560px;margin:0 auto;min-height:100%;
+       padding:calc(14px + env(safe-area-inset-top)) 16px calc(88px + env(safe-area-inset-bottom))}
+
+  .brand{text-align:center;margin-bottom:18px}
+  .brand .name{font-size:13px;font-weight:800;letter-spacing:3px;color:var(--red)}
+
+  .orb{width:104px;height:104px;border-radius:50%;margin:14px auto 12px;
+       display:flex;align-items:center;justify-content:center;font-size:42px;
+       border:2px solid var(--red);box-shadow:0 0 26px var(--redglow),inset 0 0 22px rgba(255,59,71,.18)}
+  .orb.on{border-color:var(--green);box-shadow:0 0 26px rgba(34,224,106,.35),inset 0 0 22px rgba(34,224,106,.18)}
+
+  h1{font-size:22px;margin:4px 0 2px;text-align:center;letter-spacing:.3px}
+  .sub{color:var(--dim);font-size:13px;text-align:center;margin-bottom:18px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin:0 0 12px;font-weight:700}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--text);margin:14px 0 6px}
+  label:first-of-type{margin-top:0}
+  .field{position:relative}
+  .field .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.65}
+  input,select{
+    width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:11px;padding:14px 14px 14px 40px;font-size:16px;font-family:inherit;
+    appearance:none;-webkit-appearance:none;
+  }
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
+                        linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+         background-position:calc(100% - 19px) 50%,calc(100% - 14px) 50%;
+         background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  input.plain,select.plain{padding-left:14px}
+  input:focus,select:focus{outline:none;border-color:var(--red)}
+
+  button{width:100%;border:0;border-radius:12px;padding:15px;font-size:15px;font-weight:700;
+         font-family:inherit;background:var(--red);color:#fff;margin-top:16px;cursor:pointer;
+         letter-spacing:.3px}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  button.green{background:var(--green);color:#03210f}
+  button:disabled{opacity:.45}
+
+  .note{display:flex;gap:10px;align-items:flex-start;background:rgba(74,158,255,.09);
+        border:1px solid rgba(74,158,255,.3);border-radius:11px;padding:12px;margin-top:14px;
+        font-size:12px;line-height:1.5;color:#bcd8ff}
+
+  .status{display:flex;gap:9px;align-items:center;justify-content:center;border-radius:11px;
+          padding:12px;font-size:13px;font-weight:600;margin-top:14px}
+  .status.off{background:rgba(255,59,71,.1);border:1px solid rgba(255,59,71,.3);color:#ff9aa1}
+  .status.on{background:rgba(34,224,106,.1);border:1px solid rgba(34,224,106,.3);color:#8df0b4}
+  .status.busy{background:rgba(255,192,67,.1);border:1px solid rgba(255,192,67,.3);color:#ffd98a}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:0 0 8px}
+
+  .err{background:rgba(255,59,71,.08);border:1px solid rgba(255,59,71,.35);color:#ffb3b8;
+       border-radius:11px;padding:12px;margin-top:12px;
+       font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-all}
+
+  .seg{display:flex;gap:6px;background:var(--card2);border:1px solid var(--line);
+       border-radius:11px;padding:4px;margin-bottom:16px}
+  .seg button{flex:1;margin:0;padding:10px 6px;font-size:12px;font-weight:700;
+              background:transparent;color:var(--dim);border-radius:8px}
+  .seg button.active{background:var(--red);color:#fff}
+
+  .linkrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .linkrow .l{font-size:13px;font-weight:700;color:var(--green)}
+  .linkrow a{font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;margin-left:16px}
+  .linkrow a.danger{color:var(--red)}
+
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+  .kv .k{font-size:11px;color:var(--dim);margin-bottom:2px}
+  .kv .v{font-size:13px;font-weight:600;word-break:break-word}
+
+  .botcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 16px;text-align:center;margin-bottom:14px}
+  .badge{display:inline-block;padding:5px 18px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1.2px;margin-top:10px}
+  .badge.stopped{background:var(--red);color:#fff}
+  .badge.running{background:var(--green);color:#03210f}
+  .botname{font-size:19px;font-weight:800;letter-spacing:.5px;margin:14px 0 4px}
+  .bottag{font-size:11px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase}
+  .btnrow{display:flex;gap:9px;margin-top:16px}
+  .btnrow button{margin:0;flex:1;padding:13px 8px;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--text)}
+  .btnrow button.primary{border-color:var(--red);color:var(--red)}
+  .btnrow button.primary.on{border-color:var(--green);color:var(--green)}
+
+  .rowlist .row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;
+                border-bottom:1px solid var(--line);font-size:13px}
+  .rowlist .row:last-child{border-bottom:0}
+  .rowlist .k{color:var(--dim)}
+  .rowlist .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .v.good{color:var(--green)} .v.bad{color:var(--red)} .v.warn{color:var(--amber)}
+
+  canvas{width:100%;height:200px;display:block;background:var(--card2);border-radius:12px;margin-top:4px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .log{font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dim);
+       max-height:210px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .empty{text-align:center;color:var(--dim);font-size:13px;padding:26px 10px;
+         border:1px dashed var(--line);border-radius:12px}
+
+  .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(14,14,22,.97);
+       backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;
+       padding-bottom:env(safe-area-inset-bottom);z-index:10}
+  .nav button{flex:1;background:none;border:0;margin:0;padding:11px 4px 9px;border-radius:0;
+              color:var(--dim);font-size:10px;font-weight:700;letter-spacing:.5px}
+  .nav button .i{display:block;font-size:19px;margin-bottom:3px}
+  .nav button.active{color:var(--red)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= HOME ================= -->
+  <section id="tabHome">
+    <div class="brand"><div class="name">SENTINAL TRADER</div></div>
+
+    <div class="botcard">
+      <div class="orb" id="botOrb">⚡</div>
+      <div id="botBadge" class="badge stopped">STOPPED</div>
+      <div class="botname">SENTINAL GOLD</div>
+      <div class="bottag">Scalps gold during New York session</div>
+      <div class="btnrow">
+        <button id="btnSymbols" class="">SYMBOLS</button>
+        <button id="btnStart" class="primary">▶ START</button>
+        <button id="btnSettingsJump">SETTINGS</button>
+      </div>
+      <div id="botState" class="status off" style="margin-top:14px">
+        <span class="dot"></span><span id="botStateText">Not connected to MetaTrader</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Account</h2>
+      <div id="acctRows" class="rowlist"></div>
+    </div>
+
+    <div class="card">
+      <h2>Market</h2>
+      <div id="priceRows" class="rowlist"></div>
+      <canvas id="chart" width="620" height="200"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Signals</h2>
+      <div id="log" class="log"></div>
+      <div id="logEmpty" class="empty">No signals yet — waiting for the market.</div>
+    </div>
+  </section>
+
+  <!-- ================= METATRADER ================= -->
+  <section id="tabMT" class="hidden">
+
+    <!-- disconnected -->
+    <div id="mtConnect">
+      <div class="orb" id="mtOrb">📈</div>
+      <h1>Connect MT Account</h1>
+      <div class="sub">Link your MetaTrader trading account</div>
+
+      <div class="card">
+        <div class="seg">
+          <button type="button" id="segBroker" class="active">Broker login</button>
+          <button type="button" id="segId">MetaApi account ID</button>
+        </div>
+
+        <!-- link an account that already exists on MetaApi -->
+        <div id="byId" class="hidden">
+          <label>MetaApi account ID</label>
+          <div class="field"><span class="ico">🆔</span>
+            <input id="inAccountId" placeholder="e.g. 8f2c1b4a-…" autocomplete="off"></div>
+          <div class="note">
+            <span>ℹ️</span>
+            <span>From <b>app.metaapi.cloud → Accounts</b>, the UUID beside your account.
+                  It already holds your broker login, so nothing else is needed here.
+                  If it is not deployed yet, this will deploy it.</span>
+          </div>
+        </div>
+
+        <div id="byBroker">
+        <label>Broker</label>
+        <div class="field"><span class="ico">🏦</span>
+          <select id="inBroker"></select></div>
+
+        <label>Server</label>
+        <div class="field"><span class="ico">📡</span>
+          <input id="inServer" list="serverList" placeholder="e.g. Exness-MT5Trial9" autocomplete="off">
+          <datalist id="serverList"></datalist></div>
+
+        <label>Login ID</label>
+        <div class="field"><span class="ico">👤</span>
+          <input id="inLogin" inputmode="numeric" placeholder="1200138545" autocomplete="off"></div>
+
+        <label>Password</label>
+        <div class="field"><span class="ico">🔑</span>
+          <input id="inPassword" type="password" placeholder="Your MT password" autocomplete="off"></div>
+
+        <div class="note">
+          <span>ℹ️</span>
+          <span>Your credentials go straight to MetaApi, which runs the terminal.
+                They are not stored on this device.</span>
+        </div>
+        </div><!-- /byBroker -->
+
+        <button id="btnLink">CONNECT ACCOUNT</button>
+
+        <div id="mtStatus" class="status off">
+          <span class="dot"></span><span id="mtStatusText">Disconnected from MetaTrader</span>
+        </div>
+        <div id="mtErr" class="err hidden"></div>
+      </div>
+    </div>
+
+    <!-- connected -->
+    <div id="mtLinked" class="hidden">
+      <div class="orb on">📶</div>
+      <h1>Account Connected</h1>
+      <div class="sub">Your trading account is linked</div>
+
+      <div class="card">
+        <div class="linkrow">
+          <span class="l">● Connected</span>
+          <span>
+            <a href="#" id="btnUpdate">Update</a>
+            <a href="#" id="btnDisconnect" class="danger">Disconnect</a>
+          </span>
+        </div>
+        <div class="kv">
+          <div><div class="k">Broker</div><div class="v" id="vBroker">—</div></div>
+          <div><div class="k">Server</div><div class="v" id="vServer">—</div></div>
+          <div><div class="k">Login</div><div class="v" id="vLogin">—</div></div>
+          <div><div class="k">Region</div><div class="v" id="vRegion">—</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Robot trading commodities</h2>
+        <div id="sysState" class="status on">
+          <span class="dot"></span><span id="sysStateText">Systems ready and running</span>
+        </div>
+        <div style="margin-top:12px">
+          <div class="k" style="font-size:11px;color:var(--dim)">Your lot size</div>
+          <div class="v" style="font-size:14px;font-weight:700" id="vLot">0.01 lots</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Connection detail</h2>
+        <div id="connRows" class="rowlist"></div>
+        <div id="connErr" class="err hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section id="tabSettings" class="hidden">
+    <h1 style="text-align:left;font-size:20px">Settings</h1>
+    <div class="sub" style="text-align:left">Bot configuration and service key</div>
+
+    <div class="card">
+      <h2>MetaApi service key</h2>
+      <label>API token</label>
+      <input id="inToken" class="plain" type="password" placeholder="Paste your MetaApi token" autocomplete="off">
+      <div class="note">
+        <span>ℹ️</span>
+        <span>Get this once from <b>app.metaapi.cloud</b> → API Access. It is the bridge
+              that lets a phone reach MetaTrader at all. Stored only on this device.</span>
+      </div>
+      <button class="ghost" id="btnSaveToken">Save key</button>
+    </div>
+
+    <div class="card">
+      <h2>Trade settings</h2>
+      <div class="grid2">
+        <div><label>Symbol</label><input id="sSymbol" class="plain" value="XAUUSD"></div>
+        <div><label>Timeframe</label>
+          <select id="sTimeframe" class="plain">
+            <option>1m</option><option>5m</option><option>15m</option>
+            <option>30m</option><option selected>1h</option><option>4h</option>
+          </select></div>
+        <div><label>Initial lot</label><input id="sLot" class="plain" type="number" step="0.01" value="0.01"></div>
+        <div><label>Max positions</label><input id="sMaxPos" class="plain" type="number" step="1" value="5"></div>
+        <div><label>Stop loss ($)</label><input id="sSL" class="plain" type="number" step="0.1" value="2.0"></div>
+        <div><label>Take profit ($)</label><input id="sTP" class="plain" type="number" step="0.1" value="1.0"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Martingale</h2>
+      <div class="grid2">
+        <div><label>Enabled</label>
+          <select id="sMart" class="plain"><option value="1" selected>Yes</option><option value="0">No</option></select></div>
+        <div><label>Multiplier</label><input id="sMult" class="plain" type="number" step="0.1" value="2.0"></div>
+        <div><label>Max recovery</label><input id="sMaxRec" class="plain" type="number" step="1" value="3"></div>
+        <div><label>Loss to recover ($)</label><input id="sTrigger" class="plain" type="number" step="0.1" value="0.5"></div>
+      </div>
+      <div class="note" id="ladderNote"><span>⚠️</span><span></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Risk &amp; session</h2>
+      <div class="grid2">
+        <div><label>Daily profit ($)</label><input id="sDayTarget" class="plain" type="number" step="1" value="100"></div>
+        <div><label>Max total loss (%)</label><input id="sMaxLoss" class="plain" type="number" step="1" value="50"></div>
+        <div><label>NY start (UTC)</label><input id="sNYStart" class="plain" type="number" step="1" value="13"></div>
+        <div><label>NY end (UTC)</label><input id="sNYEnd" class="plain" type="number" step="1" value="22"></div>
+        <div><label>New York only</label>
+          <select id="sNYOnly" class="plain"><option value="1" selected>Yes</option><option value="0">No</option></select></div>
+        <div><label>Max spread (pts)</label><input id="sMaxSpread" class="plain" type="number" step="1" value="500"></div>
+      </div>
+      <button class="ghost" id="btnSave">Save settings</button>
+    </div>
+  </section>
+</div>
+
+<nav class="nav">
+  <button data-tab="Home" class="active"><span class="i">🏠</span>HOME</button>
+  <button data-tab="MT"><span class="i">📈</span>METATRADER</button>
+  <button data-tab="Settings"><span class="i">⚙️</span>SETTINGS</button>
+</nav>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------
+   A phone cannot speak MT5's protocol. MetaApi provisions a real
+   terminal in the cloud from a broker login, and this app drives it
+   over HTTPS. Every failure is surfaced with its exact status and
+   body so a wrong server name or a bad password says exactly that.
+------------------------------------------------------------------- */
+const PROV = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
+const clientBase = r => `https://mt-client-api-v1.${r}.agiliumtrade.agiliumtrade.ai`;
+
+const BROKERS = {
+  "Exness":       ["Exness-MT5Trial9","Exness-MT5Real","Exness-MT5Trial"],
+  "JustMarkets":  ["JustMarkets-MT5-Demo-3","JustMarkets-MT5-Demo","JustMarkets-MT5-Live"],
+  "IC Markets":   ["ICMarketsSC-Demo","ICMarketsSC-MT5"],
+  "Pepperstone":  ["Pepperstone-Demo","Pepperstone-Live"],
+  "XM":           ["XMGlobal-MT5","XMGlobal-MT5 2"],
+  "FBS":          ["FBS-Demo","FBS-Real"],
+  "Deriv":        ["Deriv-Demo","Deriv-Server"],
+  "Other":        []
+};
+
+const S = {
+  token:"", accountId:"", region:"", state:"", conn:"",
+  account:null, price:null, candles:[], positions:[],
+  balance:0, equity:0, startEquity:0, dayStartEquity:0, dayStamp:"",
+  running:false, recoveryStep:0, halted:"", timer:null, lastEntryBar:0, linked:false
+};
+
+const $ = id => document.getElementById(id);
+const FIELDS = ["sSymbol","sTimeframe","sLot","sMaxPos","sSL","sTP","sMart","sMult","sMaxRec",
+                "sTrigger","sDayTarget","sMaxLoss","sNYStart","sNYEnd","sNYOnly","sMaxSpread"];
+
+const cfg = () => ({
+  symbol:$("sSymbol").value.trim(), timeframe:$("sTimeframe").value,
+  lot:+$("sLot").value, maxPos:+$("sMaxPos").value, sl:+$("sSL").value, tp:+$("sTP").value,
+  martingale:$("sMart").value==="1", mult:+$("sMult").value, maxRec:+$("sMaxRec").value,
+  trigger:+$("sTrigger").value, dayTarget:+$("sDayTarget").value, maxLoss:+$("sMaxLoss").value,
+  nyStart:+$("sNYStart").value, nyEnd:+$("sNYEnd").value,
+  nyOnly:$("sNYOnly").value==="1", maxSpread:+$("sMaxSpread").value
+});
+
+function log(msg, kind){
+  const el=$("log"); $("logEmpty").classList.add("hidden");
+  const t=new Date().toTimeString().slice(0,8);
+  const m = kind==="bad"?"✕":kind==="ok"?"✓":"·";
+  el.textContent = `${t} ${m} ${msg}\n`+el.textContent;
+  if(el.textContent.length>9000) el.textContent=el.textContent.slice(0,9000);
+}
+
+async function api(url, opts={}){
+  const res = await fetch(url,{...opts,headers:{"auth-token":S.token,"Content-Type":"application/json",...(opts.headers||{})}});
+  const text = await res.text();
+  let body; try{ body = text?JSON.parse(text):null; }catch{ body=text; }
+  if(!res.ok){
+    const d = typeof body==="string"?body:JSON.stringify(body,null,2);
+    const e = new Error(`HTTP ${res.status} ${res.statusText}\n${d}`); e.status=res.status; throw e;
+  }
+  return body;
+}
+
+/* ---------------- tabs ---------------- */
+document.querySelectorAll(".nav button").forEach(b=>{
+  b.addEventListener("click",()=>showTab(b.dataset.tab));
+});
+function showTab(name){
+  ["Home","MT","Settings"].forEach(t=>$("tab"+t).classList.toggle("hidden",t!==name));
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));
+  window.scrollTo(0,0);
+}
+$("btnSettingsJump").addEventListener("click",()=>showTab("Settings"));
+$("btnSymbols").addEventListener("click",()=>showTab("Settings"));
+
+/* ---------------- broker pickers ---------------- */
+function initBrokers(){
+  $("inBroker").innerHTML = Object.keys(BROKERS).map(b=>`<option>${b}</option>`).join("");
+  syncServers();
+}
+function syncServers(){
+  const list = BROKERS[$("inBroker").value]||[];
+  $("serverList").innerHTML = list.map(s=>`<option value="${s}">`).join("");
+  if(list.length && !$("inServer").value) $("inServer").value = list[0];
+}
+$("inBroker").addEventListener("change",()=>{ $("inServer").value=""; syncServers(); });
+
+/* ---------------- link account ---------------- */
+function setMtStatus(text, cls){
+  $("mtStatus").className = "status "+cls;
+  $("mtStatusText").textContent = text;
+}
+
+let linkMode = "broker";   // "broker" | "id"
+
+function setLinkMode(m){
+  linkMode = m;
+  $("segBroker").classList.toggle("active", m==="broker");
+  $("segId").classList.toggle("active", m==="id");
+  $("byBroker").classList.toggle("hidden", m!=="broker");
+  $("byId").classList.toggle("hidden", m!=="id");
+  $("btnLink").textContent = m==="id" ? "LINK ACCOUNT" : "CONNECT ACCOUNT";
+}
+$("segBroker").addEventListener("click",()=>setLinkMode("broker"));
+$("segId").addEventListener("click",()=>setLinkMode("id"));
+
+async function linkAccount(){
+  $("mtErr").classList.add("hidden");
+  if(!S.token){
+    showErr("mtErr","No MetaApi service key. Open Settings and paste your token first.");
+    showTab("Settings"); return;
+  }
+  $("btnLink").disabled = true;
+  try{
+    if(linkMode==="id") await linkExisting();
+    else                await linkByBroker();
+  }catch(e){
+    setMtStatus("Connection failed","off");
+    showErr("mtErr", e.message);
+    log("Link failed.","bad");
+  }finally{ $("btnLink").disabled=false; }
+}
+
+/* Link an account that already exists on MetaApi. */
+async function linkExisting(){
+  const id = $("inAccountId").value.trim();
+  if(!id){ showErr("mtErr","Enter the MetaApi account ID."); return; }
+
+  setMtStatus("Looking up account…","busy");
+  S.accountId = id;
+  const a = await api(`${PROV}/users/current/accounts/${id}`);
+
+  localStorage.setItem("sentinal.account", JSON.stringify({
+    id, broker:(a.keywords&&a.keywords[0])||a.brokerName||"MetaApi",
+    server:a.server||"—", login:a.login||"—"
+  }));
+  log(`Found ${a.name||id} — ${a.state} / ${a.connectionStatus}.`,"ok");
+
+  if(a.state!=="DEPLOYED"){
+    setMtStatus("Deploying…","busy");
+    try{ await api(`${PROV}/users/current/accounts/${id}/deploy`,{method:"POST"}); }
+    catch(e){ if(e.status!==409) throw e; }
+  }
+  setMtStatus("Waiting for broker connection…","busy");
+  await waitForConnection();
+}
+
+/* Provision a brand new cloud terminal from broker credentials. */
+async function linkByBroker(){
+  const broker=$("inBroker").value, server=$("inServer").value.trim();
+  const login=$("inLogin").value.trim(), password=$("inPassword").value;
+  if(!server||!login||!password){
+    showErr("mtErr","Server, login ID and password are all required."); return;
+  }
+
+  setMtStatus("Creating cloud terminal…","busy");
+  const acc = await api(`${PROV}/users/current/accounts`,{
+    method:"POST",
+    body:JSON.stringify({
+      name:`Sentinal ${login}`, type:"cloud-g2", platform:"mt5",
+      login:String(login), password, server, magic:0,
+      keywords:[broker], quoteStreamingIntervalInSeconds:2.5
+    })
+  });
+  S.accountId = acc.id || acc._id;
+  localStorage.setItem("sentinal.account", JSON.stringify({id:S.accountId, broker, server, login}));
+  log(`Account created (${S.accountId}).`,"ok");
+
+  setMtStatus("Deploying…","busy");
+  try{ await api(`${PROV}/users/current/accounts/${S.accountId}/deploy`,{method:"POST"}); }
+  catch(e){ if(e.status!==409) throw e; }
+
+  setMtStatus("Waiting for broker connection…","busy");
+  await waitForConnection();
+}
+
+async function waitForConnection(){
+  for(let i=0;i<40;i++){
+    const a = await api(`${PROV}/users/current/accounts/${S.accountId}`);
+    S.account=a; S.region=a.region||"new-york"; S.state=a.state; S.conn=a.connectionStatus;
+    if(a.state==="DEPLOYED" && a.connectionStatus==="CONNECTED"){
+      S.linked=true; showLinked(); log("Broker connected.","ok");
+      startPolling(); return;
+    }
+    setMtStatus(`${a.state||"…"} · ${a.connectionStatus||"connecting"}`,"busy");
+    await new Promise(r=>setTimeout(r,3000));
+  }
+  setMtStatus("Timed out waiting for the broker","off");
+  showErr("mtErr",
+    `Account reached state ${S.state} / ${S.conn} but never CONNECTED.\n\n` +
+    `Most common causes: wrong server name, wrong password, or the broker\n` +
+    `rejecting the login. Check the exact server string in MT5 under\n` +
+    `File > Open an Account.`);
+}
+
+function showErr(id,msg){ const el=$(id); el.textContent=msg; el.classList.remove("hidden"); }
+
+function showLinked(){
+  const saved = JSON.parse(localStorage.getItem("sentinal.account")||"{}");
+  $("mtConnect").classList.add("hidden");
+  $("mtLinked").classList.remove("hidden");
+  $("vBroker").textContent = saved.broker||"—";
+  $("vServer").textContent = saved.server||"—";
+  $("vLogin").textContent  = saved.login||"—";
+  $("vRegion").textContent = S.region||"—";
+  $("vLot").textContent    = `${cfg().lot} lots`;
+  renderBot();
+}
+
+$("btnLink").addEventListener("click",linkAccount);
+$("btnUpdate").addEventListener("click",e=>{e.preventDefault();refresh();});
+$("btnDisconnect").addEventListener("click",async e=>{
+  e.preventDefault();
+  if(!confirm("Disconnect this MetaTrader account? The bot will stop.")) return;
+  stopBot();
+  clearInterval(S.timer); S.timer=null;
+  try{ await api(`${PROV}/users/current/accounts/${S.accountId}/undeploy`,{method:"POST"}); }catch{}
+  localStorage.removeItem("sentinal.account");
+  S.linked=false; S.accountId="";
+  $("mtLinked").classList.add("hidden"); $("mtConnect").classList.remove("hidden");
+  setMtStatus("Disconnected from MetaTrader","off");
+  renderBot(); log("Account disconnected.");
+});
+
+/* ---------------- start / stop ---------------- */
+function startBot(){
+  if(!S.linked){ showTab("MT"); return; }
+  S.running=true; renderBot(); log("Bot STARTED.","ok");
+}
+function stopBot(){ S.running=false; renderBot(); log("Bot stopped."); }
+$("btnStart").addEventListener("click",()=> S.running?stopBot():startBot());
+
+function renderBot(){
+  const on=S.running;
+  $("botBadge").className = "badge "+(on?"running":"stopped");
+  $("botBadge").textContent = on?"RUNNING":"STOPPED";
+  $("botOrb").className = "orb"+(on?" on":"");
+  $("btnStart").className = "primary"+(on?" on":"");
+  $("btnStart").textContent = on?"■ STOP":"▶ START";
+
+  let text,cls;
+  if(!S.linked){ text="Not connected to MetaTrader"; cls="off"; }
+  else if(!on){ text="Connected · bot stopped"; cls="busy"; }
+  else { const r=blockedReason(); text = r?`Idle — ${r}`:"Armed — watching for a signal"; cls = r?"busy":"on"; }
+  $("botState").className="status "+cls; $("botStateText").textContent=text;
+}
+
+/* ---------------- polling ---------------- */
+function startPolling(){ if(!S.timer){ refresh(); S.timer=setInterval(tick,5000); } }
+
+async function refresh(){
+  if(!S.accountId||!S.token) return;
+  $("connErr").classList.add("hidden");
+  const c=cfg();
+  try{
+    const a = await api(`${PROV}/users/current/accounts/${S.accountId}`);
+    S.account=a; S.region=a.region||S.region; S.state=a.state; S.conn=a.connectionStatus;
+    if(a.state!=="DEPLOYED"){
+      renderConn();
+      showErr("connErr",`Account state is ${a.state}, not DEPLOYED. Nothing can trade until it is.`);
+      renderBot(); return;
+    }
+    const base=clientBase(S.region), root=`${base}/users/current/accounts/${S.accountId}`;
+    const [info,price,pos] = await Promise.all([
+      api(`${root}/account-information`),
+      api(`${root}/symbols/${encodeURIComponent(c.symbol)}/current-price`),
+      api(`${root}/positions`)
+    ]);
+    S.balance=info.balance; S.equity=info.equity; S.price=price; S.positions=pos||[];
+    if(!S.startEquity) S.startEquity=info.equity;
+    const day=new Date().toISOString().slice(0,10);
+    if(S.dayStamp!==day){ S.dayStamp=day; S.dayStartEquity=info.equity; S.halted=""; }
+
+    const data = await api(`${root}/historical-market-data/symbols/${encodeURIComponent(c.symbol)}/timeframes/${c.timeframe}/candles?limit=120`);
+    S.candles = Array.isArray(data)?data:[];
+
+    renderConn(); renderAccount(); renderPrice(); drawChart(); renderBot();
+  }catch(e){
+    renderConn(); showErr("connErr", e.message); renderBot();
+  }
+}
+
+/* ---------------- render ---------------- */
+const rows=(t,p)=>$(t).innerHTML=p.map(([k,v,c])=>
+  `<div class="row"><span class="k">${k}</span><span class="v ${c||""}">${v}</span></div>`).join("");
+
+function renderConn(){
+  rows("connRows",[
+    ["State", S.state||"—", S.state==="DEPLOYED"?"good":"bad"],
+    ["Broker link", S.conn||"—", S.conn==="CONNECTED"?"good":"warn"],
+    ["Region", S.region||"—"],
+    ["Balance", S.balance?S.balance.toFixed(2):"—"],
+    ["Equity", S.equity?S.equity.toFixed(2):"—"]
+  ]);
+}
+
+function renderAccount(){
+  const c=cfg();
+  const pl = S.startEquity? S.equity-S.startEquity : 0;
+  rows("acctRows",[
+    ["Balance", S.balance.toFixed(2)],
+    ["Equity", S.equity.toFixed(2)],
+    ["P/L", pl.toFixed(2), pl>=0?"good":"bad"],
+    ["Open positions", `${S.positions.length} / ${c.maxPos}`],
+    ["Recovery", c.martingale?`step ${S.recoveryStep} / ${c.maxRec} · lot ${nextLot().toFixed(2)}`:"off",
+      S.recoveryStep>0?"warn":""]
+  ]);
+}
+
+function renderPrice(){
+  const p=S.price||{}, c=cfg();
+  const digits=(S.candles[0]&&String(S.candles[0].close).split(".")[1]?.length)||2;
+  const pt=Math.pow(10,-digits);
+  const sp=(p.ask!=null&&p.bid!=null)?(p.ask-p.bid)/pt:null;
+  rows("priceRows",[
+    ["Symbol", `${c.symbol} · ${c.timeframe}`],
+    ["Bid / Ask", p.bid!=null?`${p.bid} / ${p.ask}`:"—"],
+    ["Spread", sp!=null?`${sp.toFixed(0)} / ${c.maxSpread} pts`:"—", sp!=null&&sp>c.maxSpread?"bad":""],
+    ["Session", c.nyOnly?(inSession()?"NY open":"outside NY"):"always on", c.nyOnly&&!inSession()?"warn":"good"]
+  ]);
+}
+
+function drawChart(){
+  const cv=$("chart"),x=cv.getContext("2d"),W=cv.width,H=cv.height;
+  x.clearRect(0,0,W,H);
+  const d=S.candles.slice(-70); if(!d.length) return;
+  const hi=Math.max(...d.map(v=>v.high)), lo=Math.min(...d.map(v=>v.low));
+  const pad=(hi-lo)*.08||1, top=hi+pad, bot=lo-pad;
+  const y=v=>H-((v-bot)/(top-bot))*H, bw=W/d.length;
+  x.strokeStyle="#2a2a3a"; x.lineWidth=1;
+  for(let i=1;i<4;i++){const gy=H/4*i;x.beginPath();x.moveTo(0,gy);x.lineTo(W,gy);x.stroke();}
+  d.forEach((v,i)=>{
+    const cx=i*bw+bw/2, up=v.close>=v.open;
+    x.strokeStyle=x.fillStyle=up?"#22e06a":"#ff3b47";
+    x.beginPath();x.moveTo(cx,y(v.high));x.lineTo(cx,y(v.low));x.stroke();
+    const yo=y(v.open),yc=y(v.close);
+    x.fillRect(cx-bw*.32,Math.min(yo,yc),bw*.64,Math.max(1,Math.abs(yc-yo)));
+  });
+}
+
+/* ---------------- strategy ---------------- */
+function ema(v,p){const k=2/(p+1);let e=v[0],o=[e];for(let i=1;i<v.length;i++){e=v[i]*k+e*(1-k);o.push(e);}return o;}
+function signal(){
+  const c=S.candles.map(x=>x.close); if(c.length<40) return 0;
+  const f=ema(c,12), s=ema(c,26), n=c.length-1;
+  if(f[n-1]<=s[n-1]&&f[n]>s[n]) return 1;
+  if(f[n-1]>=s[n-1]&&f[n]<s[n]) return -1;
+  return 0;
+}
+function inSession(){
+  const c=cfg(); if(!c.nyOnly) return true;
+  const h=new Date().getUTCHours();
+  return c.nyStart<=c.nyEnd ? (h>=c.nyStart&&h<c.nyEnd) : (h>=c.nyStart||h<c.nyEnd);
+}
+function nextLot(){
+  const c=cfg();
+  return (!c.martingale||S.recoveryStep<=0) ? c.lot
+       : +(c.lot*Math.pow(c.mult,S.recoveryStep)).toFixed(2);
+}
+function blockedReason(){
+  const c=cfg();
+  if(!S.linked) return "no account linked";
+  if(S.state!=="DEPLOYED") return `account ${S.state}`;
+  if(S.halted) return S.halted;
+  if(!inSession()) return "outside New York session";
+  if(S.positions.length>=c.maxPos) return "position limit reached";
+  if(!S.price||S.price.bid==null) return "no price";
+  if(S.candles.length<40) return "waiting for candles";
+  const digits=(S.candles[0]&&String(S.candles[0].close).split(".")[1]?.length)||2;
+  const sp=(S.price.ask-S.price.bid)/Math.pow(10,-digits);
+  if(sp>c.maxSpread) return "spread too wide";
+  return "";
+}
+
+async function tick(){
+  await refresh();
+  if(!S.running) return;
+  const c=cfg();
+
+  if(c.dayTarget>0 && S.dayStartEquity && (S.equity-S.dayStartEquity)>=c.dayTarget){
+    if(S.halted!=="daily profit target reached") log("Daily profit target reached.","ok");
+    S.halted="daily profit target reached";
+  }
+  if(c.maxLoss>0 && S.startEquity && ((S.equity-S.startEquity)/S.startEquity*100)<=-c.maxLoss){
+    if(S.halted!=="max total loss reached") log("Max total loss reached — halted.","bad");
+    S.halted="max total loss reached";
+  }
+  if(blockedReason()) return;
+
+  const last=S.candles[S.candles.length-1];
+  const bar=last?new Date(last.time).getTime():0;
+  if(bar && bar===S.lastEntryBar) return;
+
+  const sig=signal(); if(!sig) return;
+  await placeOrder(sig>0?"ORDER_TYPE_BUY":"ORDER_TYPE_SELL");
+  S.lastEntryBar=bar;
+}
+
+async function placeOrder(actionType){
+  const c=cfg(), lot=nextLot(), p=S.price;
+  const isBuy = actionType==="ORDER_TYPE_BUY";
+  const entry = isBuy?p.ask:p.bid;
+  const contract = (S.account&&S.account.contractSize)||100;
+  const perPrice = contract*lot;
+  if(perPrice<=0){ log("Cannot size order — contract size unknown.","bad"); return; }
+
+  const minD=(p.ask-p.bid)*2;
+  let slD=Math.max(c.sl/perPrice,minD), tpD=Math.max(c.tp/perPrice,minD);
+  const sl=+(isBuy?entry-slD:entry+slD).toFixed(3);
+  const tp=+(isBuy?entry+tpD:entry-tpD).toFixed(3);
+
+  try{
+    const root=`${clientBase(S.region)}/users/current/accounts/${S.accountId}`;
+    const r=await api(`${root}/trade`,{method:"POST",body:JSON.stringify({
+      actionType, symbol:c.symbol, volume:lot, stopLoss:sl, takeProfit:tp, comment:"Sentinal"
+    })});
+    log(`${isBuy?"BUY":"SELL"} ${lot} @ ${entry} · SL ${sl} · TP ${tp}${r&&r.orderId?` #${r.orderId}`:""}`,"ok");
+  }catch(e){
+    log(`Order rejected: ${e.message.split("\n")[0]}`,"bad");
+    showErr("connErr", e.message);
+  }
+}
+
+/* ---------------- settings persistence ---------------- */
+function saveSettings(){
+  const o={}; FIELDS.forEach(f=>o[f]=$(f).value);
+  localStorage.setItem("sentinal.settings",JSON.stringify(o));
+  renderLadder(); if(S.linked) $("vLot").textContent=`${cfg().lot} lots`;
+  log("Settings saved.","ok");
+}
+function loadSettings(){
+  try{
+    const o=JSON.parse(localStorage.getItem("sentinal.settings")||"{}");
+    FIELDS.forEach(f=>{ if(o[f]!==undefined) $(f).value=o[f]; });
+  }catch{}
+}
+function renderLadder(){
+  const c=cfg(), n=$("ladderNote").querySelector("span:last-child");
+  n.textContent = c.martingale
+    ? `Ladder: ${Array.from({length:c.maxRec+1},(_,i)=>(c.lot*Math.pow(c.mult,i)).toFixed(2)).join(" → ")} lots. `
+      + `A full losing run stakes every rung before resetting.`
+    : "Martingale off — every entry uses the initial lot.";
+}
+FIELDS.forEach(f=>$(f).addEventListener("change",renderLadder));
+$("btnSave").addEventListener("click",saveSettings);
+$("btnSaveToken").addEventListener("click",()=>{
+  S.token=$("inToken").value.trim();
+  localStorage.setItem("sentinal.token",S.token);
+  log(S.token?"Service key saved.":"Service key cleared.", S.token?"ok":null);
+  if(S.token) showTab("MT");
+});
+
+/* ---------------- boot ---------------- */
+initBrokers(); loadSettings(); renderLadder(); renderBot();
+S.token = localStorage.getItem("sentinal.token")||"";
+$("inToken").value = S.token;
+
+(async ()=>{
+  const saved = JSON.parse(localStorage.getItem("sentinal.account")||"null");
+  if(saved && saved.id && S.token){
+    S.accountId = saved.id;
+    try{
+      const a = await api(`${PROV}/users/current/accounts/${S.accountId}`);
+      S.account=a; S.region=a.region||"new-york"; S.state=a.state; S.conn=a.connectionStatus;
+      if(a.state==="DEPLOYED"){ S.linked=true; showLinked(); startPolling(); }
+      else { setMtStatus(`${a.state} — reconnect to continue`,"off"); }
+    }catch(e){ setMtStatus("Saved account unreachable","off"); showErr("mtErr",e.message); }
+  }
+})();
+</script>
+</body>
+</html>

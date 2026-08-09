@@ -121,6 +121,9 @@ input group "=== Martingale Settings ==="
 input bool   InpUseMartingale    = true;   // Enable martingale recovery
 input double InpMartingaleMult   = 2.0;    // Martingale multiplier
 input int    InpMaxRecovery      = 3;      // Maximum recovery attempts
+input bool   InpUseTrailingStop  = true;   // Use trailing stop
+input double InpTrailStartUSD    = 0.5;    // Profit before trailing starts ($)
+input double InpTrailDistUSD     = 0.5;    // Trail distance behind price ($)
 
 input group "=== Session ==="
 input bool   InpNewYorkOnly      = true;   // Trade the New York session only
@@ -144,8 +147,7 @@ input double InpATRStopMult      = 2.0;    // Stop = ATR x this
 input double InpATRTargetMult    = 3.0;    // Target = ATR x this
 input int    InpStopLossPoints   = 3000;   // Fixed stop (points, if ATR off)
 input int    InpTakeProfitPoints = 6000;   // Fixed target (points, if ATR off)
-input bool   InpUseTrailingStop  = true;   // Trail the stop as price moves
-input double InpATRTrailMult     = 2.0;    // Trail distance = ATR x this
+input double InpATRTrailMult     = 2.0;    // Trail distance = ATR x this (ATR mode)
 
 input group "=== Filters ==="
 input int    InpMaxSpreadPoints  = 500;    // Max spread (points, 0 = ignore)
@@ -1096,13 +1098,38 @@ void ManageOpenPositions()
          continue;
         }
 
-      if(!InpUseTrailingStop || atr <= 0.0)
+      if(!InpUseTrailingStop)
          continue;
 
-      double trailDist = MathMax(atr * InpATRTrailMult, MinStopDistance());
-      double current   = isBuy ? SymbolInfoDouble(_Symbol, SYMBOL_BID)
-                               : SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-      double newSL     = isBuy ? current - trailDist : current + trailDist;
+      // The trail must be denominated the same way the stop is. An ATR
+      // trail against a $2 stop and $1 target is tens of dollars wide, so
+      // it could never tighten before the target hit — the setting would
+      // read "true" and do nothing at all.
+      double trailDist, startDist;
+      if(InpUseDollarStops)
+        {
+         trailDist = UsdToPriceDist(InpTrailDistUSD,  position.Volume());
+         startDist = UsdToPriceDist(InpTrailStartUSD, position.Volume());
+        }
+      else
+        {
+         if(atr <= 0.0)
+            continue;
+         trailDist = atr * InpATRTrailMult;
+         startDist = 0.0;
+        }
+      trailDist = MathMax(trailDist, MinStopDistance());
+
+      double current = isBuy ? SymbolInfoDouble(_Symbol, SYMBOL_BID)
+                             : SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+
+      // Only start trailing once the trade is far enough into profit.
+      double profitDist = isBuy ? current - position.PriceOpen()
+                                : position.PriceOpen() - current;
+      if(profitDist < startDist)
+         continue;
+
+      double newSL = isBuy ? current - trailDist : current + trailDist;
       newSL = NormalizeDouble(newSL, _Digits);
 
       double oldSL = position.StopLoss();

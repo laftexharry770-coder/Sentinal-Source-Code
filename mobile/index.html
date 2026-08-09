@@ -347,7 +347,105 @@
    body so a wrong server name or a bad password says exactly that.
 ------------------------------------------------------------------- */
 const PROV = "https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai";
-const clientBase = r => `https://mt-client-api-v1.${r}.agiliumtrade.agiliumtrade.ai`;
+
+/* The two APIs sit on different domains, and the difference is easy to miss.
+   Provisioning is under agiliumtrade.agiliumtrade.ai. The regional client API
+   is under agiliumtrade.ai — one agiliumtrade, not two.
+
+   Getting that wrong does not fail loudly. Everything under the doubled name
+   resolves, including names that plainly do not exist, so a request for the
+   client API landed on a catch-all that had nothing to say and the browser
+   reported nothing more useful than "Failed to fetch". Under the correct
+   domain there is no wildcard: each region has its own record and its own
+   address, and a region that does not exist does not resolve at all.
+
+   The region is taken exactly as the account reports it. "backup-new-york"
+   is a real region with a real endpoint of its own, not a label to tidy up. */
+const clientBase = r => `https://mt-client-api-v1.${r||"new-york"}.agiliumtrade.ai`;
+/* Past prices are not served by the same API as everything else — they have
+   their own. A live quote for a symbol can work while its candles 404,
+   because the two questions are being put to two different places. Both are
+   offered, nearest first, so whichever holds the history answers. */
+const marketDataBase = r => `https://mt-market-data-client-api-v1.${r||"new-york"}.agiliumtrade.ai`;
+const historyHosts = r => {
+  const plain = String(r||"").replace(/^backup-/,"");
+  const list = [marketDataBase(r)];
+  if (plain && plain !== r) list.push(marketDataBase(plain));
+  return list.concat(clientHosts(r));
+};
+const clientHosts = r => {
+  const hosts = [clientBase(r)];
+  // only if a replica ever reports a region that has no endpoint of its own
+  const plain = String(r||"").replace(/^backup-/,"");
+  if (plain && plain !== r) hosts.push(clientBase(plain));
+  return hosts;
+};
+
+/* fetch() rejects outright — "Failed to fetch" — only when a request never
+   reaches the server: wrong host, blocked, or refused by CORS. That is the
+   one case worth trying elsewhere. A real HTTP reply, even an error one, is
+   an answer, so it is handed straight back.
+
+   A failed fetch does not prove the server never got the request, only that
+   no reply came back. Reading a balance twice is harmless, so those retry.
+   Sending an order twice is not, so anything that places a trade is asked
+   once, of one host, and never repeated. */
+/* "Failed to fetch" covers two very different faults and the browser refuses
+   to say which: a host that is not there, and a host that is there but will
+   not talk to a web page. A no-cors request tells them apart — it is allowed
+   to succeed opaquely against any server that answers at all, and only
+   rejects when nothing was reachable. Knowing which one it is decides whether
+   this is a wrong address or a wall no address will get past. */
+async function diagnose(host){
+  try {
+    await fetch(host + "/users/current/accounts", { mode:"no-cors", cache:"no-store" });
+    return "the server answered but refused this web page (CORS)";
+  } catch(_) {
+    return "no answer from " + new URL(host).hostname;
+  }
+}
+
+/* Which of the broker's own symbols look like the one that was asked for.
+   Compared on letters alone, so XAUUSD finds XAUUSDm, XAUUSD.raw and
+   XAUUSD_i without needing to know any broker's house style. */
+async function suggestSymbols(wanted){
+  try{
+    const all = await apiTry(S.region, `/symbols`);
+    if(!Array.isArray(all) || !all.length) return "";
+    const letters = s => String(s).toUpperCase().replace(/[^A-Z]/g,"");
+    const want = letters(wanted);
+    const near = all.filter(s => letters(s).startsWith(want) || want.startsWith(letters(s)));
+    const gold = near.length ? near : all.filter(s => letters(s).includes("XAU"));
+    if(!gold.length) return `This account lists ${all.length} symbols and none resemble ${wanted}.`;
+    if(gold.length===1) return `Your broker calls it ${gold[0]} — put that in Settings → Symbol.`;
+    /* Spelled out one per line, because a comma-separated row reads like
+       something to paste in whole, and one of them is what is wanted. */
+    return `Your broker offers ${gold.length} like it. Put ONE in Settings → Symbol:\n`
+         + gold.slice(0,6).map(s=>`  ${s}`).join("\n")
+         + (gold.length>6?`\n  …and ${gold.length-6} more`:"");
+  }catch(e){ return ""; }
+}
+
+async function apiTryHosts(hosts, path, opts, alsoOn404){
+  let last;
+  for (const host of hosts){
+    try {
+      return await api(`${host}/users/current/accounts/${S.accountId}${path}`, opts);
+    } catch(e){
+      e.triedHost = host; last = e;
+      /* A server that answers has settled the question — except when the
+         question was put to the wrong API. Asking one service for something
+         another one holds earns a 404 that says nothing about the request,
+         so where two services might hold it, a 404 is worth carrying on for. */
+      if (e.status && !(alsoOn404 && e.status===404)) throw e;
+    }
+  }
+  throw last;
+}
+
+async function apiTry(region, path, opts, once){
+  return apiTryHosts(once ? [clientBase(region)] : clientHosts(region), path, opts);
+}
 
 const BROKERS = {
   "Exness":       ["Exness-MT5Trial9","Exness-MT5Real","Exness-MT5Trial"],
@@ -532,6 +630,9 @@ async function waitForConnection(){
 }
 
 function showErr(id,msg){ const el=$(id); el.textContent=msg; el.classList.remove("hidden"); }
+/* A refresh that works must take the last failure off the screen, or an old
+   message sits there looking like a current one. */
+function clearErr(id){ const el=$(id); if(el){ el.textContent=""; el.classList.add("hidden"); } }
 
 function showLinked(){
   const saved = JSON.parse(localStorage.getItem("sentinal.account")||"{}");
@@ -584,12 +685,58 @@ function renderBot(){
 }
 
 /* ---------------- polling ---------------- */
-function startPolling(){ if(!S.timer){ refresh(); S.timer=setInterval(tick,5000); } }
+/* Live means live without being asked. Five seconds while you are looking at
+   it; a slower beat when you are not, because a phone in a pocket should not
+   spend battery and data on a screen nobody can see. */
+const POLL_WATCHING = 5000, POLL_POCKET = 30000;
+
+function startPolling(every){
+  if(every) S.pollEvery = every;
+  clearInterval(S.timer);
+  S.timer = setInterval(tick, S.pollEvery || POLL_WATCHING);
+  refresh();                       // never wait a whole beat for the first one
+}
+
+/* A phone freezes a page it has put away, and the timer with it. Coming back
+   to a screen showing numbers from an hour ago looks like a broken app, so
+   returning to the foreground refetches at once rather than waiting. The same
+   goes for a network that has just come back. */
+function wakeUp(){
+  if(!S.linked || !S.accountId || !S.token) return;
+  startPolling(document.hidden ? POLL_POCKET : POLL_WATCHING);
+}
+document.addEventListener("visibilitychange", wakeUp);
+window.addEventListener("online", wakeUp);
+window.addEventListener("pageshow", wakeUp);      // returning via the back button
+
+/* Nothing above helps if polling never began — a flaky moment during startup
+   used to leave the app sitting there for good, with a reload the only way
+   out. It keeps trying instead. */
+setInterval(()=>{
+  if(S.linked && S.accountId && S.token && !S.timer) startPolling();
+}, 15000);
+
+/* "Updated 4s ago" has to keep counting between fetches, or it freezes at
+   whatever it said when the last one landed and becomes the very thing it
+   was added to prevent. Only while the screen is being looked at. */
+setInterval(()=>{ if(S.linked && !document.hidden) renderConn(); }, 1000);
 
 async function refresh(){
   if(!S.accountId||!S.token) return;
   $("connErr").classList.add("hidden");
   const c=cfg();
+
+  /* One instrument, not a list. When the app offers several names it is
+     inviting a choice, and a choice pasted in whole is not a symbol any
+     broker will recognise. Better to say so than to quietly trade whichever
+     one happened to be first. */
+  if(/[,;\s]/.test(c.symbol)){
+    renderConn();
+    showErr("connErr",
+      `Settings → Symbol holds more than one name:\n  ${c.symbol}\n` +
+      `Enter exactly one of them. Nothing will trade until it is a single symbol.`);
+    renderBot(); return;
+  }
   try{
     const a = await api(`${PROV}/users/current/accounts/${S.accountId}`);
     S.account=a; S.region=a.region||S.region; S.state=a.state; S.conn=a.connectionStatus;
@@ -598,19 +745,68 @@ async function refresh(){
       showErr("connErr",`Account state is ${a.state}, not DEPLOYED. Nothing can trade until it is.`);
       renderBot(); return;
     }
-    const base=clientBase(S.region), root=`${base}/users/current/accounts/${S.accountId}`;
-    const [info,price,pos] = await Promise.all([
-      api(`${root}/account-information`),
-      api(`${root}/symbols/${encodeURIComponent(c.symbol)}/current-price`),
-      api(`${root}/positions`)
+    /* These four are asked for together but stand alone. A symbol the broker
+       spells differently, or a chart that will not come, used to take the
+       balance down with it and leave the account looking dead when it was
+       fine. Each is now allowed to fail on its own, and says so by name. */
+    const sym = encodeURIComponent(c.symbol);
+    const [info,price,pos,candles] = await Promise.allSettled([
+      apiTry(S.region, `/account-information`),
+      apiTry(S.region, `/symbols/${sym}/current-price`),
+      apiTry(S.region, `/positions`),
+      apiTryHosts(historyHosts(S.region),
+        `/historical-market-data/symbols/${sym}/timeframes/${c.timeframe}/candles?limit=120`,
+        undefined, true)
     ]);
-    S.balance=info.balance; S.equity=info.equity; S.price=price; S.positions=pos||[];
-    if(!S.startEquity) S.startEquity=info.equity;
-    const day=new Date().toISOString().slice(0,10);
-    if(S.dayStamp!==day){ S.dayStamp=day; S.dayStartEquity=info.equity; S.halted=""; }
 
-    const data = await api(`${root}/historical-market-data/symbols/${encodeURIComponent(c.symbol)}/timeframes/${c.timeframe}/candles?limit=120`);
-    S.candles = Array.isArray(data)?data:[];
+    if(info.status==="fulfilled"){
+      S.lastOk = Date.now();       // the balance is what "up to date" means here
+      S.balance=info.value.balance; S.equity=info.value.equity;
+      if(!S.startEquity) S.startEquity=info.value.equity;
+      const day=new Date().toISOString().slice(0,10);
+      if(S.dayStamp!==day){ S.dayStamp=day; S.dayStartEquity=info.value.equity; S.halted=""; }
+    }
+    if(price.status==="fulfilled") S.price=price.value;
+    if(pos.status==="fulfilled") S.positions=pos.value||[];
+    if(candles.status==="fulfilled") S.candles=Array.isArray(candles.value)?candles.value:[];
+
+    const failed = [["Balance",info],["Price of "+c.symbol,price],
+                    ["Positions",pos],["Chart",candles]]
+      .filter(([,r])=>r.status==="rejected");
+    if(failed.length){
+      const lines = failed.map(([name,r])=>
+        `${name}: ${String((r.reason||{}).message||r.reason).split("\n")[0]}`);
+
+      /* When every one of them died the same way, the calls are not the
+         problem — the road to the server is. Say that once, plainly, instead
+         of repeating the same host four times. */
+      const netDead = failed.filter(([,r])=>!(r.reason||{}).status);
+      if(netDead.length===failed.length && failed.length>1){
+        const host=(failed[0][1].reason||{}).triedHost||clientBase(S.region);
+        lines.push("", `Nothing reached ${new URL(host).hostname} — checking why…`);
+        showErr("connErr", lines.join("\n"));
+        diagnose(host).then(verdict=>{
+          lines[lines.length-1] = `Cause: ${verdict}`;
+          showErr("connErr", lines.join("\n"));
+        });
+      } else {
+        showErr("connErr", lines.join("\n"));
+
+        /* A 404 on the symbol is the broker saying it has never heard of it.
+           Brokers name the same metal differently — XAUUSD here, XAUUSDm or
+           XAUUSD.raw there — and there is no guessing it from outside. The
+           account knows, so ask it, and name the ones it does have. */
+        /* Only when the live quote is the thing refused. A working price
+           proves the symbol is right, so a chart that fails alone is about
+           the history, not the name — suggesting other symbols there would
+           send someone off to change a setting that was never wrong. */
+        if(failed.some(([n,r])=>/^Price of/.test(n) && (r.reason||{}).status===404)){
+          suggestSymbols(c.symbol).then(msg=>{
+            if(msg) showErr("connErr", lines.concat(["", msg]).join("\n"));
+          });
+        }
+      }
+    } else clearErr("connErr");
 
     renderConn(); renderAccount(); renderPrice(); drawChart(); renderBot();
   }catch(e){
@@ -622,13 +818,29 @@ async function refresh(){
 const rows=(t,p)=>$(t).innerHTML=p.map(([k,v,c])=>
   `<div class="row"><span class="k">${k}</span><span class="v ${c||""}">${v}</span></div>`).join("");
 
+/* Numbers on a screen say nothing about their own age. Without this, stale
+   figures and live ones look identical, which is the whole reason a person
+   reaches for reload. */
+function freshness(){
+  if(!S.lastOk) return ["Updated","—",""];
+  const secs = Math.round((Date.now()-S.lastOk)/1000);
+  const when = secs<10 ? "just now"
+             : secs<60 ? secs+"s ago"
+             : secs<3600 ? Math.round(secs/60)+" min ago"
+             : new Date(S.lastOk).toLocaleTimeString();
+  // a beat and a half of grace before calling it stale
+  const late = secs > (S.pollEvery||POLL_WATCHING)/1000*3;
+  return ["Updated", when, late?"warn":"good"];
+}
+
 function renderConn(){
   rows("connRows",[
     ["State", S.state||"—", S.state==="DEPLOYED"?"good":"bad"],
     ["Broker link", S.conn||"—", S.conn==="CONNECTED"?"good":"warn"],
     ["Region", S.region||"—"],
     ["Balance", S.balance?S.balance.toFixed(2):"—"],
-    ["Equity", S.equity?S.equity.toFixed(2):"—"]
+    ["Equity", S.equity?S.equity.toFixed(2):"—"],
+    freshness()
   ]);
 }
 
@@ -748,10 +960,9 @@ async function placeOrder(actionType){
   const tp=+(isBuy?entry+tpD:entry-tpD).toFixed(3);
 
   try{
-    const root=`${clientBase(S.region)}/users/current/accounts/${S.accountId}`;
-    const r=await api(`${root}/trade`,{method:"POST",body:JSON.stringify({
+    const r=await apiTry(S.region, `/trade`,{method:"POST",body:JSON.stringify({
       actionType, symbol:c.symbol, volume:lot, stopLoss:sl, takeProfit:tp, comment:"Sentinal"
-    })});
+    })}, true);   // once only — never risk a duplicate order
     log(`${isBuy?"BUY":"SELL"} ${lot} @ ${entry} · SL ${sl} · TP ${tp}${r&&r.orderId?` #${r.orderId}`:""}`,"ok");
   }catch(e){
     log(`Order rejected: ${e.message.split("\n")[0]}`,"bad");
@@ -797,12 +1008,24 @@ $("inToken").value = S.token;
   const saved = JSON.parse(localStorage.getItem("sentinal.account")||"null");
   if(saved && saved.id && S.token){
     S.accountId = saved.id;
-    try{
-      const a = await api(`${PROV}/users/current/accounts/${S.accountId}`);
-      S.account=a; S.region=a.region||"new-york"; S.state=a.state; S.conn=a.connectionStatus;
-      if(a.state==="DEPLOYED"){ S.linked=true; showLinked(); startPolling(); }
-      else { setMtStatus(`${a.state} — reconnect to continue`,"off"); }
-    }catch(e){ setMtStatus("Saved account unreachable","off"); showErr("mtErr",e.message); }
+
+    /* The account is already linked — the token and the id are both here, so
+       nothing needs entering again. All this does is find out what state it
+       is in, and a bad moment on the network is no reason to make someone
+       sign in again. It keeps asking, backing off as it goes, and picks up by
+       itself the moment the answer arrives. */
+    const attach = async (wait) => {
+      try{
+        const a = await api(`${PROV}/users/current/accounts/${S.accountId}`);
+        S.account=a; S.region=a.region||"new-york"; S.state=a.state; S.conn=a.connectionStatus;
+        if(a.state==="DEPLOYED"){ S.linked=true; showLinked(); startPolling(); }
+        else { setMtStatus(`${a.state} — reconnect to continue`,"off"); }
+      }catch(e){
+        setMtStatus(`Reconnecting to your saved account… (${e.message.split("\n")[0]})`,"busy");
+        setTimeout(()=>attach(Math.min(wait*2, 60000)), wait);
+      }
+    };
+    await attach(5000);
   }
 })();
 </script>

@@ -110,6 +110,10 @@ input int    InpRSIOversold      = 30;     // RSI: oversold level
 input int    InpRSIOverbought    = 70;     // RSI: overbought level
 input int    InpBreakoutBars     = 20;     // Breakout: lookback bars
 
+input group "=== Balance scaling ==="
+input bool   InpScaleToBalance   = true;   // Scale $ settings to live balance
+input double InpRefBalance       = 1000.0; // The $ settings below are written for this balance
+
 input group "=== Trade Settings ==="
 input bool   InpUseDollarStops   = true;   // Use $ stop/target instead of ATR
 input double InpInitialLot       = 0.01;   // Initial lot size (MINIMUM)
@@ -325,6 +329,9 @@ bool ValidateInputs()
    if(InpUseTimeFilter && (InpStartHour < 0 || InpEndHour > 24 || InpStartHour >= InpEndHour))
      { Print("Sentinal: need 0 <= StartHour < EndHour <= 24."); return(false); }
 
+   if(InpScaleToBalance && InpRefBalance <= 0.0)
+     { Print("Sentinal: InpRefBalance must be > 0 when scaling to balance."); return(false); }
+
    if(InpUseDollarStops)
      {
       if(InpInitialLot <= 0.0)
@@ -419,11 +426,12 @@ void OnTick()
    if(InpDailyProfitUSD > 0.0 && !g_dayHalted && g_dayStartBalance > 0.0)
      {
       double dayProfit = AccountInfoDouble(ACCOUNT_EQUITY) - g_dayStartBalance;
-      if(dayProfit >= InpDailyProfitUSD)
+      double dayTarget = ScaledUSD(InpDailyProfitUSD);
+      if(dayProfit >= dayTarget)
         {
          g_dayHalted = true;
          PrintFormat("Sentinal: daily profit target %.2f reached (%.2f). Done for today.",
-                     InpDailyProfitUSD, dayProfit);
+                     dayTarget, dayProfit);
         }
      }
 
@@ -932,7 +940,7 @@ void UpdateRecoveryState()
                  + HistoryDealGetDouble(ticket, DEAL_SWAP)
                  + HistoryDealGetDouble(ticket, DEAL_COMMISSION);
 
-      if(net < -InpLossTriggerUSD)
+      if(net < -ScaledUSD(InpLossTriggerUSD))
         {
          if(g_recoveryStep < InpMaxRecovery)
            {
@@ -958,14 +966,57 @@ void UpdateRecoveryState()
   }
 
 //+------------------------------------------------------------------+
+//| Balance scaling.                                                 |
+//|                                                                  |
+//| The dollar settings describe a shape, not an amount: $2 risked to |
+//| make $1 on a $1000 account is 0.2% to make 0.1%. Multiplying the  |
+//| LOT by balance/reference keeps those percentages constant at any  |
+//| account size, while the price distances - derived from the        |
+//| unscaled reference pair - stay exactly where they were, so the    |
+//| bot goes on trading the same shape of move it always did.         |
+//+------------------------------------------------------------------+
+double BalanceFactor()
+  {
+   if(!InpScaleToBalance || InpRefBalance <= 0.0)
+      return(1.0);
+
+   double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   if(balance <= 0.0)
+      return(1.0);
+
+   return(balance / InpRefBalance);
+  }
+
+// A dollar setting expressed at the live balance.
+double ScaledUSD(const double usd)
+  {
+   return(usd * BalanceFactor());
+  }
+
+// The base lot before any martingale escalation.
+double BaseLot()
+  {
+   return(NormalizeLots(InpInitialLot * BalanceFactor()));
+  }
+
+//+------------------------------------------------------------------+
 //| Lot size for the fixed-lot / martingale path                     |
 //+------------------------------------------------------------------+
 double MartingaleLots()
   {
-   double lots = InpInitialLot;
+   double lots = BaseLot();
    if(InpUseMartingale && g_recoveryStep > 0)
-      lots = InpInitialLot * MathPow(InpMartingaleMult, g_recoveryStep);
+      lots = BaseLot() * MathPow(InpMartingaleMult, g_recoveryStep);
    return(NormalizeLots(lots));
+  }
+
+//+------------------------------------------------------------------+
+//| What one trade actually risks right now, in account currency     |
+//+------------------------------------------------------------------+
+double RiskPerTrade(const double lots)
+  {
+   double d = UsdToPriceDist(InpStopLossUSD, InpInitialLot);
+   return(MoneyPerLot(d) * lots);
   }
 
 //+------------------------------------------------------------------+
@@ -1327,11 +1378,11 @@ void PanelUpdate()
       // scales with the ladder — which is what a martingale is. Show what
       // the next entry stands to lose and what a full failed sequence
       // costs, so the escalation is visible before it happens.
-      double nextRisk = InpStopLossUSD * (MartingaleLots() / InpInitialLot);
+      double nextRisk = RiskPerTrade(MartingaleLots());
       double ladder   = 0.0;
       if(InpUseMartingale)
          for(int k = 0; k <= InpMaxRecovery; k++)
-            ladder += InpStopLossUSD * MathPow(InpMartingaleMult, k);
+            ladder += RiskPerTrade(NormalizeLots(BaseLot() * MathPow(InpMartingaleMult, k)));
       else
          ladder = nextRisk;
 
@@ -1342,6 +1393,17 @@ void PanelUpdate()
                 StringFormat("next %.2f  |  full ladder %.2f (%.1f%%)%s",
                              nextRisk, ladder, ladderPct,
                              (heavy ? "  OVER CAP" : "")));
+
+      if(InpScaleToBalance)
+        {
+         double f      = BalanceFactor();
+         double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+         bool   pinned = (InpInitialLot * f < minLot);
+         PanelLine(row++, "Scale", (pinned ? clrGold : InpPanelColor),
+                   StringFormat("x%.2f  base lot %.2f%s",
+                                f, BaseLot(),
+                                (pinned ? "  (at broker minimum)" : "")));
+        }
      }
    else
      {

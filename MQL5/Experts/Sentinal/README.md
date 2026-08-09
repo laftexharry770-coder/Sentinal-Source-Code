@@ -329,3 +329,46 @@ what a martingale is:
 The panel's `Risk` row prints both the next entry's exposure and the full
 ladder's, as cash and as a share of balance, and flags `OVER CAP` when the
 ladder exceeds `InpMaxLossPctBal`.
+
+## Scaling to the account balance
+
+`$2` and `0.01` are not amounts, they are a shape: on a $1,000 account they mean
+*risk 0.2% to make 0.1% at the broker minimum lot*. Left fixed, that shape decays
+— the same $2 is 0.04% of a $5,000 account, and the bot would be trading pocket
+change while the balance grew.
+
+`InpScaleToBalance` (default on) multiplies the **lot** by
+`balance / InpRefBalance`, read live on every entry. `InpRefBalance` says which
+balance the dollar settings were written for — $1,000 by default.
+
+The price distances are deliberately *not* scaled. They come from the unscaled
+reference pair, so the stop and target sit exactly where they always did and the
+bot keeps trading the same shape of move. Only the size behind them changes.
+
+| Balance | Factor | Base lot | Full ladder | % of balance |
+|---|---|---|---|---|
+| $200 | ×0.20 | 0.01 | $30 | 15.0% |
+| $500 | ×0.50 | 0.01 | $30 | 6.0% |
+| $1,013 | ×1.01 | 0.01 | $30 | 3.0% |
+| $2,500 | ×2.50 | 0.02 | $60 | 2.4% |
+| $10,000 | ×10.0 | 0.10 | $300 | 3.0% |
+| $50,000 | ×50.0 | 0.49 | $1,470 | 2.9% |
+
+Above the reference the exposure holds at roughly 3% of balance per full failed
+ladder, growing in cash and staying flat in percentage — which is the point.
+
+**Below the reference it cannot.** The broker's 0.01 minimum lot is a hard
+floor, so a $500 account risks 6% per ladder and a $200 account risks 15%, no
+matter what the settings say. That is arithmetic, not a setting to fix. The
+panel's `Scale` row shows the factor and the base lot and marks it
+`(at broker minimum)` whenever the floor is what is binding:
+
+```
+Scale:  x1.01  base lot 0.01
+Scale:  x0.20  base lot 0.01  (at broker minimum)
+```
+
+`InpLossTriggerUSD` and `InpDailyProfitUSD` scale the same way, so the recovery
+trigger and the daily stop keep their meaning as the account grows. Percentage
+limits — `InpMaxLossPctBal`, `InpMaxDailyLossPct` — were already proportional
+and are unchanged.

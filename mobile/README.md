@@ -23,8 +23,18 @@ Commercial apps of this kind keep that key on their own server, so their users
 only ever see broker fields. Without a backend of your own, the key lives here
 instead. Everything after this step matches.
 
-**MetaTrader → Connect MT Account.** Pick your broker, pick or type the exact
-server name, enter your login ID and password, tap **CONNECT ACCOUNT**.
+**MetaTrader → Connect MT Account.** Two ways in, chosen with the toggle at the
+top of the card.
+
+**MetaApi account ID** — if you already provisioned an account at
+app.metaapi.cloud, paste its UUID from the Accounts page. That account already
+holds your broker login, so nothing else is needed. If it is not deployed, the
+app deploys it. This is the shorter path and avoids creating a duplicate cloud
+account you would be billed for.
+
+**Broker login** — pick your broker, pick or type the exact server name, enter
+your login ID and password, tap **CONNECT ACCOUNT**. Use this when no MetaApi
+account exists yet; it provisions one.
 
 The app then creates the cloud account, deploys it, and waits for the broker to
 accept the login — reporting each stage as it happens. When the broker connects,

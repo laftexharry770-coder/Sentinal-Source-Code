@@ -76,6 +76,12 @@
        border-radius:11px;padding:12px;margin-top:12px;
        font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-all}
 
+  .seg{display:flex;gap:6px;background:var(--card2);border:1px solid var(--line);
+       border-radius:11px;padding:4px;margin-bottom:16px}
+  .seg button{flex:1;margin:0;padding:10px 6px;font-size:12px;font-weight:700;
+              background:transparent;color:var(--dim);border-radius:8px}
+  .seg button.active{background:var(--red);color:#fff}
+
   .linkrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .linkrow .l{font-size:13px;font-weight:700;color:var(--green)}
   .linkrow a{font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;margin-left:16px}
@@ -171,6 +177,25 @@
       <div class="sub">Link your MetaTrader trading account</div>
 
       <div class="card">
+        <div class="seg">
+          <button type="button" id="segBroker" class="active">Broker login</button>
+          <button type="button" id="segId">MetaApi account ID</button>
+        </div>
+
+        <!-- link an account that already exists on MetaApi -->
+        <div id="byId" class="hidden">
+          <label>MetaApi account ID</label>
+          <div class="field"><span class="ico">🆔</span>
+            <input id="inAccountId" placeholder="e.g. 8f2c1b4a-…" autocomplete="off"></div>
+          <div class="note">
+            <span>ℹ️</span>
+            <span>From <b>app.metaapi.cloud → Accounts</b>, the UUID beside your account.
+                  It already holds your broker login, so nothing else is needed here.
+                  If it is not deployed yet, this will deploy it.</span>
+          </div>
+        </div>
+
+        <div id="byBroker">
         <label>Broker</label>
         <div class="field"><span class="ico">🏦</span>
           <select id="inBroker"></select></div>
@@ -193,6 +218,7 @@
           <span>Your credentials go straight to MetaApi, which runs the terminal.
                 They are not stored on this device.</span>
         </div>
+        </div><!-- /byBroker -->
 
         <button id="btnLink">CONNECT ACCOUNT</button>
 
@@ -403,39 +429,87 @@ function setMtStatus(text, cls){
   $("mtStatusText").textContent = text;
 }
 
+let linkMode = "broker";   // "broker" | "id"
+
+function setLinkMode(m){
+  linkMode = m;
+  $("segBroker").classList.toggle("active", m==="broker");
+  $("segId").classList.toggle("active", m==="id");
+  $("byBroker").classList.toggle("hidden", m!=="broker");
+  $("byId").classList.toggle("hidden", m!=="id");
+  $("btnLink").textContent = m==="id" ? "LINK ACCOUNT" : "CONNECT ACCOUNT";
+}
+$("segBroker").addEventListener("click",()=>setLinkMode("broker"));
+$("segId").addEventListener("click",()=>setLinkMode("id"));
+
 async function linkAccount(){
-  const broker=$("inBroker").value, server=$("inServer").value.trim();
-  const login=$("inLogin").value.trim(), password=$("inPassword").value;
   $("mtErr").classList.add("hidden");
-
-  if(!S.token){ showErr("mtErr","No MetaApi service key. Open Settings and paste your token first."); showTab("Settings"); return; }
-  if(!server||!login||!password){ showErr("mtErr","Server, login ID and password are all required."); return; }
-
-  $("btnLink").disabled=true; setMtStatus("Creating cloud terminal…","busy");
+  if(!S.token){
+    showErr("mtErr","No MetaApi service key. Open Settings and paste your token first.");
+    showTab("Settings"); return;
+  }
+  $("btnLink").disabled = true;
   try{
-    const acc = await api(`${PROV}/users/current/accounts`,{
-      method:"POST",
-      body:JSON.stringify({
-        name:`Sentinal ${login}`, type:"cloud-g2", platform:"mt5",
-        login:String(login), password, server, magic:0,
-        keywords:[broker], quoteStreamingIntervalInSeconds:2.5
-      })
-    });
-    S.accountId = acc.id || acc._id;
-    localStorage.setItem("sentinal.account", JSON.stringify({id:S.accountId, broker, server, login}));
-    log(`Account created (${S.accountId}).`,"ok");
-
-    setMtStatus("Deploying…","busy");
-    try{ await api(`${PROV}/users/current/accounts/${S.accountId}/deploy`,{method:"POST"}); }
-    catch(e){ if(e.status!==409) throw e; }
-
-    setMtStatus("Waiting for broker connection…","busy");
-    await waitForConnection();
+    if(linkMode==="id") await linkExisting();
+    else                await linkByBroker();
   }catch(e){
     setMtStatus("Connection failed","off");
     showErr("mtErr", e.message);
     log("Link failed.","bad");
   }finally{ $("btnLink").disabled=false; }
+}
+
+/* Link an account that already exists on MetaApi. */
+async function linkExisting(){
+  const id = $("inAccountId").value.trim();
+  if(!id){ showErr("mtErr","Enter the MetaApi account ID."); return; }
+
+  setMtStatus("Looking up account…","busy");
+  S.accountId = id;
+  const a = await api(`${PROV}/users/current/accounts/${id}`);
+
+  localStorage.setItem("sentinal.account", JSON.stringify({
+    id, broker:(a.keywords&&a.keywords[0])||a.brokerName||"MetaApi",
+    server:a.server||"—", login:a.login||"—"
+  }));
+  log(`Found ${a.name||id} — ${a.state} / ${a.connectionStatus}.`,"ok");
+
+  if(a.state!=="DEPLOYED"){
+    setMtStatus("Deploying…","busy");
+    try{ await api(`${PROV}/users/current/accounts/${id}/deploy`,{method:"POST"}); }
+    catch(e){ if(e.status!==409) throw e; }
+  }
+  setMtStatus("Waiting for broker connection…","busy");
+  await waitForConnection();
+}
+
+/* Provision a brand new cloud terminal from broker credentials. */
+async function linkByBroker(){
+  const broker=$("inBroker").value, server=$("inServer").value.trim();
+  const login=$("inLogin").value.trim(), password=$("inPassword").value;
+  if(!server||!login||!password){
+    showErr("mtErr","Server, login ID and password are all required."); return;
+  }
+
+  setMtStatus("Creating cloud terminal…","busy");
+  const acc = await api(`${PROV}/users/current/accounts`,{
+    method:"POST",
+    body:JSON.stringify({
+      name:`Sentinal ${login}`, type:"cloud-g2", platform:"mt5",
+      login:String(login), password, server, magic:0,
+      keywords:[broker], quoteStreamingIntervalInSeconds:2.5
+    })
+  });
+  S.accountId = acc.id || acc._id;
+  localStorage.setItem("sentinal.account", JSON.stringify({id:S.accountId, broker, server, login}));
+  log(`Account created (${S.accountId}).`,"ok");
+
+  setMtStatus("Deploying…","busy");
+  try{ await api(`${PROV}/users/current/accounts/${S.accountId}/deploy`,{method:"POST"}); }
+  catch(e){ if(e.status!==409) throw e; }
+
+  setMtStatus("Waiting for broker connection…","busy");
+  await waitForConnection();
 }
 
 async function waitForConnection(){

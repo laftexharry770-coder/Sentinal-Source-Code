@@ -191,6 +191,24 @@ At the defaults (0.01 base, ×2.0, 3 attempts) the sequence is:
 | 2 | 0.04 | 0.07 |
 | 3 | 0.08 | 0.15 |
 
+**Stop and target distances are pinned to `InpInitialLot`,** not to the
+escalated lot. This is what makes recovery work. Derive them from the current
+lot and the ladder cancels itself out: doubling the lot would halve the price
+distance, so a win at step 3 pays one unit of target while three losses cost
+three units of stop. With fixed distances, 0.08 lots hitting the same target
+pays 8 × $1 = $8, covering the $6 lost getting there.
+
+The consequence is that **risk escalates with the ladder**, which is what a
+martingale is. At the defaults each rung risks $2, $4, $8, $16 — $30 if every
+rung fails. The panel prints both the next entry's risk and the full ladder's,
+as a figure and as a percentage of balance, and flags it when the ladder exceeds
+`InpMaxLossPctBal`.
+
+**Trailing is denominated to match.** In dollar mode the trail uses
+`InpTrailStartUSD` and `InpTrailDistUSD` rather than ATR. An ATR trail against a
+$2 stop and $1 target is tens of dollars wide and could never tighten before the
+target hit — the setting would read `true` and do nothing.
+
 **Why it looks flawless.** With `InpTakeProfitUSD` well below
 `InpStopLossUSD`, most trades win. The equity curve climbs in small steady
 steps, and the doubling means a single win recovers the whole preceding losing

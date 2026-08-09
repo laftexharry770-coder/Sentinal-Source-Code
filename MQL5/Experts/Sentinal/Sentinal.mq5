@@ -1333,8 +1333,12 @@ void PanelUpdate()
 
    MqlDateTime st;
    TimeToStruct(TimeCurrent(), st);
-   PanelLine(row++, "Server", InpPanelColor,
-             StringFormat("%02d:%02d%s", st.hour, st.min,
+   // Labelled "Time", not "Server" — the broker name already occupies a
+   // row called Server further up, and two rows with one label is how a
+   // panel stops being readable at a glance.
+   PanelLine(row++, "Time", (InpNewYorkOnly && !WithinNewYorkSession()
+                             ? clrGold : InpPanelColor),
+             StringFormat("%02d:%02d server%s", st.hour, st.min,
                           (InpNewYorkOnly
                            ? (WithinNewYorkSession() ? "   NY session OPEN"
                                                      : "   outside NY session")

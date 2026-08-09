@@ -46,6 +46,18 @@
          but perfectly readable. */
       document.documentElement.className += ' js';
 
+      /* That class hides every section until app.js reveals it. app.js cannot
+         run until data.js is here, and data.js is megabytes — on a slow phone
+         that is a blank page for a minute or more. So the wait is capped: if
+         the scripts have not finished shortly, show what is already on the
+         page. The catalogue arrives when it arrives, but the shop's name,
+         address, hours and both phone numbers are readable long before it. */
+      setTimeout(function () {
+        if (document.documentElement.className.indexOf('ready') < 0) {
+          document.documentElement.className += ' show-all';
+        }
+      }, 1200);
+
       /* Last line of defence, and it lives in the page itself on purpose.
          index.html is the one file always fetched from the network, so this
          still arrives on a phone holding an old stylesheet or an old script —
@@ -103,7 +115,13 @@
          nothing has arrived for a long stretch. */
       function considerStale() {
         if (isReady()) return;
-        if (document.readyState !== 'complete' && Date.now() - armed < 60000) {
+        /* No deadline while the browser is still fetching. A minute was not
+           enough — this catalogue needs about eighty-five seconds on a weak
+           connection, and the page was called broken at sixty while it was
+           quietly still arriving. Slowness has no upper bound worth guessing
+           at; what matters is whether loading finished without the shop
+           appearing, and that is what is waited for. */
+        if (document.readyState !== 'complete') {
           waitTimer = setTimeout(considerStale, 2000);
           return;
         }

@@ -1409,6 +1409,12 @@ svg:not(.brand-mark):not([data-fill]) {
    Without that guard a single broken line in data.js would leave every section
    invisible — a blank page instead of a plain one. */
 .js .reveal { opacity: 0; transform: translateY(18px); }
+/* …but only for as long as the scripts are worth waiting for. The catalogue
+   is a large file, and on a weak connection app.js cannot run until all of it
+   has arrived — a minute or more, with every section held invisible behind an
+   entrance animation. The shop's name, address, hours and phone numbers are
+   already in the page by then; they get shown. */
+html.show-all .reveal { opacity: 1; transform: none; }
 .reveal.in {
   opacity: 1; transform: none;
   transition: opacity .7s var(--ease), transform .7s var(--ease);

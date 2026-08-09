@@ -22,13 +22,21 @@ York session, and immediate intrabar execution.
 | Session | New York only |
 | Execution | Intrabar — fires the moment a signal appears |
 
-**`InpAutoTrade` still ships as `false`.** It is the one switch you turn on
-yourself, so that dragging the EA onto a chart is never the act that starts
-trading the account. Set it to `true` and it runs.
+**The Inputs dialog shows exactly nine settings** — Trade Settings, Martingale
+Settings, Session — matching the AXIOM layout. Everything else (magic number,
+max positions, daily target, loss cap, spread filter, balance scaling, EMA
+periods) is fixed inside the EA at the values above.
 
-The volatility-based mode is still available — set `InpUseDollarStops` and
-`InpUseMartingale` to `false` for ATR-scaled stops with percent-of-balance
-sizing, and turn `InpUseTrendFilter` back on for higher-timeframe filtering.
+**The on/off switch is MT5's own "Allow Algo Trading" checkbox** on the Common
+tab, plus the toolbar Algo Trading button — the same as the reference EA. Attach
+with the box unticked and it monitors; tick it and it trades. There is no
+separate auto-trade input any more.
+
+The New York session is defined in **GMT (13:00–22:00)** and checked against
+`TimeGMT()`, so it is correct on any broker without calibration. The panel's
+Time row shows your local clock with the window translated into it — in Nairobi
+that reads `NY 16:00-01:00`. (The Strategy Tester approximates GMT from server
+time, so backtests can sit a couple of hours off; live trading is exact.)
 
 ## Why this replaces the MetaApi work
 

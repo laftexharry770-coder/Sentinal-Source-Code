@@ -100,7 +100,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v20';
+  const BUILD = 'v21';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -1449,25 +1449,69 @@
      is redrawn at a sensible size as a JPEG first — around 100KB, which still
      looks sharp on a product card.
      ------------------------------------------------------------------------ */
+  /* WebP carries the same photo in about a third less space than JPEG, and
+     every browser made this decade can show it. Not every browser can *write*
+     it though, and one that cannot hands back a PNG — far bigger than what we
+     started with — so the result is checked rather than assumed. */
+  const canMakeWebp = (() => {
+    try {
+      const c = document.createElement('canvas'); c.width = c.height = 4;
+      return c.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    } catch (e) { return false; }
+  })();
+
+  function encodeCanvas(canvas, quality) {
+    if (canMakeWebp) {
+      const webp = canvas.toDataURL('image/webp', quality);
+      if (webp.indexOf('data:image/webp') === 0) return webp;
+    }
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  /** Redraw an image at no more than maxDim on its longest side. */
+  function redraw(img, maxDim, quality) {
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return encodeCanvas(canvas, quality);
+  }
+
   function shrinkImage(file, maxDim, quality) {
     return new Promise((resolve, reject) => {
       if (!/^image\//.test(file.type)) { reject(new Error('not an image')); return; }
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const out = redraw(img, maxDim, quality);
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        resolve(out);
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('could not read image')); };
       img.src = url;
+    });
+  }
+
+  /* Photos already in the catalogue, squeezed the same way. Without this the
+     saving only applies to pictures added from today on, while this device
+     keeps the older heavy ones and puts them straight back on the next
+     upload. A photo is only replaced if the new one is genuinely smaller. */
+  function reshrink(dataUrl, maxDim, quality) {
+    return new Promise((resolve) => {
+      if (!/^data:image\//.test(dataUrl)) { resolve(dataUrl); return; }
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const out = redraw(img, maxDim, quality);
+          resolve(out.length < dataUrl.length ? out : dataUrl);
+        } catch (e) { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
     });
   }
 
@@ -1577,7 +1621,38 @@
         (isEdited()
           ? '<button type="button" class="btn btn-ghost" id="usePublished">Use the published version</button>'
           : '') +
+        '<button type="button" class="btn btn-ghost" id="shrinkPhotos">Squeeze photos</button>' +
       '</div>' + groups;
+  }
+
+  /* Squeeze every photo in the catalogue this device is holding. Nothing else
+     about a product changes — only the picture is re-encoded, and only when
+     that makes it smaller. */
+  async function shrinkPhotos() {
+    const before = storageUsed().bytes;
+    let touched = 0;
+    const btn = $('#shrinkPhotos');
+    if (btn) { btn.disabled = true; btn.textContent = 'Squeezing…'; }
+
+    for (const p of catalogue) {
+      for (const key of ['images', 'spin']) {
+        if (!Array.isArray(p[key])) continue;
+        for (let i = 0; i < p[key].length; i++) {
+          const was = p[key][i];
+          const now = await reshrink(was, key === 'spin' ? 800 : 900, key === 'spin' ? 0.65 : 0.68);
+          if (now !== was) { p[key][i] = now; touched++; }
+        }
+      }
+    }
+
+    if (!touched) { toast('Photos are already as small as they usefully go'); }
+    else if (saveShop()) {
+      const saved = before - storageUsed().bytes;
+      toast(touched + ' photo' + (touched === 1 ? '' : 's') + ' squeezed — ' +
+        (saved / 1048576).toFixed(1) + ' MB less for every customer to download');
+    }
+    refreshCatalogueViews();
+    paintManage();
   }
 
   /* Throw away this device's copy and show the published shop instead. This
@@ -2526,6 +2601,7 @@
       if (e.target.closest('#addProduct')) { state.editing = 'new'; state.draft = null; paintManage(); paintTrays(); return; }
       if (e.target.closest('#addCategory')) { addCategory(); return; }
       if (e.target.closest('#usePublished')) { usePublished(); return; }
+      if (e.target.closest('#shrinkPhotos')) { shrinkPhotos(); return; }
       if (e.target.closest('#cancelEdit')) { state.editing = null; state.draft = null; paintManage(); return; }
       if (e.target.closest('#pickPhotos')) { $('#pPhotos').click(); return; }
       if (e.target.closest('#pickSpin')) { $('#pSpin').click(); return; }
@@ -2550,7 +2626,9 @@
 
       if (e.target.id === 'pPhotos' && e.target.files.length) {
         toast('Shrinking photos…');
-        shrinkAll(e.target.files, 1100, 0.75).then((list) => {
+        // 900px is more than a product card or the pop-up can show; past that
+        // the customer pays for detail their screen never renders.
+        shrinkAll(e.target.files, 900, 0.68).then((list) => {
           state.draft.images = state.draft.images.concat(list);
           paintTrays();
           toast(list.length + ' photo' + (list.length === 1 ? '' : 's') + ' added');

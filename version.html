@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>HOMCOM — which version is this phone showing?</title>
+<!-- Deliberately one file with nothing else in it.
+
+     The shop is close to a megabyte and leans on a service worker, a
+     stylesheet and a script, any of which a phone can be holding an old copy
+     of. This page is about two kilobytes, has no stylesheet, no script file
+     and no catalogue, and names the version it was served with. If the number
+     below is the current one, the website is fine and the phone is holding old
+     files — and the button clears them. -->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 28px 22px 48px;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0f1115; color: #f2f3f5;
+  }
+  .wrap { max-width: 33rem; margin-inline: auto; }
+  h1 { font-size: 1.35rem; line-height: 1.25; margin: 0 0 6px; letter-spacing: -.02em; }
+  p  { margin: 0 0 14px; color: #a8a8b2; }
+  .v {
+    display: block; margin: 22px 0; padding: 20px;
+    border: 1px solid #2b2f38; border-radius: 14px; background: #171a20; text-align: center;
+  }
+  .v b { display: block; font-size: 2.6rem; letter-spacing: -.04em; color: #4fd1c5; }
+  .v span { font-size: .85rem; color: #7f8794; }
+  button {
+    width: 100%; min-height: 52px; margin-top: 6px; padding: 14px 18px;
+    border: 0; border-radius: 999px; font: inherit; font-weight: 650;
+    background: #4fd1c5; color: #07201d; cursor: pointer;
+  }
+  a.back {
+    display: block; margin-top: 14px; min-height: 44px; padding: 13px;
+    border: 1px solid #2b2f38; border-radius: 999px;
+    text-align: center; color: #f2f3f5; text-decoration: none;
+  }
+  #said { margin-top: 16px; font-size: .92rem; color: #4fd1c5; min-height: 1.4em; }
+  ul { padding-left: 20px; margin: 0 0 14px; color: #a8a8b2; font-size: .93rem; }
+  li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Which version is this phone showing?</h1>
+  <p>This page carries no stylesheet, no script file and no catalogue, so nothing
+     stored on the phone can change what it says.</p>
+
+  <span class="v">
+    <b>v25</b>
+    <span>the version published on the website</span>
+  </span>
+
+  <ul>
+    <li>Seeing <b>v25</b> means the website is up to date and the shop page is
+      being drawn from files this phone saved earlier.</li>
+    <li>Seeing an older number, or nothing at all, means the website itself has
+      not updated — and that is worth telling whoever maintains it.</li>
+  </ul>
+
+  <p>The button clears the saved copy on this phone and reopens the shop. It
+     removes nothing but stored website files — no photos, no messages, no
+     other app.</p>
+
+  <button type="button" id="reset">Clear the saved copy and reopen the shop</button>
+  <a class="back" href="./">Just go back to the shop</a>
+  <p id="said" role="status"></p>
+</div>
+
+<script>
+  document.getElementById('reset').onclick = function () {
+    var say = document.getElementById('said');
+    this.disabled = true;
+    this.textContent = 'Clearing…';
+    var jobs = [];
+    try {
+      if (window.caches) {
+        jobs.push(caches.keys().then(function (keys) {
+          say.textContent = 'Removing ' + keys.length + ' saved copy(ies)…';
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        }));
+      }
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+          return Promise.all(rs.map(function (r) { return r.unregister(); }));
+        }));
+      }
+    } catch (e) {}
+    Promise.all(jobs.map(function (j) { return j['catch'](function () { return null; }); }))
+      .then(function () {
+        say.textContent = 'Done. Reopening the shop…';
+        /* A fresh address, so nothing already stored can answer it. */
+        location.replace('./?fresh=' + Date.now());
+      });
+  };
+</script>
+</body>
+</html>

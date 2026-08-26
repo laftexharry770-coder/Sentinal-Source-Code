@@ -191,6 +191,19 @@ if (exists('service-worker.js') && exists('assets/js/app.js')) {
     if (!stamps.length) {
       fail('index.html', 'styles.css and app.js have no ?v= stamp, so a cached copy can outlive an update');
     }
+    /* version.html exists to tell the shop whether a phone is holding old
+       files. A number that has drifted out of step would answer the question
+       wrongly, which is worse than not asking. */
+    if (exists('version.html')) {
+      const shown = (read('version.html').match(/<b>v([\w.]+)<\/b>/) || [])[1];
+      if (!shown) {
+        fail('version.html', 'does not state a version, so it cannot answer what it is for');
+      } else if (sw && shown !== sw.replace(/^v/, '')) {
+        fail('version.html', 'says v' + shown + ' but CACHE_VERSION is ' + sw +
+          ' — it would tell the shop the wrong thing');
+      }
+    }
+
     stamps.forEach((v) => {
       if (assetV && v !== assetV) {
         fail('index.html', 'asks for ?v=' + v + ' but service-worker.js precaches ?v=' + assetV);

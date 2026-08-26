@@ -71,6 +71,13 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;   // let maps and fonts go to the network
 
+  /* version.html answers "is this phone holding old files, or is the website
+     itself behind?". It can only answer that if this worker keeps its hands
+     off it — otherwise a failed fetch would fall back to the stored shop page
+     and the question would go unanswered. Never cached, never substituted,
+     always straight from the network. */
+  if (/\/version\.html$/.test(url.pathname)) return;
+
   // The catalogue itself and the pages that show it: always ask the network
   // first, so a price changed this morning is the price a returning customer
   // sees this afternoon. The cached copy is the fallback, not the default.

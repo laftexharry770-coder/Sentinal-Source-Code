@@ -12,13 +12,23 @@
   --surface-2:     #f7f7f5;
   --text:          #14161a;
   --text-soft:     #5c626d;
-  --text-faint:    #8a909b;
+  /* Was #8a909b, which measures 3.2:1 on the page and 3.0:1 behind the search
+     hint — below the 4.5:1 WCAG asks of body text. It is not decorative: it
+     carries "In stock", "incl. VAT", the saving on every offer, the old price,
+     the category on every card, the shop address, the map note and the footer
+     headings. Same cool grey, darkened until all of those clear 4.5:1 against
+     white, --bg and --bg-alt alike. */
+  --text-faint:    #646b78;
   --line:          #e5e5e1;
   --line-strong:   #d5d5d0;
   --accent:        #1f6feb;
   --accent-soft:   #e8f0fe;
   --accent-text:   #ffffff;
   --whatsapp:      #1fa855;
+  /* The WhatsApp green stays exactly as it is on buttons and dots, where it
+     only has to be told apart. As *text* it measures 3.1:1, so the "Open now"
+     and "Answering now" wording uses this darker green instead. */
+  --ok-text:       #0f7a3d;
 
   /* Meaning, not decoration — each one has a dark-mode counterpart below, so
      nothing on the page is stuck in a single theme. */
@@ -66,13 +76,14 @@
   --surface-2:     #1d2129;
   --text:          #f2f3f5;
   --text-soft:     #a6adba;
-  --text-faint:    #767e8d;
+  --text-faint:    #8a92a3;   /* lifted to clear 4.5:1 on every dark surface */
   --line:          #262a33;
   --line-strong:   #333846;
   --accent:        #5a9bff;
   --accent-soft:   #16243c;
   --accent-text:   #0b1220;
   --whatsapp:      #2fd072;
+  --ok-text:       #63c98d;
 
   /* Lifted so they stay readable against a near-black page */
   --danger:        #ff7a70;
@@ -320,7 +331,7 @@ svg:not(.brand-mark):not([data-fill]) {
 .status-pill .status-dot {
   width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex: none;
 }
-.status-pill.is-open { color: var(--whatsapp); border-color: color-mix(in srgb, var(--whatsapp) 35%, var(--line)); }
+.status-pill.is-open { color: var(--ok-text); border-color: color-mix(in srgb, var(--whatsapp) 35%, var(--line)); }
 .status-pill.is-open .status-dot {
   background: var(--whatsapp);
   box-shadow: 0 0 0 0 color-mix(in srgb, var(--whatsapp) 70%, transparent);
@@ -495,9 +506,13 @@ svg:not(.brand-mark):not([data-fill]) {
   transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .search input::placeholder { color: var(--text-faint); }
+/* A 13–14% glow was the only sign a field had focus: too faint to find by
+   keyboard, and under the 3:1 WCAG asks of a focus indicator. A solid ring
+   does the work and the glow just softens it — same colour, same shape. */
 .search input:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .search input::-webkit-search-cancel-button { display: none; }
 .clear-search {
@@ -784,7 +799,8 @@ svg:not(.brand-mark):not([data-fill]) {
 }
 .field input:focus, .field textarea:focus, .field select:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .field.invalid input, .field.invalid textarea { border-color: var(--danger); background: var(--danger-soft); }
 .error { min-height: 0; font-size: .78rem; color: var(--danger); }
@@ -1005,7 +1021,10 @@ svg:not(.brand-mark):not([data-fill]) {
   font-size: .86rem; font-weight: 550; color: var(--text);
 }
 .price-field input:focus { outline: none; }
-.price-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 13%, transparent); }
+.price-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
+}
 .manage-row select {
   padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px;
   background: var(--bg); font-size: .8rem; cursor: pointer;
@@ -1751,6 +1770,85 @@ body.has-compare .toast { bottom: 96px; }
   * { -webkit-tap-highlight-color: transparent; }
   .modal-panel, .drawer-panel, .search-panel, .search-results,
   .drawer-body, .compare-scroll { overscroll-behavior: contain; }
+
+  /* ── Fingers, not pointers ────────────────────────────────────────────────
+     A cursor is one pixel; a fingertip covers about nine millimetres. Anything
+     you can tap is at least 44px in both directions — the size Apple, Google
+     and WCAG 2.5.5 all publish. The add-to-inquiry and compare buttons were
+     32px, on a card with two of them side by side, forty-one times down the
+     page. Nothing here changes how the site looks on a desktop: it is all
+     inside the touch tier.
+     --------------------------------------------------------------------- */
+  .btn, .icon-btn, .chip, .nav a, .footer-nav a, .sort select,
+  .search input, .modal-close, .clear-search, .search-clear {
+    min-height: 44px;
+  }
+  .btn, .chip, .nav a, .footer-nav a { display: inline-flex; align-items: center; }
+  .chip { justify-content: center; }
+  .card-add { width: 44px; height: 44px; }
+  .card-add svg { width: 17px; height: 17px; }
+  .icon-btn, .modal-close, .clear-search, .search-clear { min-width: 44px; }
+  .search-trigger, .inquiry-btn, .install-btn { min-width: 44px; }
+  .brand { min-height: 44px; }
+  /* Links sitting in a run of text get their target from padding, so the line
+     spacing around them still reads as prose. */
+  .footer-nav a, .footer-links a { padding-block: 10px; }
+  /* A link inside a sentence is the one target WCAG lets stay small — moving
+     it out of the line would break the sentence. Room to breathe instead. */
+  .note { line-height: 1.85; }
+
+  /* iOS zooms the whole page in when you focus a field smaller than 16px, and
+     never zooms back out — you are left scrolling a page wider than the screen
+     to finish typing. Every field on this site was 13–15px. These have to name
+     the same elements the smaller rules do, or those win on specificity. */
+  input, select, textarea,
+  .search input, .sort select,
+  .field input, .field textarea, .field select,
+  .price-field input, .search-panel input {
+    font-size: 16px;
+  }
+}
+
+/* ── Notches, home bars and rounded corners ──────────────────────────────────
+   iPhones and most modern Android phones reserve strips of screen that a page
+   can still paint into but nothing readable should sit in. Anything pinned to
+   an edge keeps clear of them. On hardware without a notch every one of these
+   insets resolves to zero, so nothing moves.
+   ------------------------------------------------------------------------- */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .wrap { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+  .compare-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .toast { margin-bottom: env(safe-area-inset-bottom); }
+  .drawer-panel, .search-panel { padding-bottom: env(safe-area-inset-bottom); }
+  body.has-compare { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  @media (max-width: 480px) {
+    .wrap { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  }
+}
+
+/* Mobile Safari's toolbars grow and shrink as you scroll, and 100vh means
+   "tallest it ever gets" — so a full-height panel hides its last rows under
+   the toolbar where they cannot be reached. dvh is the height right now. */
+@supports (height: 100dvh) {
+  @media (max-width: 720px) {
+    .search-panel { height: 100dvh; max-height: 100dvh; }
+  }
+  .modal-panel, .drawer-panel { max-height: 100dvh; }
+}
+
+/* Windows high-contrast, and "increase contrast" on iOS and macOS: honour the
+   system rather than insisting on our own palette. */
+@media (prefers-contrast: more) {
+  :root { --text-soft: #3b3c42; --text-faint: #4a4a53; --line: #b9b5b0; --line-strong: #8e8980; }
+  [data-theme="dark"] { --text-soft: #d6d6dd; --text-faint: #b9b9c4; --line: #4a4f5a; --line-strong: #6a707c; }
+  .card, .feature, .service, .contact-card { border-width: 2px; }
+  body::before, .hero-glow { opacity: .35; }
+}
+
+@media (forced-colors: active) {
+  .card, .feature, .service, .contact-card, .chip, .btn { border: 1px solid CanvasText; }
+  .tag, .spin-badge { forced-color-adjust: none; }
+  body::before, body::after, .hero-glow, .section::after { display: none; }
 }
 
 /* ── Devices that can't keep up ──────────────────────────────────────────────
@@ -1800,6 +1898,11 @@ html.lite .card:hover .card-media img { transform: none; }
   }
   .js .reveal { opacity: 1; transform: none; }
 }
+
+/* Tabbing can reach a block before the reveal animation has faded it in.
+   Focus must never land on something invisible, so anything holding focus
+   shows itself regardless of where the page has been scrolled. */
+.reveal:focus-within { opacity: 1 !important; transform: none !important; }
 
 @media print {
   .site-header, .hero-glow, .controls, .contact-form, .toast, .modal, .drawer,

@@ -14,7 +14,11 @@
   --surface-2:     #f4f2ed;
   --text:          #17181c;
   --text-soft:     #55565e;
-  --text-faint:    #8a8a93;
+  /* Was #8a8a93, which measured 3.1:1 on white — below WCAG AA. It is not
+     decorative text: it carries "In stock", "incl. VAT", the saving, the shop
+     address and the category on every card. Darkened until every one of those
+     clears 4.5:1. */
+  --text-faint:    #6f6f79;
   --line:          #e7e4dc;
   --line-strong:   #d6d2c7;
   /* One accent, used everywhere something is interactive or chosen. Deep teal
@@ -23,6 +27,10 @@
   --accent-soft:   #e2f0ee;
   --accent-text:   #ffffff;
   --whatsapp:      #1fa855;
+  /* The WhatsApp green is a brand colour and stays on buttons and dots, where
+     it only has to be distinguishable. As *text* it measures 3.1:1, so
+     "Open now" and "Answering now" use this darker green instead. */
+  --ok-text:       #0f7a3d;
 
   /* Meaning, not decoration — each one has a dark-mode counterpart below, so
      nothing on the page is stuck in a single theme. */
@@ -73,13 +81,14 @@
   --surface-2:     #1e222a;
   --text:          #f3f2ef;
   --text-soft:     #a8a8b2;
-  --text-faint:    #7a7a85;
+  --text-faint:    #93939e;   /* lifted to clear 4.5:1 on the card surface */
   --line:          #272a31;
   --line-strong:   #363a44;
   --accent:        #4fd1c5;
   --accent-soft:   #10312e;
   --accent-text:   #07201d;
   --whatsapp:      #2fd072;
+  --ok-text:       #63c98d;   /* muted so 41 of them down a grid don't shout */
 
   /* Lifted so they stay readable against a near-black page */
   --danger:        #ff8078;
@@ -164,7 +173,9 @@ img, svg { display: block; max-width: 100%; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: inherit; text-decoration: none; }
 
-h1, h2, h3, h4 { line-height: 1.15; letter-spacing: -0.022em; font-weight: 600; }
+/* text-wrap: balance evens out the lines of a heading instead of leaving one
+   orphaned word on the last line. Browsers without it just wrap as before. */
+h1, h2, h3, h4 { line-height: 1.15; letter-spacing: -0.022em; font-weight: 600; text-wrap: balance; }
 h1 { font-size: clamp(2.05rem, 4.6vw, 3.3rem); letter-spacing: -0.032em; font-weight: 680; }
 h2 { font-size: clamp(1.5rem, 2.8vw, 2rem); }
 h3 { font-size: 1.06rem; }
@@ -324,7 +335,7 @@ svg:not(.brand-mark):not([data-fill]) {
 .status-pill .status-dot {
   width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex: none;
 }
-.status-pill.is-open { color: var(--whatsapp); border-color: color-mix(in srgb, var(--whatsapp) 35%, var(--line)); }
+.status-pill.is-open { color: var(--ok-text); border-color: color-mix(in srgb, var(--whatsapp) 35%, var(--line)); }
 .status-pill.is-open .status-dot {
   background: var(--whatsapp);
   box-shadow: 0 0 0 0 color-mix(in srgb, var(--whatsapp) 70%, transparent);
@@ -437,7 +448,10 @@ svg:not(.brand-mark):not([data-fill]) {
   border: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 62%, transparent);
 }
-.hero-stats strong { font-size: .92rem; font-weight: 650; letter-spacing: -0.01em; }
+.hero-stats strong {
+  font-size: .92rem; font-weight: 650; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
 .hero-stats span { font-size: .82rem; color: var(--text-faint); }
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
@@ -532,7 +546,8 @@ svg:not(.brand-mark):not([data-fill]) {
 .search input::placeholder { color: var(--text-faint); }
 .search input:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .search input::-webkit-search-cancel-button { display: none; }
 .clear-search {
@@ -584,10 +599,14 @@ svg:not(.brand-mark):not([data-fill]) {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px; cursor: pointer;
-  box-shadow: var(--sheen-top);
+  /* A card at rest now stands slightly off the page instead of being a
+     hairline rectangle drawn on it — the grid reads as objects, not a table. */
+  box-shadow: var(--sheen-top), var(--shadow-sm);
   transition: transform .28s var(--ease), box-shadow .28s var(--ease), border-color .28s var(--ease);
 }
 .card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--sheen-top), var(--shadow-md); }
+/* On a phone there is no hover, so the press itself is the feedback. */
+.card:active { transform: scale(.985); }
 
 /* The photo sits in its own framed tile rather than running to the card's
    edges. The catalogue is shot in two places — some products on studio white,
@@ -601,6 +620,14 @@ svg:not(.brand-mark):not([data-fill]) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent);
 }
 .card-media img { width: 100%; height: 100%; object-fit: cover; }
+/* Half these photos are shot on studio white. A badge in the top corner had
+   nothing behind it there, so the corner gets the faintest darkening — enough
+   for white text to hold, invisible on a photo that is already dark. */
+.card-media::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 44%; z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .16), transparent);
+}
 .card-media .ph { width: 42%; max-width: 120px; color: var(--text-faint); opacity: .75; transition: transform .4s var(--ease); }
 .card-media .ph svg { width: 100%; height: auto; stroke-width: 1.2; }
 .card:hover .card-media .ph { transform: scale(1.06) translateY(-2px); }
@@ -629,6 +656,7 @@ svg:not(.brand-mark):not([data-fill]) {
   border: 1px solid var(--line-strong);
   font-size: .66rem; font-weight: 650; letter-spacing: .04em; color: var(--text);
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);   /* Safari still wants the prefix */
 }
 
 .price s {
@@ -678,14 +706,20 @@ svg:not(.brand-mark):not([data-fill]) {
   margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
 }
 .card-tools { display: flex; gap: 7px; flex: none; }
-.price { font-size: 1.12rem; font-weight: 680; letter-spacing: -0.025em; line-height: 1.25; }
+/* Tabular figures: every digit the same width, so prices line up down a column
+   of cards instead of drifting the way proportional numerals do. */
+.price {
+  font-size: 1.12rem; font-weight: 680; letter-spacing: -0.025em; line-height: 1.25;
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
 .price small { display: block; font-size: .72rem; font-weight: 400; color: var(--text-faint); letter-spacing: 0; }
 /* The saving in words, then the same thing as a percentage, in the offer
    colour so it reads as one figure rather than two separate notes. */
 .price .save .off { color: var(--offer); font-weight: 650; white-space: nowrap; }
 .card-add {
   display: grid; place-items: center; width: 36px; height: 36px; flex: none;
-  border-radius: 50%; border: 1px solid var(--line-strong); background: transparent;
+  border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2);
+  color: var(--text-soft);
   cursor: pointer; transition: all .2s var(--ease);
 }
 .card-add svg { width: 16px; height: 16px; }
@@ -693,10 +727,16 @@ svg:not(.brand-mark):not([data-fill]) {
 .card-add.added { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .card-add.compare-on { background: var(--text); border-color: var(--text); color: var(--bg); }
 
-.stock { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--text-faint); }
-.stock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--whatsapp); }
-.stock.low::before { background: var(--warn-dot); }
-.stock.out::before { background: var(--text-faint); }
+/* Availability is the second thing a customer looks for after the price, and
+   it was the same grey as everything else. The state now carries its own
+   colour — all three clear AA on the card surface. */
+.stock {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .76rem; font-weight: 500; color: var(--ok-text);
+}
+.stock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.stock.low { color: var(--warn); }
+.stock.out { color: var(--text-faint); }
 
 /* ── Empty state & note ──────────────────────────────────────────────────── */
 .empty { padding: 60px 20px; text-align: center; color: var(--text-soft); }
@@ -844,9 +884,13 @@ svg:not(.brand-mark):not([data-fill]) {
   background-position: right 18px center, right 13px center;
   background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
 }
+/* A 13%-opacity glow was the only sign a field had focus — too faint to find
+   if you are navigating by keyboard, and well under the 3:1 WCAG asks of a
+   focus indicator. A solid ring does the work; the glow just softens it. */
 .field input:focus, .field textarea:focus, .field select:focus {
   outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .field.invalid input, .field.invalid textarea { border-color: var(--danger); background: var(--danger-soft); }
 .error { min-height: 0; font-size: .78rem; color: var(--danger); }
@@ -1130,7 +1174,7 @@ svg:not(.brand-mark):not([data-fill]) {
 /* ── Site-wide search ────────────────────────────────────────────────────── */
 .kbd-hint, .search-keys kbd {
   padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 5px;
-  background: var(--surface-2); color: var(--text-faint);
+  background: var(--surface-2); color: var(--text-soft);
   font-size: .7rem; font-family: inherit; line-height: 1.5;
 }
 .search-trigger { border-radius: 999px; transition: transform .3s var(--spring), box-shadow .3s var(--ease); }
@@ -1833,6 +1877,85 @@ body.has-compare .toast { bottom: 96px; }
   * { -webkit-tap-highlight-color: transparent; }
   .modal-panel, .drawer-panel, .search-panel, .search-results,
   .drawer-body, .compare-scroll { overscroll-behavior: contain; }
+
+  /* ── Fingers, not pointers ────────────────────────────────────────────────
+     A cursor is a single pixel; a fingertip covers about 9mm. Everything you
+     can tap is at least 44px in both directions, which is the size both
+     Apple and Google publish and the size WCAG 2.5.5 asks for. Several of
+     these were 32–40px, which is a miss waiting to happen on a card packed
+     with two buttons.
+     --------------------------------------------------------------------- */
+  .btn, .icon-btn, .chip, .nav a, .footer-nav a, .sort select,
+  .search input, .modal-close, .clear-search, .search-clear {
+    min-height: 44px;
+  }
+  .btn, .chip, .nav a, .footer-nav a { display: inline-flex; align-items: center; }
+  .chip { justify-content: center; }
+  .card-add { width: 44px; height: 44px; }
+  .card-add svg { width: 17px; height: 17px; }
+  .icon-btn, .modal-close, .clear-search, .search-clear { min-width: 44px; }
+  /* Links that sit in a run of text get their target from padding, so the
+     line spacing around them still looks like prose. */
+  .footer-nav a, .footer-links a { padding-block: 10px; }
+  .brand { min-height: 44px; }
+  .search-trigger, .inquiry-btn, .install-btn { min-width: 44px; }
+  /* A link inside a sentence is the one target WCAG lets stay small — moving
+     it out of the line would break the sentence. It gets room to breathe
+     instead of a box of its own. */
+  .note { line-height: 1.85; }
+
+  /* iOS zooms the whole page in when you focus an input smaller than 16px,
+     and never zooms back out — you are left scrolling a page wider than the
+     screen to finish typing. Every field is 16px on touch. These have to name
+     the same elements the smaller rules do, or those win on specificity. */
+  input, select, textarea,
+  .search input, .sort select,
+  .field input, .field textarea, .field select,
+  .price-field input, .search-panel input {
+    font-size: 16px;
+  }
+}
+
+/* ── Notches, home bars and rounded corners ──────────────────────────────────
+   iPhones and most modern Android phones reserve strips of the screen the page
+   can still paint into but nothing readable should sit in. Anything pinned to
+   an edge keeps clear of them; on hardware without a notch every one of these
+   insets resolves to zero, so nothing moves.
+   ------------------------------------------------------------------------- */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .wrap { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+  .compare-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .toast { margin-bottom: env(safe-area-inset-bottom); }
+  .drawer-panel, .search-panel { padding-bottom: env(safe-area-inset-bottom); }
+  body.has-compare { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  @media (max-width: 480px) {
+    .wrap { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  }
+}
+
+/* Mobile Safari's toolbars grow and shrink as you scroll, and 100vh means
+   "tallest it ever gets" — so a full-height panel spills its last rows under
+   the toolbar and they cannot be reached. dvh is the height right now. */
+@supports (height: 100dvh) {
+  @media (max-width: 720px) {
+    .search-panel { height: 100dvh; max-height: 100dvh; }
+  }
+  .modal-panel, .drawer-panel { max-height: 100dvh; }
+}
+
+/* Windows high-contrast and "increase contrast" on iOS and macOS: honour the
+   system rather than insisting on the brand palette. */
+@media (prefers-contrast: more) {
+  :root { --text-soft: #3b3c42; --text-faint: #4a4a53; --line: #b9b5aa; --line-strong: #8e897c; }
+  [data-theme="dark"] { --text-soft: #d6d6dd; --text-faint: #b9b9c4; --line: #4a4f5a; --line-strong: #6a707c; }
+  .card, .feature, .service, .contact-card { border-width: 2px; }
+  body::before, .hero-glow { opacity: .35; }
+}
+
+@media (forced-colors: active) {
+  .card, .feature, .service, .contact-card, .chip, .btn { border: 1px solid CanvasText; }
+  .tag, .spin-badge { forced-color-adjust: none; }
+  body::before, body::after, .hero-glow, .section::after { display: none; }
 }
 
 /* ── Devices that can't keep up ──────────────────────────────────────────────
@@ -1882,6 +2005,11 @@ html.lite .card:hover .card-media img { transform: none; }
   }
   .js .reveal { opacity: 1; transform: none; }
 }
+
+/* Tabbing can reach a block before the reveal observer has faded it in. Focus
+   must never land on something invisible, so anything holding focus shows
+   itself immediately regardless of where the page has been scrolled. */
+.reveal:focus-within { opacity: 1 !important; transform: none !important; }
 
 @media print {
   .site-header, .hero-glow, .controls, .contact-form, .toast, .modal, .drawer,

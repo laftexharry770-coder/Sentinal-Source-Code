@@ -622,11 +622,20 @@ svg:not(.brand-mark):not([data-fill]) {
 }
 .card-specs {
   display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;
+  min-width: 0;                     /* let the chips shrink inside the card */
 }
+/* A spec longer than the card used to run out through the side of it — the
+   "Stable 2.4GHz wireless link via a plug-and-play USB nano receiver" chip
+   overflowed by 308px and was cut off mid-word by the card edge. Keeping
+   nowrap holds each chip on one line, which is the look; the ellipsis just
+   ends it cleanly instead of amputating it. The full text is on the product
+   page, which is where anyone reading a spec that long is heading anyway. */
 .card-specs span {
+  max-width: 100%;
   padding: 3px 9px; border-radius: 7px; background: var(--surface-2);
   border: 1px solid var(--line);
-  font-size: .74rem; color: var(--text-soft); white-space: nowrap;
+  font-size: .74rem; color: var(--text-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }

@@ -17,12 +17,16 @@
    ========================================================================== */
 
 const CACHE_VERSION = 'homcom-v23';
+/* The ?v= on the stylesheet and the script must match what index.html asks
+   for, or the precache stores one address and the page requests another.
+   Both move with CACHE_VERSION. */
+const ASSET_V = '23';
 const SHELL = [
   './',
   './index.html',
-  './assets/css/styles.css',
+  './assets/css/styles.css?v=' + ASSET_V,
   './assets/js/data.js',
-  './assets/js/app.js',
+  './assets/js/app.js?v=' + ASSET_V,
   './manifest.webmanifest',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png'

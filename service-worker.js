@@ -21,11 +21,23 @@ const CACHE_VERSION = 'homcom-v24';
    for, or the precache stores one address and the page requests another.
    Both move with CACHE_VERSION. */
 const ASSET_V = '24';
+/* Deliberately without data.js.
+
+   A new worker does not take over until it has finished installing, and
+   installing means fetching everything in this list. data.js is 917 KB — on
+   the connection this shop actually sees that is a hundred seconds before a
+   published version can replace the old one. Close the tab inside that window
+   and nothing has changed; the old shop is served again next visit, and the
+   hundred seconds start over.
+
+   Without it the takeover costs about 200 KB and lands in a few seconds. The
+   catalogue is fetched from the network on every visit anyway, and the fetch
+   handler stores each copy as it arrives, so it is still there when the phone
+   goes offline — cached a moment later instead of up front. */
 const SHELL = [
   './',
   './index.html',
   './assets/css/styles.css?v=' + ASSET_V,
-  './assets/js/data.js',
   './assets/js/app.js?v=' + ASSET_V,
   './manifest.webmanifest',
   './assets/icons/icon-192.png',

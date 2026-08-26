@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HOMCOM COMPUTERS — Computers, Phones, Accessories &amp; Repairs</title>
   <meta name="description" content="HOMCOM COMPUTERS sells laptops, desktops, phones and genuine accessories, and repairs computers and phones. Open 7 days a week in Nairobi. Browse the catalogue and inquire by WhatsApp or email." />
-  <meta name="theme-color" content="#101216" />
+  <meta name="theme-color" content="#0f1115" />
 
   <link rel="canonical" href="https://homcomtech.com/" />
 
@@ -21,13 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <!-- The ?v= is the whole point. The service worker serves the stylesheet and
-       the script from its cache before touching the network, which is right on
-       a weak connection — but it also means a phone can keep painting last
-       month's design however many times its owner reloads. A new number is a
-       new address, and there is nothing at a new address to serve from the old
-       cache. Bump it with CACHE_VERSION in sw.js. -->
-  <link rel="stylesheet" href="assets/css/styles.css?v=26" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f1115'/><path d='M50 20 L74 30 v22c0 15-10 24-24 28-14-4-24-13-24-28V30z' fill='none' stroke='%23fff' stroke-width='7' stroke-linejoin='round'/></svg>" />
 
   <!-- Installable on Android, iOS and desktop -->
@@ -144,38 +138,10 @@
           showStale();
         }
       }, true);
-
-      /* Ask for the new version now, not at the end.
-         app.js also registers the worker, but it does it on the window load
-         event — which does not fire until the catalogue has finished
-         downloading. That is close to a megabyte, and on the connection this
-         shop actually sees (9 KB/s in the owner's own screenshot) it is well
-         over a minute. Anyone who gave up and closed the tab before then never
-         reached the line that checks for a new version, so their phone kept
-         serving the copy it already had, for as long as they kept giving up.
-         This runs from index.html, which is a few kilobytes and always comes
-         from the network, so the check happens in the first second instead.
-
-         updateViaCache:'none' stops the browser handing back a cached copy of
-         the worker script itself and hiding the update behind it.
-         Registering the same URL twice is a no-op, so app.js doing it again
-         later costs nothing. */
-      try {
-        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-            .then(function (reg) { if (reg && reg.update) reg.update(); })
-            ['catch'](function () {});
-        }
-      } catch (e) {}
     })();
   </script>
 </head>
 <body>
-  <!-- A slow drift of laptops, phones, keyboards and accessories behind the
-       page. Drawn, not photographed: it is a single line-art tile in the
-       stylesheet, so it adds nothing to what a customer downloads. -->
-  <div class="device-field" aria-hidden="true"></div>
-
   <a class="skip-link" href="#catalogue">Skip to catalogue</a>
 
   <!-- ───────────────────────── Header ───────────────────────── -->
@@ -240,14 +206,13 @@
     <!-- ───────────────────────── Hero ───────────────────────── -->
     <section class="hero">
       <div class="wrap hero-inner">
-        <div class="hero-kicker reveal">
-          <p class="brand-line" data-site="brand">HOMCOM COMPUTERS</p>
-          <p class="eyebrow">Genuine devices · Fair prices<span class="eyebrow-more"> · Repairs done right</span></p>
-        </div>
+        <p class="brand-line reveal" data-site="brand">HOMCOM COMPUTERS</p>
+        <p class="eyebrow reveal">Genuine devices · Fair prices<span class="eyebrow-more"> · Repairs done right</span></p>
         <h1 class="reveal">Computers and phones,<br /><em>sales and repairs.</em></h1>
         <p class="lede reveal">
-          Laptops, desktops, phones and the accessories that actually go with them —
-          plus a workshop that fixes what you already own.
+          A carefully chosen catalogue of laptops, desktops, phones and the accessories that
+          actually go with them — plus a workshop that fixes what you already own.
+          Browse below, add what interests you to an inquiry, and send it over in one tap.
         </p>
         <button class="hero-search glass reveal" type="button" id="heroSearch" aria-haspopup="dialog">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -275,7 +240,6 @@
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <p class="section-kicker">Shop</p>
             <h2>The catalogue</h2>
             <p class="section-sub">Filter by category, search by name, sort by price. Tap any product for the full spec.</p>
           </div>
@@ -324,7 +288,6 @@
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <p class="section-kicker">Workshop</p>
             <h2>Repairs</h2>
             <p class="section-sub">
               Bring in the machine or the phone and we'll tell you honestly what it needs, what it costs,
@@ -388,7 +351,6 @@
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <p class="section-kicker">Why HOMCOM</p>
             <h2>Why buy here</h2>
             <p class="section-sub">Four things we don't compromise on.</p>
           </div>
@@ -423,7 +385,6 @@
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <p class="section-kicker">Contact</p>
             <h2>Get in touch</h2>
             <p class="section-sub">Ask about stock, price, delivery or a device that isn't listed.</p>
           </div>
@@ -728,9 +689,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <!-- data.js keeps its plain name: the shop replaces that file by hand, and the
-       service worker already fetches it from the network every time. -->
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=26"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>

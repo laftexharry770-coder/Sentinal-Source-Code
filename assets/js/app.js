@@ -100,7 +100,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v26';
+  const BUILD = 'v21';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -2162,7 +2162,7 @@
     });
 
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
+      navigator.serviceWorker.register('service-worker.js')
         .then((reg) => { if (reg && reg.update) reg.update(); })
         .catch(() => {});
     });

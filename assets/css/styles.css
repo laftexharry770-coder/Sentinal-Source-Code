@@ -6,38 +6,45 @@
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root {
-  --bg:            #fbfbfa;
-  --bg-alt:        #f3f3f1;
+  /* Warm paper rather than blue-grey: the products are photographed on white,
+     and a faintly warm page keeps those photos from looking like holes in it. */
+  --bg:            #f8f7f4;
+  --bg-alt:        #f0eee8;
   --surface:       #ffffff;
-  --surface-2:     #f7f7f5;
-  --text:          #14161a;
-  --text-soft:     #5c626d;
-  --text-faint:    #8a909b;
-  --line:          #e5e5e1;
-  --line-strong:   #d5d5d0;
-  --accent:        #1f6feb;
-  --accent-soft:   #e8f0fe;
+  --surface-2:     #f4f2ed;
+  --text:          #17181c;
+  --text-soft:     #55565e;
+  --text-faint:    #8a8a93;
+  --line:          #e7e4dc;
+  --line-strong:   #d6d2c7;
+  /* One accent, used everywhere something is interactive or chosen. Deep teal
+     reads as trade rather than as a default framework blue. */
+  --accent:        #0f6f66;
+  --accent-soft:   #e2f0ee;
   --accent-text:   #ffffff;
   --whatsapp:      #1fa855;
 
   /* Meaning, not decoration — each one has a dark-mode counterpart below, so
      nothing on the page is stuck in a single theme. */
-  --danger:        #d1342b;   /* errors, delete, out of stock */
-  --danger-soft:   #fdecec;
-  --offer:         #d92d20;   /* discounts */
+  --danger:        #b3261e;   /* errors, delete, out of stock */
+  --danger-soft:   #fbeae8;
+  /* Offers used to be pillar-box red, which shouted over the product photo it
+     sat on. Amber carries the same "look here" without the alarm. */
+  --offer:         #a4530b;   /* discounts */
   --offer-fg:      #ffffff;
-  --warn:          #8d5709;   /* low stock, outside contact hours */
-  --warn-dot:      #d99512;
-  --warn-chip:     #f0b429;   /* the refurbished badge */
+  --warn:          #8a5a10;   /* low stock, outside contact hours */
+  --warn-dot:      #cf9114;
+  --warn-chip:     #e8ab27;   /* the refurbished badge */
   --warn-chip-fg:  #26200a;
 
-  /* Ambient wash sitting behind the whole page */
-  --amb-1:         color-mix(in srgb, var(--accent) 20%, transparent);
-  --amb-2:         color-mix(in srgb, var(--whatsapp) 16%, transparent);
-  --amb-3:         color-mix(in srgb, #7c5cff 17%, transparent);
-  --amb-4:         color-mix(in srgb, #ff8a3d 11%, transparent);
-  --amb-section:   color-mix(in srgb, var(--accent) 10%, transparent);
-  --amb-grain:     .028;
+  /* Ambient wash sitting behind the whole page. Three tones, not six: the page
+     should look lit from somewhere, not tie-dyed. */
+  --amb-1:         color-mix(in srgb, var(--accent) 14%, transparent);
+  --amb-2:         color-mix(in srgb, #c98a3c 11%, transparent);
+  --amb-3:         color-mix(in srgb, #2f6f8f 10%, transparent);
+  --amb-4:         color-mix(in srgb, var(--accent) 8%, transparent);
+  --amb-section:   color-mix(in srgb, var(--accent) 8%, transparent);
+  --amb-grain:     .022;
   --sheen-top:     inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent);
   --shadow-sm:     0 1px 2px rgba(16, 18, 22, .05), 0 1px 3px rgba(16, 18, 22, .04);
   --shadow-md:     0 4px 12px rgba(16, 18, 22, .07), 0 12px 32px rgba(16, 18, 22, .06);
@@ -60,36 +67,36 @@
 }
 
 [data-theme="dark"] {
-  --bg:            #0f1115;
-  --bg-alt:        #14171d;
-  --surface:       #171a20;
-  --surface-2:     #1d2129;
-  --text:          #f2f3f5;
-  --text-soft:     #a6adba;
-  --text-faint:    #767e8d;
-  --line:          #262a33;
-  --line-strong:   #333846;
-  --accent:        #5a9bff;
-  --accent-soft:   #16243c;
-  --accent-text:   #0b1220;
+  --bg:            #101216;
+  --bg-alt:        #15181d;
+  --surface:       #181b21;
+  --surface-2:     #1e222a;
+  --text:          #f3f2ef;
+  --text-soft:     #a8a8b2;
+  --text-faint:    #7a7a85;
+  --line:          #272a31;
+  --line-strong:   #363a44;
+  --accent:        #4fd1c5;
+  --accent-soft:   #10312e;
+  --accent-text:   #07201d;
   --whatsapp:      #2fd072;
 
   /* Lifted so they stay readable against a near-black page */
-  --danger:        #ff7a70;
+  --danger:        #ff8078;
   --danger-soft:   #2a1614;
-  --offer:         #f4564c;
-  --offer-fg:      #240906;
-  --warn:          #f0b429;
-  --warn-dot:      #f0b429;
-  --warn-chip:     #f0b429;
+  --offer:         #f0a83c;
+  --offer-fg:      #2a1a05;
+  --warn:          #e8ab27;
+  --warn-dot:      #e8ab27;
+  --warn-chip:     #e8ab27;
   --warn-chip-fg:  #26200a;
 
-  --amb-1:         color-mix(in srgb, var(--accent) 26%, transparent);
-  --amb-2:         color-mix(in srgb, var(--whatsapp) 15%, transparent);
-  --amb-3:         color-mix(in srgb, #8b6cff 24%, transparent);
-  --amb-4:         color-mix(in srgb, #ff7a3d 12%, transparent);
-  --amb-section:   color-mix(in srgb, var(--accent) 30%, transparent);
-  --amb-grain:     .05;
+  --amb-1:         color-mix(in srgb, var(--accent) 15%, transparent);
+  --amb-2:         color-mix(in srgb, #c98a3c 10%, transparent);
+  --amb-3:         color-mix(in srgb, #3f7fa5 16%, transparent);
+  --amb-4:         color-mix(in srgb, var(--accent) 9%, transparent);
+  --amb-section:   color-mix(in srgb, var(--accent) 16%, transparent);
+  --amb-grain:     .04;
   --sheen-top:     inset 0 1px 0 rgba(255, 255, 255, .045);
   --shadow-sm:     0 1px 2px rgba(0, 0, 0, .4);
   --shadow-md:     0 6px 18px rgba(0, 0, 0, .45);
@@ -130,12 +137,9 @@ body {
 body::before {
   content: ""; position: fixed; inset: -12%; z-index: -2; pointer-events: none;
   background:
-    radial-gradient(48% 38% at 8% 0%,   var(--amb-1), transparent 72%),
-    radial-gradient(42% 34% at 94% 12%, var(--amb-3), transparent 74%),
-    radial-gradient(46% 36% at 82% 70%, var(--amb-2), transparent 74%),
-    radial-gradient(40% 32% at 12% 58%, var(--amb-1), transparent 76%),
-    radial-gradient(34% 26% at 58% 34%, var(--amb-4), transparent 76%),
-    radial-gradient(38% 30% at 46% 104%, var(--amb-3), transparent 76%);
+    radial-gradient(58% 44% at 6% -4%,  var(--amb-1), transparent 74%),
+    radial-gradient(52% 40% at 98% 18%, var(--amb-3), transparent 76%),
+    radial-gradient(50% 38% at 66% 88%, var(--amb-2), transparent 78%);
   /* Deliberately static. Animating a full-viewport gradient forced a repaint
      of the whole screen every frame — it cost about 35ms of every scroll frame
      for movement nobody could point at. The life in the page comes from the
@@ -161,8 +165,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 a { color: inherit; text-decoration: none; }
 
 h1, h2, h3, h4 { line-height: 1.15; letter-spacing: -0.022em; font-weight: 600; }
-h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); letter-spacing: -0.035em; }
-h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+h1 { font-size: clamp(2.05rem, 4.6vw, 3.3rem); letter-spacing: -0.032em; font-weight: 680; }
+h2 { font-size: clamp(1.5rem, 2.8vw, 2rem); }
 h3 { font-size: 1.06rem; }
 
 svg:not(.brand-mark):not([data-fill]) {
@@ -365,8 +369,10 @@ svg:not(.brand-mark):not([data-fill]) {
 .nav-toggle { display: none; }
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
-.hero { position: relative; padding: clamp(64px, 11vw, 128px) 0 clamp(48px, 8vw, 96px); overflow: hidden; }
-.hero-inner { position: relative; z-index: 1; max-width: 900px; }
+/* The hero used to fill a phone screen and a half before a single product
+   appeared. It says the same things in half the height now. */
+.hero { position: relative; padding: clamp(40px, 6.5vw, 86px) 0 clamp(34px, 5vw, 68px); overflow: hidden; }
+.hero-inner { position: relative; z-index: 1; max-width: 860px; }
 
 .hero-glow {
   position: absolute; inset: -30% 0 auto -10%; height: 920px; pointer-events: none;
@@ -375,48 +381,64 @@ svg:not(.brand-mark):not([data-fill]) {
   -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 96%);
   mask-image: linear-gradient(to bottom, #000 62%, transparent 96%);
   background:
-    radial-gradient(48% 38% at 20% 22%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%),
-    radial-gradient(42% 32% at 80% 10%, color-mix(in srgb, #7c5cff 24%, transparent), transparent 70%),
+    radial-gradient(54% 42% at 16% 16%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 72%),
+    radial-gradient(46% 34% at 84% 6%,  color-mix(in srgb, #c98a3c 14%, transparent), transparent 72%),
     /* sits behind the glass search bar, so there is something for it to refract */
-    radial-gradient(36% 24% at 32% 60%, color-mix(in srgb, var(--whatsapp) 20%, transparent), transparent 72%),
-    radial-gradient(32% 22% at 64% 68%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 72%),
-    radial-gradient(26% 18% at 52% 34%, color-mix(in srgb, #ff8a3d 12%, transparent), transparent 74%);
+    radial-gradient(40% 26% at 38% 62%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 74%);
 }
 [data-theme="dark"] .hero-glow {
   background:
-    radial-gradient(48% 38% at 20% 22%, color-mix(in srgb, var(--accent) 34%, transparent), transparent 70%),
-    radial-gradient(42% 32% at 80% 10%, color-mix(in srgb, #8b6cff 30%, transparent), transparent 70%),
-    radial-gradient(36% 24% at 32% 60%, color-mix(in srgb, var(--whatsapp) 20%, transparent), transparent 72%),
-    radial-gradient(32% 22% at 64% 68%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 72%),
-    radial-gradient(26% 18% at 52% 34%, color-mix(in srgb, #ff7a3d 14%, transparent), transparent 74%);
+    radial-gradient(54% 42% at 16% 16%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 72%),
+    radial-gradient(46% 34% at 84% 6%,  color-mix(in srgb, #c98a3c 12%, transparent), transparent 72%),
+    radial-gradient(40% 26% at 38% 62%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 74%);
 }
 
-/* The business name, said plainly, before anything else on the page */
+/* The name and the promise share one line. Stacked, they were two separate
+   blocks of throat-clearing above the headline. */
+.hero-kicker {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  margin-bottom: 18px;
+}
 .brand-line {
-  margin-bottom: 14px;
-  font-size: clamp(1rem, 2.4vw, 1.22rem); font-weight: 650;
-  letter-spacing: -0.01em; color: var(--text);
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: .82rem; font-weight: 650;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+}
+/* A short rule leading into the name, the way a masthead sets one off */
+.brand-line::before {
+  content: ""; width: 22px; height: 2px; border-radius: 2px; flex: none;
+  background: currentColor; opacity: .55;
 }
 
 .eyebrow {
-  display: inline-block; margin-bottom: 22px; padding: 6px 14px;
+  display: inline-block; padding: 5px 13px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
-  font-size: .78rem; font-weight: 500; letter-spacing: .04em;
+  font-size: .74rem; font-weight: 500; letter-spacing: .04em;
   text-transform: uppercase; color: var(--text-soft);
 }
-.hero h1 em { font-style: normal; color: var(--text-faint); }
+/* The second line of the headline carries the brand colour — it is the only
+   place on the page where the accent is used at size. */
+.hero h1 em { font-style: normal; color: var(--accent); }
 
-.lede { max-width: 60ch; margin-top: 22px; font-size: clamp(1rem, 1.5vw, 1.13rem); color: var(--text-soft); }
+.lede { max-width: 54ch; margin-top: 16px; font-size: clamp(.98rem, 1.3vw, 1.06rem); color: var(--text-soft); }
 
-.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 
+/* Four facts, read as one line of small print rather than four billboards */
 .hero-stats {
-  display: flex; flex-wrap: wrap; gap: clamp(24px, 5vw, 56px);
-  margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--line); list-style: none;
+  display: flex; flex-wrap: wrap; gap: 10px;
+  /* padding-inline: 0 undoes the list indent a browser adds by default — it was
+     setting these pills 40px in from everything else in the hero. */
+  margin-top: 30px; padding: 22px 0 0; border-top: 1px solid var(--line); list-style: none;
 }
-.hero-stats li { display: flex; flex-direction: column; }
-.hero-stats strong { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.03em; }
-.hero-stats span { font-size: .85rem; color: var(--text-faint); }
+.hero-stats li {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+}
+.hero-stats strong { font-size: .92rem; font-weight: 650; letter-spacing: -0.01em; }
+.hero-stats span { font-size: .82rem; color: var(--text-faint); }
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section { position: relative; isolation: isolate; padding: clamp(56px, 8vw, 100px) 0; }
@@ -473,6 +495,19 @@ svg:not(.brand-mark):not([data-fill]) {
   display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
   gap: 18px; margin-bottom: 34px;
 }
+/* The same tracked label and short rule as the hero's brand line, repeated at
+   the head of every section — it is what ties the page together as one piece
+   rather than four unrelated blocks. */
+.section-kicker {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 9px;
+  font-size: .74rem; font-weight: 650; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--accent);
+}
+.section-kicker::before {
+  content: ""; width: 18px; height: 2px; border-radius: 2px; flex: none;
+  background: currentColor; opacity: .55;
+}
+
 .section-sub { margin-top: 10px; max-width: 58ch; color: var(--text-soft); font-size: .97rem; }
 
 /* ── Controls ────────────────────────────────────────────────────────────── */
@@ -516,8 +551,11 @@ svg:not(.brand-mark):not([data-fill]) {
   transition: all .2s var(--ease);
 }
 .chip:hover { border-color: var(--text-faint); color: var(--text); }
+/* The chosen category wears the brand colour, so what you are looking at is
+   obvious from across the room. */
 .chip[aria-pressed="true"] {
-  background: var(--text); border-color: var(--text); color: var(--bg);
+  background: var(--accent); border-color: var(--accent); color: var(--accent-text);
+  font-weight: 550;
 }
 .chip .chip-n { opacity: .55; margin-left: 5px; font-size: .8em; }
 
@@ -537,28 +575,30 @@ svg:not(.brand-mark):not([data-fill]) {
 
 /* ── Product grid ────────────────────────────────────────────────────────── */
 .grid {
-  display: grid; gap: 20px;
-  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(246px, 1fr));
 }
 
 .card {
   display: flex; flex-direction: column; overflow: hidden;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, #ffffff 6%, transparent), transparent 42%),
-    var(--surface);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg); cursor: pointer;
+  border-radius: 18px; cursor: pointer;
   box-shadow: var(--sheen-top);
   transition: transform .28s var(--ease), box-shadow .28s var(--ease), border-color .28s var(--ease);
 }
-.card:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: var(--sheen-top), var(--shadow-md); }
+.card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--sheen-top), var(--shadow-md); }
 
+/* The photo sits in its own framed tile rather than running to the card's
+   edges. The catalogue is shot in two places — some products on studio white,
+   some against the shop wall — and a common frame with a common ground makes
+   the grid read as one set instead of two. */
 .card-media {
   position: relative; display: grid; place-items: center;
   aspect-ratio: 4 / 3; overflow: hidden;
-  background:
-    radial-gradient(120% 100% at 50% 0%, var(--surface-2), var(--surface) 70%);
-  border-bottom: 1px solid var(--line);
+  margin: 9px 9px 0; border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent);
 }
 .card-media img { width: 100%; height: 100%; object-fit: cover; }
 .card-media .ph { width: 42%; max-width: 120px; color: var(--text-faint); opacity: .75; transition: transform .4s var(--ease); }
@@ -571,17 +611,18 @@ svg:not(.brand-mark):not([data-fill]) {
    Browsers vary in how they resolve that, so the badge says where it belongs
    rather than relying on paint order to be kind. */
 .tag {
-  position: absolute; top: 12px; left: 12px; z-index: 2;
-  padding: 5px 11px; border-radius: 999px;
+  position: absolute; top: 9px; left: 9px; z-index: 2;
+  padding: 4px 9px; border-radius: 8px;
   background: var(--text); color: var(--bg);
-  font-size: .68rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  font-size: .66rem; font-weight: 650; letter-spacing: .05em; text-transform: uppercase;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .18);
 }
 .tag.soft { background: var(--accent-soft); color: var(--accent); }
 .tag.warn { background: var(--warn-chip); color: var(--warn-chip-fg); }
 .tag.offer { background: var(--offer); color: var(--offer-fg); letter-spacing: .03em; }
 
 .spin-badge {
-  position: absolute; top: 12px; right: 12px; z-index: 2;   /* same reason as .tag */
+  position: absolute; top: 9px; right: 9px; z-index: 2;   /* same reason as .tag */
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 9px; border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 86%, transparent);
@@ -598,25 +639,46 @@ svg:not(.brand-mark):not([data-fill]) {
 .chip-offer[aria-pressed="true"] { background: var(--offer); border-color: var(--offer); color: var(--offer-fg); }
 .chip-offer { border-color: color-mix(in srgb, var(--offer) 40%, var(--line)); color: var(--offer); }
 
-.card-body { display: flex; flex-direction: column; flex: 1; gap: 7px; padding: 18px; }
-.card-cat { font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-faint); }
-.card-title { font-size: 1rem; font-weight: 600; letter-spacing: -0.015em; }
+.card-body { display: flex; flex-direction: column; flex: 1; gap: 6px; padding: 14px 15px 15px; }
+/* One line, always: a two-line category label pushed every card below it out
+   of step with its neighbours. */
+.card-cat {
+  font-size: .68rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-title {
+  font-size: .98rem; font-weight: 650; letter-spacing: -0.015em; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+/* No `flex: 1` here. Stretching a -webkit-box past its clamp is what made the
+   description show an ellipsis at the end of line two and then carry on for
+   another two lines below it. The foot claims the leftover space instead. */
 .card-desc {
-  flex: 1; font-size: .87rem; color: var(--text-soft);
+  font-size: .85rem; line-height: 1.45; color: var(--text-soft);
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .card-specs {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; min-width: 0;
 }
+/* A spec longer than the card used to run out through the side of it. It is
+   trimmed with an ellipsis now — the full text is on the product page. */
 .card-specs span {
-  padding: 3px 9px; border-radius: 7px; background: var(--surface-2);
+  max-width: 100%; padding: 3px 8px; border-radius: 6px; background: var(--surface-2);
   border: 1px solid var(--line);
-  font-size: .74rem; color: var(--text-soft); white-space: nowrap;
+  font-size: .72rem; color: var(--text-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+/* Every card ends on the same bar, whatever length its description ran to.
+   Without the rule the leftover space above the price read as a mistake; with
+   it, the price is a footer and the gap is breathing room. */
+.card-foot {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
+}
 .card-tools { display: flex; gap: 7px; flex: none; }
-.price { font-size: 1.02rem; font-weight: 600; letter-spacing: -0.02em; }
+.price { font-size: 1.12rem; font-weight: 680; letter-spacing: -0.025em; line-height: 1.25; }
 .price small { display: block; font-size: .72rem; font-weight: 400; color: var(--text-faint); letter-spacing: 0; }
 /* The saving in words, then the same thing as a percentage, in the offer
    colour so it reads as one figure rather than two separate notes. */
@@ -1249,7 +1311,9 @@ svg:not(.brand-mark):not([data-fill]) {
    long product name or spec value used to push the whole pop-up wider than a
    phone screen and cut the text off at the edge. */
 .modal-grid > * { min-width: 0; }
-.modal-info h3, .modal-desc, .specs .k, .specs .v { overflow-wrap: anywhere; }
+.modal-info h3, .modal-desc, .specs .v { overflow-wrap: anywhere; }
+/* Labels are ordinary words — break between them, never inside one. */
+.specs .k { overflow-wrap: break-word; }
 .specs li { min-width: 0; }
 .modal-media {
   display: grid; place-items: center; min-height: 300px; padding: 32px;
@@ -1324,13 +1388,21 @@ svg:not(.brand-mark):not([data-fill]) {
 .modal-info h3 { font-size: 1.45rem; letter-spacing: -0.025em; }
 .modal-price { margin: 14px 0 6px; font-size: 1.55rem; font-weight: 600; letter-spacing: -0.03em; }
 .modal-desc { margin: 14px 0 20px; font-size: .93rem; color: var(--text-soft); }
+/* Two real columns. As a flex row pushed apart, a long value squeezed the label
+   until it broke mid-word — "Connectivity" came out as Conn/ectivi/ty — and
+   then set the value ragged-left, which is unreadable for whole sentences.
+   The label column now has a share of the width it cannot be squeezed out of,
+   and both columns read from the left. */
 .specs { margin: 0 0 24px; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .specs li {
-  display: flex; justify-content: space-between; gap: 18px;
-  padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .88rem;
+  display: grid; grid-template-columns: minmax(0, 32%) minmax(0, 1fr); gap: 4px 18px;
+  padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .88rem;
 }
-.specs dt, .specs .k { color: var(--text-faint); }
-.specs .v { text-align: right; font-weight: 500; }
+.specs dt, .specs .k {
+  color: var(--text-faint); font-size: .76rem; font-weight: 650;
+  letter-spacing: .05em; text-transform: uppercase; line-height: 1.7;
+}
+.specs .v { text-align: left; font-weight: 500; }
 .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .share-row { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
@@ -1556,13 +1628,20 @@ body.has-compare .toast { bottom: 96px; }
      the one the headline already says. */
   .eyebrow-more { display: none; }
   .eyebrow { font-size: .72rem; padding: 5px 12px; }
-  h1 { font-size: clamp(2.05rem, 8.6vw, 4.2rem); }
-  .hero-search { margin-top: 24px; padding: 13px 16px; }
+  h1 { font-size: clamp(1.82rem, 7.4vw, 2.6rem); }
+  .hero-kicker { gap: 8px 10px; margin-bottom: 14px; }
+  .brand-line { font-size: .74rem; letter-spacing: .1em; }
+  .lede { margin-top: 12px; }
+  .hero-cta { margin-top: 18px; }
+  .hero-search { margin-top: 20px; padding: 13px 16px; }
   .hero-search .kbd-hint { display: none; }
   .search-panel { width: 100%; max-height: 100%; height: 100%; margin: 0; border-radius: 0; border: 0; }
   .search-foot { flex-wrap: wrap; }
   .search-keys { display: none; }
   .search-foot .btn { width: 100%; }
+  /* Two columns in a 360px-wide pop-up leaves neither enough room. The label
+     sits above its value instead. */
+  .specs li { grid-template-columns: 1fr; gap: 1px; }
   .repair-contact { grid-template-columns: 1fr; padding: 20px; }
   .header-inner > .status-pill { display: none; }   /* the hero carries it on small screens */
   .header-inner .brand-name { font-size: .92rem; }
@@ -1571,7 +1650,9 @@ body.has-compare .toast { bottom: 96px; }
   .row-tools { flex-direction: row; }
   .manage-controls { flex-wrap: wrap; }
   .field-row { grid-template-columns: 1fr; }
-  .hero-stats { gap: 20px 32px; }
+  .hero-stats { gap: 7px; margin-top: 22px; padding: 18px 0 0; }
+  .hero-stats li { padding: 6px 11px; }
+  .hero-stats strong, .hero-stats span { font-size: .78rem; }
 
   /* Search and sort share a line, and the categories become one row you swipe
      — four stacked rows of chips pushed the first product most of a screen
@@ -1594,8 +1675,9 @@ body.has-compare .toast { bottom: 96px; }
   /* Two products per screen-width, each tightened so more of the list is
      visible at once and titles stop running to three lines. */
   .grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; }
-  .card-media { aspect-ratio: 5 / 4; }
-  .card-body { padding: 12px; gap: 5px; }
+  .card { border-radius: 15px; }
+  .card-media { aspect-ratio: 5 / 4; margin: 7px 7px 0; border-radius: 10px; }
+  .card-body { padding: 11px 12px 12px; gap: 5px; }
   .card-title {
     font-size: .92rem; line-height: 1.25;
     display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
@@ -1608,7 +1690,7 @@ body.has-compare .toast { bottom: 96px; }
   .price s { font-size: .74rem; }
   /* At two cards to a screen there isn't room for the price and both buttons
      on one line — the price was breaking after "KSh". */
-  .card-foot { flex-direction: column; align-items: stretch; gap: 8px; margin-top: 8px; }
+  .card-foot { flex-direction: column; align-items: stretch; gap: 8px; margin-top: auto; padding-top: 10px; }
   .card-tools { justify-content: flex-end; }
   /* "incl. VAT" under every price is noise on a small screen; a saving is not */
   .price .vat { display: none; }

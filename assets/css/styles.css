@@ -57,6 +57,12 @@
   --shadow-sm:     0 1px 2px rgba(16, 18, 22, .05), 0 1px 3px rgba(16, 18, 22, .04);
   --shadow-md:     0 4px 12px rgba(16, 18, 22, .07), 0 12px 32px rgba(16, 18, 22, .06);
   --shadow-lg:     0 8px 24px rgba(16, 18, 22, .10), 0 32px 64px rgba(16, 18, 22, .12);
+  /* The repeating drawing behind the page: a laptop, a phone, headphones, a
+     mouse, a keyboard, a flash drive and a tablet. Shared by both themes —
+     .device-field uses it as a mask and colours it with --text, so it never
+     needs a second copy for dark mode. */
+  --device-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='28' y='32' width='54' height='36' rx='3'/%3E%3Cpath d='M20 74h70l-5 7H25z'/%3E%3Crect x='170' y='20' width='32' height='56' rx='5'/%3E%3Cpath d='M180 28h12'/%3E%3Cpath d='M45 162a20 20 0 0 1 40 0'/%3E%3Crect x='40' y='160' width='10' height='18' rx='5'/%3E%3Crect x='80' y='160' width='10' height='18' rx='5'/%3E%3Crect x='186' y='128' width='24' height='36' rx='12'/%3E%3Cpath d='M198 128v12'/%3E%3Crect x='96' y='200' width='80' height='30' rx='4'/%3E%3Cpath d='M104 210h8M118 210h8M132 210h8M146 210h8M160 210h8M110 220h48'/%3E%3Crect x='14' y='206' width='30' height='14' rx='2'/%3E%3Cpath d='M44 210h10v6H44z'/%3E%3Crect x='214' y='188' width='32' height='46' rx='4'/%3E%3Cpath d='M224 226h12'/%3E%3C/svg%3E");
+
   --radius:        14px;
   --radius-lg:     22px;
   --wrap:          1180px;
@@ -159,6 +165,48 @@ body::after {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   opacity: var(--amb-grain); mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── The device field ────────────────────────────────────────────────────────
+   What the shop sells, drifting slowly behind everything.
+
+   Drawn rather than photographed, and for a reason: a customer on the
+   connection this shop actually sees gets about 9 KB a second, and a
+   photographic background would cost them more than the entire catalogue of
+   products. This is one line-art tile written into the stylesheet — under two
+   kilobytes, already downloaded by the time the page paints, and it repeats.
+
+   It is used as a mask rather than an image, so the drawing takes its colour
+   from the text token and follows light and dark on its own.
+
+   Only `transform` is animated. That runs on the compositor and never asks the
+   page to lay out or paint again, which is what makes it safe to leave running
+   while somebody scrolls a list of forty-one products on a cheap phone. The
+   tile repeats every 260px and the animation travels exactly 260px, so it
+   loops with no seam.
+   ------------------------------------------------------------------------- */
+.device-field {
+  position: fixed;
+  /* Overscanned by more than one tile so the drift never exposes an edge */
+  inset: -300px;
+  z-index: -3;                       /* behind the ambient wash, above the page colour */
+  pointer-events: none;
+  /* Light mode needs more of it: the ambient wash paints on top of this layer
+     and dilutes it, where on a dark page the same drawing reads immediately. */
+  opacity: .17;
+  background-color: var(--text);
+  -webkit-mask-image: var(--device-tile);
+  mask-image: var(--device-tile);
+  -webkit-mask-size: 260px 260px;
+  mask-size: 260px 260px;
+  will-change: transform;
+  animation: device-drift 150s linear infinite;
+}
+[data-theme="dark"] .device-field { opacity: .07; }
+
+@keyframes device-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-260px, -260px, 0); }
 }
 
 /* Dark rooms get a gentle vignette; it reads as depth rather than dimming */
@@ -1950,12 +1998,13 @@ body.has-compare .toast { bottom: 96px; }
   [data-theme="dark"] { --text-soft: #d6d6dd; --text-faint: #b9b9c4; --line: #4a4f5a; --line-strong: #6a707c; }
   .card, .feature, .service, .contact-card { border-width: 2px; }
   body::before, .hero-glow { opacity: .35; }
+  .device-field { opacity: .03; }
 }
 
 @media (forced-colors: active) {
   .card, .feature, .service, .contact-card, .chip, .btn { border: 1px solid CanvasText; }
   .tag, .spin-badge { forced-color-adjust: none; }
-  body::before, body::after, .hero-glow, .section::after { display: none; }
+  body::before, body::after, .hero-glow, .section::after, .device-field { display: none; }
 }
 
 /* ── Devices that can't keep up ──────────────────────────────────────────────
@@ -1964,6 +2013,7 @@ body.has-compare .toast { bottom: 96px; }
    stays; only the decoration that costs frames goes.
    ------------------------------------------------------------------------- */
 html.lite body::after { display: none; }
+html.lite .device-field { display: none; }
 html.lite .glass,
 html.lite .site-header,
 html.lite .nav,
@@ -1992,7 +2042,7 @@ html.lite .card:hover .card-media img { transform: none; }
     transition: none !important;
   }
   .reveal { opacity: 1 !important; transform: none !important; }
-  body::before, body::after { display: none; }
+  body::before, body::after, .device-field { display: none; }
   .glass { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface); }
   .site-header { backdrop-filter: none; background: var(--bg); }
 }
@@ -2004,6 +2054,8 @@ html.lite .card:hover .card-media img { transform: none; }
     transition-duration: .001ms !important;
   }
   .js .reveal { opacity: 1; transform: none; }
+  /* The drawing stays; only the drift stops. */
+  .device-field { animation: none; }
 }
 
 /* Tabbing can reach a block before the reveal observer has faded it in. Focus
@@ -2013,7 +2065,8 @@ html.lite .card:hover .card-media img { transform: none; }
 
 @media print {
   .site-header, .hero-glow, .controls, .contact-form, .toast, .modal, .drawer,
-  .compare-bar, .search-overlay, body::before, body::after { display: none !important; }
+  .compare-bar, .search-overlay, body::before, body::after,
+  .device-field { display: none !important; }
   html, body { background: #fff; color: #000; }
   .card { break-inside: avoid; box-shadow: none; }
 }

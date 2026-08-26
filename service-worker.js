@@ -16,11 +16,11 @@
    see which version a phone is actually running.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v24';
+const CACHE_VERSION = 'homcom-v25';
 /* The ?v= on the stylesheet and the script must match what index.html asks
    for, or the precache stores one address and the page requests another.
    Both move with CACHE_VERSION. */
-const ASSET_V = '24';
+const ASSET_V = '25';
 /* Deliberately without data.js.
 
    A new worker does not take over until it has finished installing, and

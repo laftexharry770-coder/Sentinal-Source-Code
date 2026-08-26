@@ -174,6 +174,32 @@ if (exists('service-worker.js') && exists('assets/js/app.js')) {
       ' — they must match, or the Manage panel reports the wrong version');
   }
   if (sw) notes.push('version ' + sw);
+
+  /* The ?v= on the stylesheet and the script is what stops a phone painting
+     the old design out of its cache. Three places have to agree: what
+     index.html asks for, what the worker precaches, and the version itself.
+     If they drift, the worker stores one address while the page requests
+     another — every phone downloads both, and the stale one is what a
+     returning visitor keeps seeing. */
+  const assetV = (read('service-worker.js').match(/ASSET_V\s*=\s*'([\w.]+)'/) || [])[1];
+  if (exists('index.html')) {
+    const stamps = [...read('index.html').matchAll(/(?:href|src)="assets\/(?:css|js)\/[\w.-]+\?v=([\w.]+)"/g)]
+      .map((m) => m[1]);
+    if (!assetV) {
+      fail('service-worker.js', 'ASSET_V is missing — it must match the ?v= in index.html');
+    }
+    if (!stamps.length) {
+      fail('index.html', 'styles.css and app.js have no ?v= stamp, so a cached copy can outlive an update');
+    }
+    stamps.forEach((v) => {
+      if (assetV && v !== assetV) {
+        fail('index.html', 'asks for ?v=' + v + ' but service-worker.js precaches ?v=' + assetV);
+      }
+      if (sw && v !== sw.replace(/^v/, '')) {
+        fail('index.html', 'asks for ?v=' + v + ' but CACHE_VERSION is ' + sw + ' — bump them together');
+      }
+    });
+  }
 }
 
 /* ── 6. Files that make the site installable and shareable ──────────────── */

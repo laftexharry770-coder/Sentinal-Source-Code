@@ -16,13 +16,17 @@
    see which version a phone is actually running.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v23';
+const CACHE_VERSION = 'homcom-v24';
+/* The ?v= on the stylesheet and the script must match what index.html asks
+   for, or the precache stores one address and the page requests another.
+   Both move with CACHE_VERSION. */
+const ASSET_V = '24';
 const SHELL = [
   './',
   './index.html',
-  './assets/css/styles.css',
+  './assets/css/styles.css?v=' + ASSET_V,
   './assets/js/data.js',
-  './assets/js/app.js',
+  './assets/js/app.js?v=' + ASSET_V,
   './manifest.webmanifest',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png'
@@ -72,7 +76,21 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match('./index.html')))
+        .catch(() => {
+          /* The network just failed, so a stored page is about to be handed
+             back. Ask for a fresh copy of this worker on the way past.
+
+             Browsers already re-check this script on navigation, and testing a
+             dropping connection against both versions showed no difference, so
+             this is not fixing an observed fault. It is here because that
+             automatic check is throttled — up to once a day in some
+             conditions — and this is the one moment we know for certain the
+             visitor is being given something old. service-worker.js is three
+             kilobytes and gets through when a megabyte of catalogue does not,
+             so asking costs nothing worth counting. */
+          self.registration.update().catch(() => {});
+          return caches.match(request).then((hit) => hit || caches.match('./index.html'));
+        })
     );
     return;
   }

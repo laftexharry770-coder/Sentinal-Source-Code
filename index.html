@@ -26,8 +26,8 @@
        a weak connection — but it also means a phone can keep painting last
        month's design however many times its owner reloads. A new number is a
        new address, and there is nothing at a new address to serve from the old
-       cache. Bump it with CACHE_VERSION in service-worker.js. -->
-  <link rel="stylesheet" href="assets/css/styles.css?v=25" />
+       cache. Bump it with CACHE_VERSION in sw.js. -->
+  <link rel="stylesheet" href="assets/css/styles.css?v=26" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f1115'/><path d='M50 20 L74 30 v22c0 15-10 24-24 28-14-4-24-13-24-28V30z' fill='none' stroke='%23fff' stroke-width='7' stroke-linejoin='round'/></svg>" />
 
   <!-- Installable on Android, iOS and desktop -->
@@ -162,7 +162,7 @@
          later costs nothing. */
       try {
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-          navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
             .then(function (reg) { if (reg && reg.update) reg.update(); })
             ['catch'](function () {});
         }
@@ -731,6 +731,6 @@
   <!-- data.js keeps its plain name: the shop replaces that file by hand, and the
        service worker already fetches it from the network every time. -->
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=25"></script>
+  <script src="assets/js/app.js?v=26"></script>
 </body>
 </html>

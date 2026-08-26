@@ -1,132 +1,52 @@
 /* ==========================================================================
-   service-worker.js — keeps the site usable when the network is not.
+   service-worker.js — a kill switch, on purpose. The real worker is sw.js.
 
-   Once a customer has opened the site, it stays on their phone: the catalogue
-   loads instantly on repeat visits, and it still opens on a bad matatu
-   connection or with no data at all. That is what makes the "Install app"
-   button and the offline behaviour work.
+   Every phone that has ever opened this shop registered a worker at THIS
+   address. That worker serves the stylesheet and the script from its own
+   store, and hands back a stored copy of the page whenever the network
+   stumbles — which, on the connections this shop's customers actually have,
+   is often. The result was a phone that kept drawing a design published
+   months ago and had no way out: the instructions for clearing the old files
+   lived inside the new page, and the old files were what stopped the new page
+   arriving. Nothing shipped inside the shop could break that circle.
 
-   Prices and stock (data.js) are always fetched fresh when there is a signal,
-   so a customer never sees yesterday's price on a phone that has been here
-   before. The cached copy is only used when the network fails.
+   One thing does escape it. A browser re-fetches the worker script itself
+   from the network, on its own schedule, without asking the old worker's
+   permission. So this address stops being a worker and becomes the way out:
+   it throws away every stored file, unregisters itself, and reloads whatever
+   tabs are open. A phone that runs this ends up with no worker and no store,
+   which means the next thing it draws comes from the website.
 
-   Bump CACHE_VERSION whenever you upload changed files — that is what tells
-   every phone to fetch the new version instead of serving the old one. Keep
-   BUILD in app.js on the same number; the Manage panel shows it, so you can
-   see which version a phone is actually running.
+   It deliberately has no fetch handler. While it is installed, every request
+   goes straight to the network.
+
+   The shop then registers the real worker at its new address, sw.js, and
+   offline support returns on the next visit. This file has to stay here and
+   stay a kill switch — deleting it would leave a 404, and a 404 does not
+   replace a worker that is already installed.
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v25';
-/* The ?v= on the stylesheet and the script must match what index.html asks
-   for, or the precache stores one address and the page requests another.
-   Both move with CACHE_VERSION. */
-const ASSET_V = '25';
-/* Deliberately without data.js.
-
-   A new worker does not take over until it has finished installing, and
-   installing means fetching everything in this list. data.js is 917 KB — on
-   the connection this shop actually sees that is a hundred seconds before a
-   published version can replace the old one. Close the tab inside that window
-   and nothing has changed; the old shop is served again next visit, and the
-   hundred seconds start over.
-
-   Without it the takeover costs about 200 KB and lands in a few seconds. The
-   catalogue is fetched from the network on every visit anyway, and the fetch
-   handler stores each copy as it arrives, so it is still there when the phone
-   goes offline — cached a moment later instead of up front. */
-const SHELL = [
-  './',
-  './index.html',
-  './assets/css/styles.css?v=' + ASSET_V,
-  './assets/js/app.js?v=' + ASSET_V,
-  './manifest.webmanifest',
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION)
-      // addAll fails the whole install if one file 404s; add them individually
-      // so a missing optional asset can never break the install. `reload` skips
-      // the browser's own cache, so a new version never precaches an old file.
-      .then((cache) => Promise.all(SHELL.map((url) =>
-        cache.add(new Request(url, { cache: 'reload' })).catch(() => null))))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', () => {
+  // Do not wait for the old worker's tabs to close; there may not be any.
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
+  event.waitUntil((async () => {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    } catch (e) {}
 
-self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
+    try { await self.registration.unregister(); } catch (e) {}
 
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;   // let maps and fonts go to the network
-
-  /* version.html answers "is this phone holding old files, or is the website
-     itself behind?". It can only answer that if this worker keeps its hands
-     off it — otherwise a failed fetch would fall back to the stored shop page
-     and the question would go unanswered. Never cached, never substituted,
-     always straight from the network. */
-  if (/\/version\.html$/.test(url.pathname)) return;
-
-  // The catalogue itself and the pages that show it: always ask the network
-  // first, so a price changed this morning is the price a returning customer
-  // sees this afternoon. The cached copy is the fallback, not the default.
-  const isCatalogue = /\/data\.js(\?|$)/.test(url.pathname + url.search);
-  if (request.mode === 'navigate' || isCatalogue) {
-    // For the catalogue, go past the browser's own HTTP cache as well. Without
-    // this a phone can sit on a stale — or broken — copy for as long as the
-    // cache headers say, no matter how many times the customer pulls to
-    // refresh. Navigations can't be re-created this way, so they go as they are.
-    const live = isCatalogue ? fetch(request, { cache: 'reload' }) : fetch(request);
-    event.respondWith(
-      live
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => {
-          /* The network just failed, so a stored page is about to be handed
-             back. Ask for a fresh copy of this worker on the way past.
-
-             Browsers already re-check this script on navigation, and testing a
-             dropping connection against both versions showed no difference, so
-             this is not fixing an observed fault. It is here because that
-             automatic check is throttled — up to once a day in some
-             conditions — and this is the one moment we know for certain the
-             visitor is being given something old. service-worker.js is three
-             kilobytes and gets through when a megabyte of catalogue does not,
-             so asking costs nothing worth counting. */
-          self.registration.update().catch(() => {});
-          return caches.match(request).then((hit) => hit || caches.match('./index.html'));
-        })
-    );
-    return;
-  }
-
-  // Everything else: serve from cache immediately, refresh it in the background.
-  event.respondWith(
-    caches.match(request).then((hit) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => hit);
-      return hit || network;
-    })
-  );
+    /* Reload anything open. Without this the customer keeps looking at the
+       stale page already on screen until they happen to navigate again. */
+    try {
+      const windows = await self.clients.matchAll({ type: 'window' });
+      windows.forEach((client) => {
+        if (client.navigate) client.navigate(client.url);
+      });
+    } catch (e) {}
+  })());
 });

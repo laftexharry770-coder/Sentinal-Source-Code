@@ -26,13 +26,13 @@ const fail = (file, message) => problems.push({ file, message });
 /* ── 1. The files the site cannot open without ──────────────────────────── */
 const REQUIRED = [
   'index.html', 'assets/js/data.js', 'assets/js/app.js',
-  'assets/css/styles.css', 'service-worker.js', 'manifest.webmanifest'
+  'assets/css/styles.css', 'sw.js', 'service-worker.js', 'manifest.webmanifest'
 ];
 REQUIRED.forEach((rel) => { if (!exists(rel)) fail(rel, 'missing'); });
 if (problems.length) { report(); process.exit(1); }
 
 /* ── 2. Does every script actually parse? ───────────────────────────────── */
-['assets/js/data.js', 'assets/js/app.js', 'service-worker.js', 'tools/check-site.js']
+['assets/js/data.js', 'assets/js/app.js', 'sw.js', 'service-worker.js', 'tools/check-site.js']
   .forEach((rel) => {
     try { new vm.Script(read(rel), { filename: rel }); }
     catch (err) {
@@ -164,15 +164,33 @@ if (exists('index.html')) {
 }
 
 /* ── 5. The version stamps that push a new copy onto phones ─────────────── */
-if (exists('service-worker.js') && exists('assets/js/app.js')) {
-  const sw = (read('service-worker.js').match(/CACHE_VERSION\s*=\s*'homcom-(v[\w.]+)'/) || [])[1];
+if (exists('sw.js') && exists('assets/js/app.js')) {
+  const sw = (read('sw.js').match(/CACHE_VERSION\s*=\s*'homcom-(v[\w.]+)'/) || [])[1];
   const app = (read('assets/js/app.js').match(/BUILD\s*=\s*'(v[\w.]+)'/) || [])[1];
-  if (!sw)  fail('service-worker.js', 'CACHE_VERSION is missing');
+  if (!sw)  fail('sw.js', 'CACHE_VERSION is missing');
   if (!app) fail('assets/js/app.js', 'BUILD is missing');
   if (sw && app && sw !== app) {
-    fail('service-worker.js', 'CACHE_VERSION is ' + sw + ' but BUILD in app.js is ' + app +
+    fail('sw.js', 'CACHE_VERSION is ' + sw + ' but BUILD in app.js is ' + app +
       ' — they must match, or the Manage panel reports the wrong version');
   }
+  /* service-worker.js must stay, and must stay a kill switch. Every phone that
+     ever opened the shop has a worker registered at that address; deleting the
+     file leaves a 404, and a 404 does not replace a worker already installed —
+     those phones would keep serving files from months ago with no way out. */
+  if (!exists('service-worker.js')) {
+    fail('service-worker.js', 'is missing — phones already carrying a worker at that ' +
+      'address would never be released from it');
+  } else {
+    const killer = read('service-worker.js');
+    if (killer.indexOf('registration.unregister') === -1) {
+      fail('service-worker.js', 'no longer unregisters itself, so an old phone stays stuck');
+    }
+    if (/addEventListener\(\s*'fetch'/.test(killer)) {
+      fail('service-worker.js', 'has a fetch handler again — it must let every request ' +
+        'go straight to the network');
+    }
+  }
+
   if (sw) notes.push('version ' + sw);
 
   /* The ?v= on the stylesheet and the script is what stops a phone painting
@@ -181,12 +199,12 @@ if (exists('service-worker.js') && exists('assets/js/app.js')) {
      If they drift, the worker stores one address while the page requests
      another — every phone downloads both, and the stale one is what a
      returning visitor keeps seeing. */
-  const assetV = (read('service-worker.js').match(/ASSET_V\s*=\s*'([\w.]+)'/) || [])[1];
+  const assetV = (read('sw.js').match(/ASSET_V\s*=\s*'([\w.]+)'/) || [])[1];
   if (exists('index.html')) {
     const stamps = [...read('index.html').matchAll(/(?:href|src)="assets\/(?:css|js)\/[\w.-]+\?v=([\w.]+)"/g)]
       .map((m) => m[1]);
     if (!assetV) {
-      fail('service-worker.js', 'ASSET_V is missing — it must match the ?v= in index.html');
+      fail('sw.js', 'ASSET_V is missing — it must match the ?v= in index.html');
     }
     if (!stamps.length) {
       fail('index.html', 'styles.css and app.js have no ?v= stamp, so a cached copy can outlive an update');
@@ -206,7 +224,7 @@ if (exists('service-worker.js') && exists('assets/js/app.js')) {
 
     stamps.forEach((v) => {
       if (assetV && v !== assetV) {
-        fail('index.html', 'asks for ?v=' + v + ' but service-worker.js precaches ?v=' + assetV);
+        fail('index.html', 'asks for ?v=' + v + ' but sw.js precaches ?v=' + assetV);
       }
       if (sw && v !== sw.replace(/^v/, '')) {
         fail('index.html', 'asks for ?v=' + v + ' but CACHE_VERSION is ' + sw + ' — bump them together');

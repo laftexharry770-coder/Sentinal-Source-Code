@@ -1925,3 +1925,177 @@ html.lite .card:hover .card-media img { transform: none; }
   html, body { background: #fff; color: #000; }
   .card { break-inside: avoid; box-shadow: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   color-mix() fallback — for iPhones on iOS 15 and older.
+
+   The palette above leans on color-mix() in 75 places, and Safari only learned
+   it in iOS 16.2. On an older iPhone every one of those declarations is thrown
+   away: the header loses its background so the page scrolls visibly underneath
+   it, the glass panels turn clear, and the focus rings vanish. That is not a
+   cosmetic loss — it makes the shop hard to read.
+
+   Below is the same palette written out by hand as rgba(), wrapped in a test so
+   it is invisible to any browser that does support color-mix. Modern phones
+   never see it; older ones get a solid, readable site.
+
+   GENERATED — if you change a colour in the tokens above, regenerate this block
+   rather than hand-editing it.
+   --------------------------------------------------------------------------- */
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+
+  /* ── light ─────────────────────────────────────────────────────────────── */
+  :root { --amb-1:         rgba(31,111,235,0.2); --amb-2:         rgba(31,168,85,0.16); --amb-3:         rgba(124,92,255,0.17); --amb-4:         rgba(255,138,61,0.11); --amb-section:   rgba(31,111,235,0.1); --sheen-top:     inset 0 1px 0 rgba(255,255,255,0.55); --glass-bg:      rgba(255,255,255,0.58); --glass-bg-2:    rgba(255,255,255,0.78); --glass-brd:     rgba(255,255,255,0.62); }
+  .glass { background:
+    linear-gradient(150deg, rgba(255,255,255,0.26), transparent 44%),
+    var(--glass-bg); }
+  .glass::after { background: linear-gradient(100deg, transparent,
+    rgba(255,255,255,0.26), transparent); }
+  .site-header { background: rgba(251,251,250,0.82); }
+  .status-pill.is-open { border-color: rgb(160,208,176); }
+  .status-pill.is-open .status-dot { box-shadow: 0 0 0 0 rgba(31,168,85,0.7); }
+  .hero-glow { background:
+    radial-gradient(48% 38% at 20% 22%, rgba(31,111,235,0.3), transparent 70%),
+    radial-gradient(42% 32% at 80% 10%, rgba(124,92,255,0.24), transparent 70%),
+    
+    radial-gradient(36% 24% at 32% 60%, rgba(31,168,85,0.2), transparent 72%),
+    radial-gradient(32% 22% at 64% 68%, rgba(31,111,235,0.22), transparent 72%),
+    radial-gradient(26% 18% at 52% 34%, rgba(255,138,61,0.12), transparent 74%); }
+  .section:nth-of-type(even)::after { background: radial-gradient(52% 100% at 32% 4%,
+    rgba(124,92,255,0.144), transparent 74%); }
+  .section-alt { background:
+    linear-gradient(180deg,
+      rgba(243,243,241,0.74),
+      rgba(243,243,241,0.88)); }
+  .section-alt::before { background: linear-gradient(90deg, transparent,
+    rgba(255,255,255,0.55) 30%,
+    rgba(255,255,255,0.55) 70%, transparent); }
+  .search input:focus { box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px rgba(31,111,235,0.22); }
+  .card { background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), transparent 42%),
+    var(--surface); }
+  .spin-badge { background: rgba(255,255,255,0.86); }
+  .chip-offer { border-color: rgb(224,155,148); }
+  .data-error { border: 1px solid rgba(141,87,9,0.4); background: rgb(244,238,230); }
+  .data-error code { background: rgba(20,22,26,0.1); }
+  .contact-icon.whatsapp { background: rgba(31,168,85,0.14); }
+  .field input:focus, .field textarea:focus, .field select:focus { box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px rgba(31,111,235,0.22); }
+  .compare-bar { background: rgba(255,255,255,0.92); }
+  .compare-table tr.differs td { background: rgba(31,111,235,0.06); }
+  .manage-banner.edited { border-color: rgba(31,111,235,0.3); }
+  .row-flag.time { background: rgba(31,111,235,0.14); border: 1px solid rgba(31,111,235,0.3); }
+  .price-field:focus-within { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(31,111,235,0.22); }
+  .manage-row select[data-value="out"] { border-color: rgb(221,158,152); }
+  .tool-btn.danger:hover { border-color: rgb(219,141,134); }
+  .site-footer { background: rgba(243,243,241,0.78); }
+  .hero-search:hover { border-color: rgba(158,193,246,0.742); box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 14px 34px rgba(16, 18, 22, .13),
+    0 0 0 6px rgba(31,111,235,0.09); }
+  .search-bar { border-bottom: 1px solid rgba(229,229,225,0.7); }
+  .search-foot { border-top: 1px solid rgba(229,229,225,0.7); background: rgba(247,247,245,0.55); }
+  .spin-hint { background: rgba(20,22,26,0.88); }
+  .thumb.on { box-shadow: 0 0 0 2px rgba(31,111,235,0.25); }
+  .scroll-progress { background: linear-gradient(90deg,
+    var(--accent), rgb(31,142,153)); }
+  .card::after, .feature::after, .service::after, .contact-card:not(.static)::after { background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(31,111,235,0.12), transparent 65%); }
+  @media (hover: none), (pointer: coarse) { html { background:
+      radial-gradient(135% 78% at 2% 22%,   rgba(31,111,235,0.104), transparent 82%),
+      radial-gradient(130% 72% at 100% 48%, rgba(124,92,255,0.088), transparent 82%),
+      radial-gradient(135% 70% at 70% 76%,  rgba(31,168,85,0.083), transparent 84%),
+      radial-gradient(120% 62% at 8% 58%,   rgba(255,138,61,0.057), transparent 84%),
+      radial-gradient(125% 65% at 52% 30%,  rgba(31,111,235,0.104), transparent 84%),
+      var(--bg); } }
+  @media (hover: none), (pointer: coarse) { .site-header { background:
+      linear-gradient(var(--bg), rgb(231,238,249)),
+      var(--bg); } }
+  @media (hover: none), (pointer: coarse) { .site-header::after { background: linear-gradient(
+      rgb(231,238,249),
+      rgba(0,0,0,0)); } }
+
+  /* ── dark ──────────────────────────────────────────────────────────────── */
+  [data-theme="dark"] { --amb-1:         rgba(90,155,255,0.2); --amb-2:         rgba(47,208,114,0.16); --amb-3:         rgba(124,92,255,0.17); --amb-4:         rgba(255,138,61,0.11); --amb-section:   rgba(90,155,255,0.1); --sheen-top:     inset 0 1px 0 rgba(255,255,255,0.55); --glass-bg:      rgba(23,26,32,0.58); --glass-bg-2:    rgba(23,26,32,0.78); --glass-brd:     rgba(255,255,255,0.62); }
+  [data-theme="dark"] { --amb-1:         rgba(90,155,255,0.26); --amb-2:         rgba(47,208,114,0.15); --amb-3:         rgba(139,108,255,0.24); --amb-4:         rgba(255,122,61,0.12); --amb-section:   rgba(90,155,255,0.3); --glass-bg:      rgba(35,42,54,0.52); --glass-bg-2:    rgba(35,42,54,0.74); --glass-brd:     rgba(255,255,255,0.14); }
+  [data-theme="dark"] .glass { background:
+    linear-gradient(150deg, rgba(255,255,255,0.26), transparent 44%),
+    var(--glass-bg); }
+  [data-theme="dark"] .glass::after { background: linear-gradient(100deg, transparent,
+    rgba(255,255,255,0.26), transparent); }
+  [data-theme="dark"] .site-header { background: rgba(15,17,21,0.82); }
+  [data-theme="dark"] .status-pill.is-open { border-color: rgb(41,100,73); }
+  [data-theme="dark"] .status-pill.is-open .status-dot { box-shadow: 0 0 0 0 rgba(47,208,114,0.7); }
+  [data-theme="dark"] .hero-glow { background:
+    radial-gradient(48% 38% at 20% 22%, rgba(90,155,255,0.3), transparent 70%),
+    radial-gradient(42% 32% at 80% 10%, rgba(124,92,255,0.24), transparent 70%),
+    
+    radial-gradient(36% 24% at 32% 60%, rgba(47,208,114,0.2), transparent 72%),
+    radial-gradient(32% 22% at 64% 68%, rgba(90,155,255,0.22), transparent 72%),
+    radial-gradient(26% 18% at 52% 34%, rgba(255,138,61,0.12), transparent 74%); }
+  [data-theme="dark"] .hero-glow { background:
+    radial-gradient(48% 38% at 20% 22%, rgba(90,155,255,0.34), transparent 70%),
+    radial-gradient(42% 32% at 80% 10%, rgba(139,108,255,0.3), transparent 70%),
+    radial-gradient(36% 24% at 32% 60%, rgba(47,208,114,0.2), transparent 72%),
+    radial-gradient(32% 22% at 64% 68%, rgba(90,155,255,0.26), transparent 72%),
+    radial-gradient(26% 18% at 52% 34%, rgba(255,122,61,0.14), transparent 74%); }
+  [data-theme="dark"] .section:nth-of-type(even)::after { background: radial-gradient(52% 100% at 32% 4%,
+    rgba(139,108,255,0.204), transparent 74%); }
+  [data-theme="dark"] .section-alt { background:
+    linear-gradient(180deg,
+      rgba(20,23,29,0.74),
+      rgba(20,23,29,0.88)); }
+  [data-theme="dark"] .section-alt::before { background: linear-gradient(90deg, transparent,
+    rgba(255,255,255,0.55) 30%,
+    rgba(255,255,255,0.55) 70%, transparent); }
+  [data-theme="dark"] .section-alt { background: linear-gradient(180deg,
+    rgba(20,23,29,0.62),
+    rgba(20,23,29,0.8)); }
+  [data-theme="dark"] .search input:focus { box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px rgba(90,155,255,0.22); }
+  [data-theme="dark"] .card { background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), transparent 42%),
+    var(--surface); }
+  [data-theme="dark"] .spin-badge { background: rgba(23,26,32,0.86); }
+  [data-theme="dark"] .chip-offer { border-color: rgb(120,60,61); }
+  [data-theme="dark"] .data-error { border: 1px solid rgba(240,180,41,0.4); background: rgb(45,41,33); }
+  [data-theme="dark"] .data-error code { background: rgba(242,243,245,0.1); }
+  [data-theme="dark"] .contact-icon.whatsapp { background: rgba(47,208,114,0.14); }
+  [data-theme="dark"] .field input:focus, [data-theme="dark"] .field textarea:focus, [data-theme="dark"] .field select:focus { box-shadow: 0 0 0 2px var(--accent),
+              0 0 0 5px rgba(90,155,255,0.22); }
+  [data-theme="dark"] .compare-bar { background: rgba(23,26,32,0.92); }
+  [data-theme="dark"] .compare-table tr.differs td { background: rgba(90,155,255,0.06); }
+  [data-theme="dark"] .manage-banner.edited { border-color: rgba(90,155,255,0.3); }
+  [data-theme="dark"] .row-flag.time { background: rgba(90,155,255,0.14); border: 1px solid rgba(90,155,255,0.3); }
+  [data-theme="dark"] .price-field:focus-within { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(90,155,255,0.22); }
+  [data-theme="dark"] .manage-row select[data-value="out"] { border-color: rgb(125,74,75); }
+  [data-theme="dark"] .tool-btn.danger:hover { border-color: rgb(147,82,82); }
+  [data-theme="dark"] .site-footer { background: rgba(20,23,29,0.78); }
+  [data-theme="dark"] .site-footer { background: rgba(20,23,29,0.64); }
+  [data-theme="dark"] .hero-search:hover { border-color: rgba(128,178,255,0.415); box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 14px 34px rgba(16, 18, 22, .13),
+    0 0 0 6px rgba(90,155,255,0.09); }
+  [data-theme="dark"] .search-bar { border-bottom: 1px solid rgba(38,42,51,0.7); }
+  [data-theme="dark"] .search-foot { border-top: 1px solid rgba(38,42,51,0.7); background: rgba(29,33,41,0.55); }
+  [data-theme="dark"] .spin-hint { background: rgba(242,243,245,0.88); }
+  [data-theme="dark"] .thumb.on { box-shadow: 0 0 0 2px rgba(90,155,255,0.25); }
+  [data-theme="dark"] .scroll-progress { background: linear-gradient(90deg,
+    var(--accent), rgb(66,184,177)); }
+  [data-theme="dark"] .card::after, [data-theme="dark"] .feature::after, [data-theme="dark"] .service::after, [data-theme="dark"] .contact-card:not(.static)::after { background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(90,155,255,0.12), transparent 65%); }
+  @media (hover: none), (pointer: coarse) { [data-theme="dark"] html { background:
+      radial-gradient(135% 78% at 2% 22%,   rgba(90,155,255,0.135), transparent 82%),
+      radial-gradient(130% 72% at 100% 48%, rgba(139,108,255,0.125), transparent 82%),
+      radial-gradient(135% 70% at 70% 76%,  rgba(47,208,114,0.078), transparent 84%),
+      radial-gradient(120% 62% at 8% 58%,   rgba(255,122,61,0.062), transparent 84%),
+      radial-gradient(125% 65% at 52% 30%,  rgba(90,155,255,0.135), transparent 84%),
+      var(--bg); } }
+  @media (hover: none), (pointer: coarse) { [data-theme="dark"] .site-header { background:
+      linear-gradient(var(--bg), rgb(22,29,42)),
+      var(--bg); } }
+  @media (hover: none), (pointer: coarse) { [data-theme="dark"] .site-header::after { background: linear-gradient(
+      rgb(22,29,42),
+      rgba(0,0,0,0)); } }
+}

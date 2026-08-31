@@ -1833,6 +1833,12 @@ body.has-compare .toast { bottom: 96px; }
   @media (max-width: 480px) {
     .wrap { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   }
+
+  /* Added to the Home Screen, the status bar is translucent and the page starts
+     behind it, so the header needs the notch's height added on top of itself.
+     In an ordinary Safari tab this inset is 0 and the header does not move. */
+  .site-header { padding-top: env(safe-area-inset-top); }
+  .drawer-panel, .search-panel { padding-top: env(safe-area-inset-top); }
 }
 
 /* Mobile Safari's toolbars grow and shrink as you scroll, and 100vh means

@@ -2,7 +2,10 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport-fit=cover is what switches on env(safe-area-inset-*) in the
+       stylesheet. Without it those insets read as 0 and, because the status bar
+       style below is translucent, the header slides under an iPhone's notch. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>HOMCOM COMPUTERS — Computers, Phones, Accessories &amp; Repairs</title>
   <meta name="description" content="HOMCOM COMPUTERS sells laptops, desktops, phones and genuine accessories, and repairs computers and phones. Open 7 days a week in Nairobi. Browse the catalogue and inquire by WhatsApp or email." />
   <meta name="theme-color" content="#0f1115" />
@@ -15,18 +18,30 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="HOMCOM COMPUTERS" />
   <meta property="og:url" content="https://homcomtech.com/" />
-  <meta property="og:image" content="https://homcomtech.com/assets/icons/icon-512.png" />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="https://homcomtech.com/assets/icons/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="HOMCOM COMPUTERS — computers, phones, accessories and repairs, Tom Mboya Street, Nairobi." />
+  <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/styles.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f1115'/><path d='M50 20 L74 30 v22c0 15-10 24-24 28-14-4-24-13-24-28V30z' fill='none' stroke='%23fff' stroke-width='7' stroke-linejoin='round'/></svg>" />
+  <!-- The H mark, inline so the tab icon paints on the first response with no
+       extra request. Safari on iPhone ignores this and uses apple-touch-icon. -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231f6feb'/><g fill='%23fff'><rect x='16.5' y='14' width='11' height='36' rx='4'/><rect x='36.5' y='14' width='11' height='36' rx='4'/><rect x='25' y='27.5' width='14' height='9' rx='3'/></g></svg>" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
 
   <!-- Installable on Android, iOS and desktop -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <!-- iPhone and iPad take the home-screen icon from here, not from the manifest.
+       These are opaque and full-bleed on purpose: iOS lays a transparent PNG over
+       black, and rounds the corners itself. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="167x167" href="assets/icons/apple-touch-icon-167.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="assets/icons/apple-touch-icon-152.png" />
+  <link rel="mask-icon" href="assets/img/brand/mask-icon.svg" color="#1f6feb" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="HOMCOM" />

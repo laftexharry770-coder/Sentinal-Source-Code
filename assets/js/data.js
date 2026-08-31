@@ -21,8 +21,8 @@ const SITE = {
   "email": "homcomcomputers@gmail.com",
   "repairs": {
     "label": "Repair desk",
-    "phone": "254751851228",
-    "whatsapp": "254751851228",
+    "phone": "254106998733",
+    "whatsapp": "254106998733",
     "email": "mwangiherbert225@gmail.com"
   },
   "contactHours": [

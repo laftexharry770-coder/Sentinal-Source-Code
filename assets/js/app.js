@@ -100,7 +100,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v24';
+  const BUILD = 'v25';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -2387,7 +2387,40 @@
   }
 
   /* ── Wiring ────────────────────────────────────────────────────────────── */
+
+  /* Runs one setup step without letting it take the rest of the page down.
+
+     These are separate jobs — the scroll effects know nothing about the install
+     button. Calling them in a bare list meant the first one to throw skipped
+     every call after it, so a broken decoration could leave the shop with no
+     event listeners wired at all: cards that do not open, a search box that
+     does nothing. Each is now isolated, and a failure is reported rather than
+     swallowed. */
+  function step(name, fn) {
+    try { fn(); }
+    catch (err) { console.error('HOMCOM: "' + name + '" failed, carrying on —', err); }
+  }
+
+  /* Marks the page as painted for the failsafe in index.html.
+
+     It checks rather than assumes: the flag only goes up if the catalogue
+     really did put something on screen. That keeps the failsafe honest — a
+     genuinely blank page still gets caught and still offers its repair
+     button — while a shop full of cards is no longer called broken. */
+  function markReady() {
+    if (document.documentElement.classList.contains('ready')) return;
+    const grid  = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    /* Either the grid holds cards, or the "nothing matched" panel is showing —
+       #empty sits beside the grid rather than inside it, so it is checked
+       separately. Both mean the catalogue ran and drew its answer. */
+    const painted = (grid && grid.querySelector('.card')) || (empty && !empty.hidden);
+    if (!painted) return;
+    document.documentElement.classList.add('ready');
+  }
+
   function init() {
+    /* The shop itself. If these paint, the customer has a usable page. */
     paintSite();
     paintServices();
     paintChips();
@@ -2396,14 +2429,30 @@
     paintCount();
     paintAttached();
     paintCompareBar();
-    initScroll();
-    initFrameWatchdog();
-    initPointerFX();
-    initInstall();
-    initServiceWorker();
-    paintBuild();
-    if (unlocked()) { const chip = $('#manageChip'); if (chip) chip.hidden = false; }
-    openFromHash();
+
+    /* Say the page loaded as soon as the catalogue is actually on screen.
+
+       This used to be the very last line of init(), several hundred lines
+       below, so any stumble in the decoration that follows — a scroll effect, a
+       pointer effect, the install prompt — left the page unmarked and the
+       failsafe in index.html announced "This page did not load properly" over a
+       shop that had rendered perfectly. The failsafe is there to catch a blank
+       page; a painted grid is the opposite of that, so this is where it now
+       belongs. */
+    markReady();
+
+    /* Everything past here is enhancement. None of it is worth condemning the
+       page over, so each part stands or falls on its own. */
+    step('scroll effects',  initScroll);
+    step('frame watchdog',  initFrameWatchdog);
+    step('pointer effects', initPointerFX);
+    step('install button',  initInstall);
+    step('service worker',  initServiceWorker);
+    step('build tag',       paintBuild);
+    step('manage chip', () => {
+      if (unlocked()) { const chip = $('#manageChip'); if (chip) chip.hidden = false; }
+    });
+    step('open from link',  openFromHash);
 
     setInterval(paintHours, 60000);   // keep both status badges honest
 
@@ -2707,9 +2756,10 @@
       });
     });
 
-    /* Tells the failsafe in index.html that the page painted. Without it, that
-       failsafe assumes the worst after eight seconds and shows everything. */
-    document.documentElement.classList.add('ready');
+    /* Belt and braces: markReady() already ran once the catalogue painted, and
+       it only acts once, so this is here for the case where the paint stage is
+       ever reordered. */
+    markReady();
 
     // Said once, on the first visit after an upload goes live.
     if (wentLive) {

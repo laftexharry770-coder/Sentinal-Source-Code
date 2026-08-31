@@ -37,8 +37,8 @@ whatsapp: '254724359797',
 email:    'homcomcomputers@gmail.com',
 
 repairs: {                                  // REPAIRS — its own line and inbox
-  phone:    '254751851228',
-  whatsapp: '254751851228',
+  phone:    '254106998733',
+  whatsapp: '254106998733',
   email:    'mwangiherbert225@gmail.com'
 },
 ```
@@ -49,7 +49,7 @@ the customer picks "A repair" — goes to the repair desk. Everything else goes 
 sales.
 
 Phone numbers are digits only, full international format, no `+`, no leading
-zero: `0751 851 228` becomes `254751851228`.
+zero: `0106 998 733` becomes `254106998733`.
 
 ### The shop address
 

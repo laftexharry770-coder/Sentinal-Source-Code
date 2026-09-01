@@ -167,6 +167,32 @@ body::after {
   mix-blend-mode: soft-light;
 }
 
+/* ── The night sky ───────────────────────────────────────────────────────────
+   assets/js/starfield.js inserts <canvas id="sky"> as the first thing in the
+   body and paints the stars into it. The rules here are the ones that must
+   hold even if that script never runs, and the places the sky must get out of
+   the way: it is decoration, and decoration does not belong behind text that
+   someone is straining to read, on paper, or in a high-contrast mode.
+   ------------------------------------------------------------------------- */
+#sky {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  /* Fades in once the first frame is painted, so the sky never "pops". */
+  animation: skyIn .9s var(--ease, ease) both;
+}
+@keyframes skyIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Someone who has asked for less motion still gets the stars — the script
+   draws them once and stops — but not the fade. */
+@media (prefers-reduced-motion: reduce) {
+  #sky { animation: none; }
+}
+
+/* High contrast, forced colours, lite mode and paper: no sky at all. */
+@media (prefers-contrast: more) { #sky { display: none; } }
+@media (forced-colors: active)  { #sky { display: none; } }
+html.lite #sky { display: none; }
+@media print { #sky { display: none !important; } }
+
 img, svg { display: block; max-width: 100%; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: inherit; text-decoration: none; }

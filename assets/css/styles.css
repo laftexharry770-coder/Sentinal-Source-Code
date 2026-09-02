@@ -6,52 +6,49 @@
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root {
-  --bg:            #fbfbfa;
-  --bg-alt:        #f3f3f1;
-  --surface:       #ffffff;
-  --surface-2:     #f7f7f5;
-  --text:          #14161a;
-  --text-soft:     #5c626d;
-  /* Was #8a909b, which measures 3.2:1 on the page and 3.0:1 behind the search
-     hint — below the 4.5:1 WCAG asks of body text. It is not decorative: it
-     carries "In stock", "incl. VAT", the saving on every offer, the old price,
-     the category on every card, the shop address, the map note and the footer
-     headings. Same cool grey, darkened until all of those clear 4.5:1 against
-     white, --bg and --bg-alt alike. */
-  --text-faint:    #646b78;
-  --line:          #e5e5e1;
-  --line-strong:   #d5d5d0;
-  --accent:        #1f6feb;
-  --accent-soft:   #e8f0fe;
-  --accent-text:   #ffffff;
-  --whatsapp:      #1fa855;
-  /* The WhatsApp green stays exactly as it is on buttons and dots, where it
-     only has to be told apart. As *text* it measures 3.1:1, so the "Open now"
-     and "Answering now" wording uses this darker green instead. */
-  --ok-text:       #0f7a3d;
+  /* ── Night, navy ──────────────────────────────────────────────────────────
+     Both themes are dark now, so the starfield behind the page has something
+     to show against. This is the softer of the two: a navy night rather than
+     the near-black of [data-theme="dark"] below, so the theme toggle still
+     changes something you can see. Every pair here was checked against WCAG
+     rather than picked by eye.
+     --------------------------------------------------------------------- */
+  --bg:            #101422;
+  --bg-alt:        #151a2b;
+  --surface:       #1a2032;
+  --surface-2:     #222941;
+  --text:          #f3f5fa;
+  --text-soft:     #abb4c8;
+  --text-faint:    #929cb4;
+  --line:          #2b3348;
+  --line-strong:   #3a4460;
+  --accent:        #6aa4ff;
+  --accent-soft:   #182948;
+  --accent-text:   #0a1020;
+  --whatsapp:      #2fd072;
+  --ok-text:       #63c98d;
 
-  /* Meaning, not decoration — each one has a dark-mode counterpart below, so
-     nothing on the page is stuck in a single theme. */
-  --danger:        #d1342b;   /* errors, delete, out of stock */
-  --danger-soft:   #fdecec;
-  --offer:         #d92d20;   /* discounts */
-  --offer-fg:      #ffffff;
-  --warn:          #8d5709;   /* low stock, outside contact hours */
-  --warn-dot:      #d99512;
+  /* Meaning, not decoration — lifted to stay readable on a dark page. */
+  --danger:        #ff7a70;   /* errors, delete, out of stock */
+  --danger-soft:   #2c1719;
+  --offer:         #f4564c;   /* discounts */
+  --offer-fg:      #240906;
+  --warn:          #f0b429;   /* low stock, outside contact hours */
+  --warn-dot:      #f0b429;
   --warn-chip:     #f0b429;   /* the refurbished badge */
   --warn-chip-fg:  #26200a;
 
-  /* Ambient wash sitting behind the whole page */
-  --amb-1:         color-mix(in srgb, var(--accent) 20%, transparent);
-  --amb-2:         color-mix(in srgb, var(--whatsapp) 16%, transparent);
-  --amb-3:         color-mix(in srgb, #7c5cff 17%, transparent);
-  --amb-4:         color-mix(in srgb, #ff8a3d 11%, transparent);
-  --amb-section:   color-mix(in srgb, var(--accent) 10%, transparent);
-  --amb-grain:     .028;
-  --sheen-top:     inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent);
-  --shadow-sm:     0 1px 2px rgba(16, 18, 22, .05), 0 1px 3px rgba(16, 18, 22, .04);
-  --shadow-md:     0 4px 12px rgba(16, 18, 22, .07), 0 12px 32px rgba(16, 18, 22, .06);
-  --shadow-lg:     0 8px 24px rgba(16, 18, 22, .10), 0 32px 64px rgba(16, 18, 22, .12);
+  /* Ambient wash sitting behind the whole page, under the stars */
+  --amb-1:         color-mix(in srgb, var(--accent) 24%, transparent);
+  --amb-2:         color-mix(in srgb, var(--whatsapp) 15%, transparent);
+  --amb-3:         color-mix(in srgb, #8b6cff 24%, transparent);
+  --amb-4:         color-mix(in srgb, #ff7a3d 12%, transparent);
+  --amb-section:   color-mix(in srgb, var(--accent) 28%, transparent);
+  --amb-grain:     .05;
+  --sheen-top:     inset 0 1px 0 rgba(255, 255, 255, .05);
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, .38);
+  --shadow-md:     0 6px 18px rgba(0, 0, 0, .42);
+  --shadow-lg:     0 10px 30px rgba(0, 0, 0, .48), 0 40px 80px rgba(0, 0, 0, .42);
   --radius:        14px;
   --radius-lg:     22px;
   --wrap:          1180px;
@@ -60,12 +57,12 @@
 
   /* Liquid glass: a translucent pane that picks up what's behind it, with a
      bright top edge and a specular highlight that follows the cursor. */
-  --glass-bg:      color-mix(in srgb, var(--surface) 58%, transparent);
-  --glass-bg-2:    color-mix(in srgb, var(--surface) 78%, transparent);
-  --glass-brd:     color-mix(in srgb, #ffffff 62%, transparent);
-  --glass-edge:    rgba(255, 255, 255, .65);
-  --glass-spec:    rgba(255, 255, 255, .55);
-  --glass-shadow:  0 10px 30px rgba(16, 18, 22, .10), 0 30px 60px rgba(16, 18, 22, .08);
+  --glass-bg:      color-mix(in srgb, #252d42 54%, transparent);
+  --glass-bg-2:    color-mix(in srgb, #252d42 76%, transparent);
+  --glass-brd:     color-mix(in srgb, #ffffff 15%, transparent);
+  --glass-edge:    rgba(255, 255, 255, .17);
+  --glass-spec:    rgba(255, 255, 255, .19);
+  --glass-shadow:  0 10px 30px rgba(0, 0, 0, .45), 0 30px 70px rgba(0, 0, 0, .40);
   --glass-blur:    blur(20px) saturate(185%);
 }
 
@@ -159,7 +156,9 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Dark rooms get a gentle vignette; it reads as depth rather than dimming */
+/* Both themes are dark, so the vignette is the default now; it reads as
+   depth rather than dimming. */
+body::after,
 [data-theme="dark"] body::after {
   background-image:
     radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, .45) 100%),
@@ -186,6 +185,12 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   #sky { animation: none; }
 }
+
+/* The hero's colour blobs are real elements, so they paint over the canvas and
+   were washing the stars out across the top of the page — worst on a desktop,
+   where they are largest. Pulled back far enough to see through: the glow still
+   tints the hero, the sky still shows in it. */
+.hero-glow { opacity: .34; }
 
 /* High contrast, forced colours, lite mode and paper: no sky at all. */
 @media (prefers-contrast: more) { #sky { display: none; } }
@@ -1971,79 +1976,79 @@ html.lite .card:hover .card-media img { transform: none; }
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
 
   /* ── light ─────────────────────────────────────────────────────────────── */
-  :root { --amb-1:         rgba(31,111,235,0.2); --amb-2:         rgba(31,168,85,0.16); --amb-3:         rgba(124,92,255,0.17); --amb-4:         rgba(255,138,61,0.11); --amb-section:   rgba(31,111,235,0.1); --sheen-top:     inset 0 1px 0 rgba(255,255,255,0.55); --glass-bg:      rgba(255,255,255,0.58); --glass-bg-2:    rgba(255,255,255,0.78); --glass-brd:     rgba(255,255,255,0.62); }
+  :root { --amb-1:         rgba(106,164,255,0.24); --amb-2:         rgba(47,208,114,0.15); --amb-3:         rgba(139,108,255,0.24); --amb-4:         rgba(255,122,61,0.12); --amb-section:   rgba(106,164,255,0.28); --glass-bg:      rgba(37,45,66,0.54); --glass-bg-2:    rgba(37,45,66,0.76); --glass-brd:     rgba(255,255,255,0.15); }
   .glass { background:
     linear-gradient(150deg, rgba(255,255,255,0.26), transparent 44%),
     var(--glass-bg); }
   .glass::after { background: linear-gradient(100deg, transparent,
     rgba(255,255,255,0.26), transparent); }
-  .site-header { background: rgba(251,251,250,0.82); }
-  .status-pill.is-open { border-color: rgb(160,208,176); }
-  .status-pill.is-open .status-dot { box-shadow: 0 0 0 0 rgba(31,168,85,0.7); }
+  .site-header { background: rgba(16,20,34,0.82); }
+  .status-pill.is-open { border-color: rgb(44,106,87); }
+  .status-pill.is-open .status-dot { box-shadow: 0 0 0 0 rgba(47,208,114,0.7); }
   .hero-glow { background:
-    radial-gradient(48% 38% at 20% 22%, rgba(31,111,235,0.3), transparent 70%),
+    radial-gradient(48% 38% at 20% 22%, rgba(106,164,255,0.3), transparent 70%),
     radial-gradient(42% 32% at 80% 10%, rgba(124,92,255,0.24), transparent 70%),
     
-    radial-gradient(36% 24% at 32% 60%, rgba(31,168,85,0.2), transparent 72%),
-    radial-gradient(32% 22% at 64% 68%, rgba(31,111,235,0.22), transparent 72%),
+    radial-gradient(36% 24% at 32% 60%, rgba(47,208,114,0.2), transparent 72%),
+    radial-gradient(32% 22% at 64% 68%, rgba(106,164,255,0.22), transparent 72%),
     radial-gradient(26% 18% at 52% 34%, rgba(255,138,61,0.12), transparent 74%); }
   .section:nth-of-type(even)::after { background: radial-gradient(52% 100% at 32% 4%,
-    rgba(124,92,255,0.144), transparent 74%); }
+    rgba(139,108,255,0.204), transparent 74%); }
   .section-alt { background:
     linear-gradient(180deg,
-      rgba(243,243,241,0.74),
-      rgba(243,243,241,0.88)); }
+      rgba(21,26,43,0.74),
+      rgba(21,26,43,0.88)); }
   .section-alt::before { background: linear-gradient(90deg, transparent,
     rgba(255,255,255,0.55) 30%,
     rgba(255,255,255,0.55) 70%, transparent); }
   .search input:focus { box-shadow: 0 0 0 2px var(--accent),
-              0 0 0 5px rgba(31,111,235,0.22); }
+              0 0 0 5px rgba(106,164,255,0.22); }
   .card { background:
     linear-gradient(180deg, rgba(255,255,255,0.06), transparent 42%),
     var(--surface); }
-  .spin-badge { background: rgba(255,255,255,0.86); }
-  .chip-offer { border-color: rgb(224,155,148); }
-  .data-error { border: 1px solid rgba(141,87,9,0.4); background: rgb(244,238,230); }
-  .data-error code { background: rgba(20,22,26,0.1); }
-  .contact-icon.whatsapp { background: rgba(31,168,85,0.14); }
+  .spin-badge { background: rgba(26,32,50,0.86); }
+  .chip-offer { border-color: rgb(123,65,74); }
+  .data-error { border: 1px solid rgba(240,180,41,0.4); background: rgb(47,47,49); }
+  .data-error code { background: rgba(243,245,250,0.1); }
+  .contact-icon.whatsapp { background: rgba(47,208,114,0.14); }
   .field input:focus, .field textarea:focus, .field select:focus { box-shadow: 0 0 0 2px var(--accent),
-              0 0 0 5px rgba(31,111,235,0.22); }
-  .compare-bar { background: rgba(255,255,255,0.92); }
-  .compare-table tr.differs td { background: rgba(31,111,235,0.06); }
-  .manage-banner.edited { border-color: rgba(31,111,235,0.3); }
-  .row-flag.time { background: rgba(31,111,235,0.14); border: 1px solid rgba(31,111,235,0.3); }
-  .price-field:focus-within { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(31,111,235,0.22); }
-  .manage-row select[data-value="out"] { border-color: rgb(221,158,152); }
-  .tool-btn.danger:hover { border-color: rgb(219,141,134); }
-  .site-footer { background: rgba(243,243,241,0.78); }
-  .hero-search:hover { border-color: rgba(158,193,246,0.742); box-shadow:
+              0 0 0 5px rgba(106,164,255,0.22); }
+  .compare-bar { background: rgba(26,32,50,0.92); }
+  .compare-table tr.differs td { background: rgba(106,164,255,0.06); }
+  .manage-banner.edited { border-color: rgba(106,164,255,0.3); }
+  .row-flag.time { background: rgba(106,164,255,0.14); border: 1px solid rgba(106,164,255,0.3); }
+  .price-field:focus-within { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(106,164,255,0.22); }
+  .manage-row select[data-value="out"] { border-color: rgb(128,79,88); }
+  .tool-btn.danger:hover { border-color: rgb(149,87,92); }
+  .site-footer { background: rgba(21,26,43,0.78); }
+  .hero-search:hover { border-color: rgba(142,186,255,0.422); box-shadow:
     inset 0 1px 0 var(--glass-edge),
     0 14px 34px rgba(16, 18, 22, .13),
-    0 0 0 6px rgba(31,111,235,0.09); }
-  .search-bar { border-bottom: 1px solid rgba(229,229,225,0.7); }
-  .search-foot { border-top: 1px solid rgba(229,229,225,0.7); background: rgba(247,247,245,0.55); }
-  .spin-hint { background: rgba(20,22,26,0.88); }
-  .thumb.on { box-shadow: 0 0 0 2px rgba(31,111,235,0.25); }
+    0 0 0 6px rgba(106,164,255,0.09); }
+  .search-bar { border-bottom: 1px solid rgba(43,51,72,0.7); }
+  .search-foot { border-top: 1px solid rgba(43,51,72,0.7); background: rgba(34,41,65,0.55); }
+  .spin-hint { background: rgba(243,245,250,0.88); }
+  .thumb.on { box-shadow: 0 0 0 2px rgba(106,164,255,0.25); }
   .scroll-progress { background: linear-gradient(90deg,
-    var(--accent), rgb(31,142,153)); }
+    var(--accent), rgb(74,188,177)); }
   .card::after, .feature::after, .service::after, .contact-card:not(.static)::after { background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(31,111,235,0.12), transparent 65%); }
+    rgba(106,164,255,0.12), transparent 65%); }
   @media (hover: none), (pointer: coarse) { html { background:
-      radial-gradient(135% 78% at 2% 22%,   rgba(31,111,235,0.104), transparent 82%),
-      radial-gradient(130% 72% at 100% 48%, rgba(124,92,255,0.088), transparent 82%),
-      radial-gradient(135% 70% at 70% 76%,  rgba(31,168,85,0.083), transparent 84%),
-      radial-gradient(120% 62% at 8% 58%,   rgba(255,138,61,0.057), transparent 84%),
-      radial-gradient(125% 65% at 52% 30%,  rgba(31,111,235,0.104), transparent 84%),
+      radial-gradient(135% 78% at 2% 22%,   rgba(106,164,255,0.125), transparent 82%),
+      radial-gradient(130% 72% at 100% 48%, rgba(139,108,255,0.125), transparent 82%),
+      radial-gradient(135% 70% at 70% 76%,  rgba(47,208,114,0.078), transparent 84%),
+      radial-gradient(120% 62% at 8% 58%,   rgba(255,122,61,0.062), transparent 84%),
+      radial-gradient(125% 65% at 52% 30%,  rgba(106,164,255,0.125), transparent 84%),
       var(--bg); } }
   @media (hover: none), (pointer: coarse) { .site-header { background:
-      linear-gradient(var(--bg), rgb(231,238,249)),
+      linear-gradient(var(--bg), rgb(24,33,54)),
       var(--bg); } }
   @media (hover: none), (pointer: coarse) { .site-header::after { background: linear-gradient(
-      rgb(231,238,249),
+      rgb(24,33,54),
       rgba(0,0,0,0)); } }
 
   /* ── dark ──────────────────────────────────────────────────────────────── */
-  [data-theme="dark"] { --amb-1:         rgba(90,155,255,0.2); --amb-2:         rgba(47,208,114,0.16); --amb-3:         rgba(124,92,255,0.17); --amb-4:         rgba(255,138,61,0.11); --amb-section:   rgba(90,155,255,0.1); --sheen-top:     inset 0 1px 0 rgba(255,255,255,0.55); --glass-bg:      rgba(23,26,32,0.58); --glass-bg-2:    rgba(23,26,32,0.78); --glass-brd:     rgba(255,255,255,0.62); }
+  [data-theme="dark"] { --amb-1:         rgba(90,155,255,0.24); --amb-2:         rgba(47,208,114,0.15); --amb-3:         rgba(139,108,255,0.24); --amb-4:         rgba(255,122,61,0.12); --amb-section:   rgba(90,155,255,0.28); --glass-bg:      rgba(37,45,66,0.54); --glass-bg-2:    rgba(37,45,66,0.76); --glass-brd:     rgba(255,255,255,0.15); }
   [data-theme="dark"] { --amb-1:         rgba(90,155,255,0.26); --amb-2:         rgba(47,208,114,0.15); --amb-3:         rgba(139,108,255,0.24); --amb-4:         rgba(255,122,61,0.12); --amb-section:   rgba(90,155,255,0.3); --glass-bg:      rgba(35,42,54,0.52); --glass-bg-2:    rgba(35,42,54,0.74); --glass-brd:     rgba(255,255,255,0.14); }
   [data-theme="dark"] .glass { background:
     linear-gradient(150deg, rgba(255,255,255,0.26), transparent 44%),

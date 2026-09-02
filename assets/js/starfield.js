@@ -56,55 +56,70 @@
   };
 
   /* ── palette ─────────────────────────────────────────────────────────── */
+  /* Both themes are dark, so both get a real sky and white stars. They differ
+     the way the palettes differ: the dark theme is a near-black night, the
+     default is a navy one. */
   function palette() {
     return isDark()
-      ? { star: '255,255,255', warm: '190,215,255', shot: '255,255,255',
-          max: 1, skyTop: 'rgba(9,13,28,.92)', skyBot: 'rgba(3,5,12,.96)', sky: true }
-      /* On the light theme the page keeps its own pale background; the stars
-         are a tint over it rather than holes in a black sky. Strong enough to
-         be seen on purpose, far too small and sparse to change the effective
-         background colour behind a letter — checked, not assumed. */
-      : { star: '64,96,158', warm: '96,124,180', shot: '52,88,155',
-          max: .66, skyTop: null, skyBot: null, sky: false };
+      ? { star: '255,255,255', warm: '255,214,170', cool: '164,201,255', shot: '255,255,255',
+          max: 1, skyTop: 'rgba(9,13,28,.92)',  skyBot: 'rgba(3,5,12,.96)',  sky: true }
+      : { star: '255,255,255', warm: '255,220,182', cool: '178,212,255', shot: '255,255,255',
+          max: 1, skyTop: 'rgba(14,19,40,.90)', skyBot: 'rgba(8,11,24,.94)', sky: true };
   }
   var pal = palette();
 
-  /* A star is drawn from one small pre-rendered sprite rather than an arc()
-     per star per frame — same picture, a fraction of the cost. */
-  function buildSprite() {
-    spriteR = Math.max(6, Math.round(6 * Math.min(dpr, 2)));
+  /* A star is drawn from a small pre-rendered sprite rather than an arc() per
+     star per frame — same picture, a fraction of the cost. Three of them, so
+     the sky has colour in it: most stars white, some warm gold, some blue.
+     A real sky is not one colour, and neither is this one. */
+  function makeSprite(rgb) {
     var s = document.createElement('canvas');
     s.width = s.height = spriteR * 2;
     var c = s.getContext('2d');
     var g = c.createRadialGradient(spriteR, spriteR, 0, spriteR, spriteR, spriteR);
+    /* A hard bright core with a soft halo reads as a star; a plain blur reads
+       as a smudge. */
     g.addColorStop(0,   'rgba(255,255,255,1)');
-    g.addColorStop(.35, 'rgba(255,255,255,.55)');
-    g.addColorStop(1,   'rgba(255,255,255,0)');
+    g.addColorStop(.18, 'rgba(' + rgb + ',1)');
+    g.addColorStop(.45, 'rgba(' + rgb + ',.42)');
+    g.addColorStop(1,   'rgba(' + rgb + ',0)');
     c.fillStyle = g;
     c.fillRect(0, 0, spriteR * 2, spriteR * 2);
-    sprite = s;
+    return s;
+  }
+  function buildSprite() {
+    spriteR = Math.max(7, Math.round(7 * Math.min(dpr, 2)));
+    sprite = [makeSprite(pal.star), makeSprite(pal.warm), makeSprite(pal.cool)];
   }
 
   /* ── the field ───────────────────────────────────────────────────────── */
   function seed() {
     /* Density by area, so a phone is not asked to draw a desktop's worth of
        sky, and a big monitor does not look empty. Capped at both ends. */
+    /* Per unit of screen, not per screen. The old divisor left a desktop
+       looking half-empty next to a phone, because the phone was hitting the
+       floor and getting a dense little sky while the desktop spread the same
+       idea over four times the area. */
     var area = (W * H) / (dpr * dpr);
-    var count = Math.round(area / 9000);
-    count = Math.max(45, Math.min(mqCoarse && mqCoarse.matches ? 110 : 190, count));
+    var count = Math.round(area / 3600);
+    count = Math.max(80, Math.min(mqCoarse && mqCoarse.matches ? 150 : 420, count));
 
     stars = [];
     for (var i = 0; i < count; i++) {
       stars.push({
         x: Math.random() * W,
         y: Math.random() * H,
-        r: (Math.random() * 1.1 + 0.45) * dpr,      // radius in device pixels
-        a: Math.random() * 0.5 + 0.25,              // base brightness
+        /* One star in twelve is a bright one, so the field has anchors in it
+           instead of being an even dusting. */
+        r: (Math.random() < 0.08 ? Math.random() * 1.5 + 1.7
+                                 : Math.random() * 1.0 + 0.6) * dpr,
+        a: Math.random() * 0.35 + 0.62,             // base brightness
         tw: Math.random() * Math.PI * 2,            // twinkle phase
-        ts: Math.random() * 0.9 + 0.25,             // twinkle speed
+        ts: Math.random() * 1.15 + 0.35,            // twinkle speed
         dx: (Math.random() - 0.5) * 0.02 * dpr,     // very slow drift
         dy: (Math.random() - 0.5) * 0.02 * dpr,
-        warm: Math.random() < 0.22
+        /* white mostly, with gold and blue mixed through */
+        kind: Math.random() < 0.16 ? 1 : (Math.random() < 0.19 ? 2 : 0)
       });
     }
   }
@@ -138,7 +153,7 @@
       life: 0,
       span: Math.random() * 420 + 520                        // ms on screen
     });
-    if (shooting.length > 3) shooting.shift();
+    if (shooting.length > 5) shooting.shift();
   }
 
   /* ── painting ────────────────────────────────────────────────────────── */
@@ -163,21 +178,13 @@
         if (s.y < 0) s.y += H; else if (s.y > H) s.y -= H;
       }
       /* sin gives a smooth breath rather than a flicker */
-      var a = s.a * (0.62 + 0.38 * Math.sin(s.tw)) * pal.max;
+      var a = s.a * (0.55 + 0.45 * Math.sin(s.tw)) * pal.max;
       if (a <= 0.01) continue;
       var d = s.r * 3.2;
       ctx.globalAlpha = a;
-      ctx.drawImage(sprite, s.x - d, s.y - d, d * 2, d * 2);
+      ctx.drawImage(sprite[s.kind], s.x - d, s.y - d, d * 2, d * 2);
     }
     ctx.globalAlpha = 1;
-
-    /* tint the white sprite to the theme's star colour in one pass */
-    if (pal.star !== '255,255,255') {
-      ctx.globalCompositeOperation = 'source-in';
-      ctx.fillStyle = 'rgb(' + pal.star + ')';
-      ctx.fillRect(0, 0, W, H);
-      ctx.globalCompositeOperation = 'source-over';
-    }
 
     for (i = shooting.length - 1; i >= 0; i--) {
       var m = shooting[i];
@@ -193,7 +200,7 @@
       tg.addColorStop(0, 'rgba(' + pal.shot + ',' + (0.9 * fade * pal.max) + ')');
       tg.addColorStop(1, 'rgba(' + pal.shot + ',0)');
       ctx.strokeStyle = tg;
-      ctx.lineWidth = 1.7 * dpr;
+      ctx.lineWidth = 2.1 * dpr;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(tx, ty);
@@ -210,7 +217,7 @@
 
     if (now >= nextShot) {
       spawnShot();
-      nextShot = now + 2600 + Math.random() * 5200;
+      nextShot = now + 900 + Math.random() * 2200;
     }
     draw(dt);
     rafId = requestAnimationFrame(frame);
@@ -219,7 +226,7 @@
   function start() {
     if (running || still() || document.hidden) return;
     running = true; lastFrame = 0;
-    nextShot = (window.performance ? performance.now() : Date.now()) + 1200;
+    nextShot = (window.performance ? performance.now() : Date.now()) + 600;
     rafId = requestAnimationFrame(frame);
   }
   function stop() {
@@ -239,6 +246,7 @@
 
   function onTheme() {
     pal = palette();
+    buildSprite();      // the sprites carry the star colours, so rebuild them
     draw(0);
   }
 

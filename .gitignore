@@ -7,3 +7,9 @@
 
 # Snapshots and screenshots the Playwright MCP server writes while testing.
 .playwright-mcp/
+
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+
+# Working state the img2threejs skill keeps while it builds a model.
+.img2threejs/

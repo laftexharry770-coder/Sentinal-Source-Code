@@ -457,7 +457,19 @@ itself.
 | **Emil Kowalski** skills (10) | [emilkowalski/skills](https://github.com/emilkowalski/skills) | rules for animation, easing, polish, and making a website feel native on a phone |
 | **Taste Skill** (6) | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | design direction drawn from great websites, a redesign audit, three ready-made styles, and a rule against half-finished output |
 | **Playwright** browser | `.mcp.json` → `.claude/mcp/playwright.mjs` | opens the site in a real browser, clicks through it and screenshots it at phone and desktop sizes |
+| **Playwright CLI** 0.1.21 | [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli) | the same browser through short terminal commands, about a quarter of the tokens the browser tools above use |
+| **DESIGN.md library** (74) | [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) | the design systems of sites like Apple, Stripe, Linear and Airbnb, as references for spacing, type, colour and components |
+| **img2threejs** 2.0.0 | [img2threejs/img2threejs](https://github.com/img2threejs/img2threejs) | rebuilds an object from one photo as an interactive 3D model written in code |
 | **Figma** | your claude.ai connectors | reads and writes Figma designs. The Starter plan allows 20 read calls a month |
+
+In cloud sessions, `.claude/hooks/session-start.sh` installs the Playwright CLI, points it at
+the browser the cloud provides, and fetches Impeccable's engine before you start. On your own
+machine it does nothing; there, run `npm install -g @playwright/cli@0.1.21` and
+`playwright-cli install-browser chromium` once.
+
+The DESIGN.md library is kept inside its skill folder on purpose. A `DESIGN.md` at the root of
+this repository is the shop's own design system as far as Impeccable is concerned, so never copy
+one of the library's files there.
 
 Just ask for what you want and the right skill loads on its own, or name one:
 
@@ -468,6 +480,9 @@ Just ask for what you want and the right skill loads on its own, or name one:
 /mobile-native                              fix what feels "website" rather than "app" on a phone
 /emil-design-eng                            animation and interaction polish
 /prototype a new hero section               several versions behind a switcher to pick from
+/playwright-cli check the inquiry form      drive the real page and screenshot the result
+/design-md-library                          "make the product cards as calm as Apple's"
+/img2threejs                                turn a product photo into a 3D model you can spin
 ```
 
 Left out on purpose: skills for Swift, React Native, the React-only Sonner
@@ -480,7 +495,13 @@ To update, run these from the repository root and commit what changes:
 npx skills update -p        # Emil Kowalski + Taste Skill, pinned in skills-lock.json
 npx impeccable update       # Impeccable — on your own machine; Claude's cloud
                             # sessions block the download it needs
+playwright-cli install --skills      # the Playwright CLI skill
+node .claude/skills/design-md-library/update.mjs <checkout of awesome-design-md>
 ```
+
+img2threejs updates by replacing `.claude/skills/img2threejs` with a fresh copy of its
+repository, leaving out `.git`, `.github`, `forge/tests` and the contributor notes
+(`CLAUDE.md`, `CONTRIBUTING.md`, `ROADMAP.md`, `LAB-FINDINGS.md`).
 
 The design detector's settings live in `.impeccable/config.json`. Switch it off
 with `/impeccable hooks off`.

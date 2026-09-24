@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "node",
+      "args": [".claude/mcp/playwright.mjs"]
+    }
+  }
+}

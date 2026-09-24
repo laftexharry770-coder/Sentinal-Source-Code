@@ -20,6 +20,8 @@ assets/js/app.js        the behaviour
 assets/img/             product photos
 assets/img/demo-360/    the sample 360° frames (replace with your own)
 assets/icons/           app icons
+
+.claude/, .mcp.json     design tools for Claude (section 11) — not part of the site
 ```
 
 ---
@@ -439,6 +441,49 @@ everything except the offline behaviour. To see all of it:
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
+
+---
+
+## 11. Designing with Claude
+
+Any Claude Code session opened on this repository, in the cloud or on your own
+machine, loads a design toolkit from `.claude/`, so what it builds does not come
+out looking like every other AI-made site. Nothing here is loaded by the website
+itself.
+
+| What | Where it comes from | What it gives Claude |
+|---|---|---|
+| **Impeccable** 4.3.1 | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | one skill with 24 commands, and a detector that checks every page or stylesheet Claude edits for the tell-tale AI look |
+| **Emil Kowalski** skills (10) | [emilkowalski/skills](https://github.com/emilkowalski/skills) | rules for animation, easing, polish, and making a website feel native on a phone |
+| **Taste Skill** (6) | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | design direction drawn from great websites, a redesign audit, three ready-made styles, and a rule against half-finished output |
+| **Playwright** browser | `.mcp.json` → `.claude/mcp/playwright.mjs` | opens the site in a real browser, clicks through it and screenshots it at phone and desktop sizes |
+| **Figma** | your claude.ai connectors | reads and writes Figma designs. The Starter plan allows 20 read calls a month |
+
+Just ask for what you want and the right skill loads on its own, or name one:
+
+```
+/impeccable critique the product cards      a design review, before changing anything
+/impeccable polish the header               a final pass
+/redesign-existing-projects                 audit the whole site and lift it
+/mobile-native                              fix what feels "website" rather than "app" on a phone
+/emil-design-eng                            animation and interaction polish
+/prototype a new hero section               several versions behind a switcher to pick from
+```
+
+Left out on purpose: skills for Swift, React Native, the React-only Sonner
+library, GPT/Codex, Google Stitch, and the ones that need Claude to generate
+images, which it cannot do.
+
+To update, run these from the repository root and commit what changes:
+
+```bash
+npx skills update -p        # Emil Kowalski + Taste Skill, pinned in skills-lock.json
+npx impeccable update       # Impeccable — on your own machine; Claude's cloud
+                            # sessions block the download it needs
+```
+
+The design detector's settings live in `.impeccable/config.json`. Switch it off
+with `/impeccable hooks off`.
 
 ---
 

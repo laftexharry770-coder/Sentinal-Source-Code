@@ -592,8 +592,9 @@ id `i-<name>`.
   `data-photo-sig` to the length of that product's first photo in `data.js`.
 - **Products without a photo** are not given clip-art. They become a pane of
   glass with the maker's name set large and the model under it; where there is
-  no maker's name, what defines it leads instead (65W, 2m, AC1200, 8-in-1),
-  so the plate never just repeats the name printed under it. The glass is
+  no maker's name, the plate carries only what defines it (65W, 2m, AC1200,
+  8-in-1), so it never repeats the name printed under it. Phone cards show
+  the lead line alone; the full name is printed under every card. The glass is
   rendered, one per category for Night and for Day (`assets/img/plates/`, made
   with `tools/plates/render.html`), and the words are laid on its face in 3D,
   so they recede with it.

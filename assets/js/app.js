@@ -105,13 +105,13 @@
   // but never just after a hyphen: a word joiner (U+2060) follows each one.
   const joinHyphens = (text) => String(text).replace(/-(?=\S)/g, '-\u2060');
 
-  /* A plate with no maker's name leads with what defines the product, its
-     wattage, length, port count or standard ("65W", "2m", "8-in-1",
-     "AC1200"), and sets the rest of its name under it: the card's title is
-     printed right below, so the plate never repeats it word for word. The
-     figure comes from the name, else from the specs; a bundle is named by
-     its parts ("Case + Glass"); failing all of those, the noun ("Case")
-     leads and its qualifiers follow. */
+  /* A plate with no maker's name carries what defines the product, and only
+     that: its wattage, length, port count or standard ("65W", "2m",
+     "8-in-1", "AC1200"). The card's title is printed right below, so the
+     plate says the one thing the title does not lead with, and never the
+     title again. The figure comes from the name, else from the specs; a
+     bundle is named by its parts ("Case + Glass"); failing all of those, the
+     thing itself does ("Wallet Case"). */
   const SPEC_IN_NAME = [
     /\b\d+-(?:Way|Socket|Camera|in-1)\b/i,     // 4-Way, 6-Socket, 8-in-1
     /\(([^)\s]+)[^)]*\)/,                     // (2m), (AC1200), (1080p support)
@@ -124,23 +124,20 @@
     const name = String(product.name || '').trim();
     for (const re of SPEC_IN_NAME) {
       const m = name.match(re);
-      if (m) return { lead: m[1] || m[0], rest: headline(name.replace(m[0], ' ').replace(/\s+/g, ' ').trim()) };
+      if (m) return { lead: m[1] || m[0], rest: '' };
     }
     // A bundle is named by what is in it: "Case + Glass", then "Bundle".
     if (/\s\+\s/.test(name)) {
       const generic = /\s+(Bundle|Kit|Set|Combo|Pack)$/i;
       const kind = (name.match(generic) || [])[1] || '';
       const items = name.replace(generic, '').split(/\s+\+\s+/).map((part) => part.trim().split(/\s+/).pop());
-      return { lead: items.join(' + '), rest: kind };
+      return { lead: items.join(' + '), rest: '' };
     }
     for (const value of Object.values(product.specs || {})) {
       const m = String(value).match(SPEC_IN_SPECS);
-      if (m) return { lead: m[0].replace(/\s+/g, ''), rest: headline(name) };
+      if (m) return { lead: m[0].replace(/\s+/g, ''), rest: '' };
     }
-    const words = headline(name).split(/\s+/);
-    return words.length > 1
-      ? { lead: words[words.length - 1], rest: words.slice(0, -1).join(' ') }
-      : { lead: name, rest: '' };
+    return { lead: headline(name).split(/\s+/).slice(-2).join(' '), rest: '' };
   }
 
   const plate = (product) => {

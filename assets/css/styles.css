@@ -111,9 +111,9 @@
 
   /* The plates are lit from above; by night the lower body of the glass
      falls into shadow, and the name is set there. Measured against the
-     brightest 2% of the glass behind each line: at least 4.8:1 on desktop
-     cards, 5.8:1 in the pop-up, and 4.3:1 on a phone card, where the lead
-     line is large bold text (AA asks 3:1 of that). */
+     brightest 2% of the glass behind each line: the second, smaller line at
+     least 5.69:1, the large lead at least 5.56:1 (8.4:1 on a phone card,
+     where it stands alone). */
   --plate-ink:   #F2F1F7;
   --plate-ink-2: #D2CFE2;
 
@@ -184,7 +184,7 @@
 
   /* By day the glass darkens toward its lower edge, where it reflects the
      dark band of the studio: ink, not grey, to hold 5:1 there (measured
-     5.07:1 at worst). */
+     5.07:1 at worst on the small line, 6.69:1 on the lead). */
   --plate-ink:   #14121F;
   --plate-ink-2: #2E2B40;
 
@@ -1305,8 +1305,12 @@ html:not(.js) .map-load { display: none; }
 }
 .modal-info { padding: clamp(26px, 3vw, 38px); }
 .modal-info h3 { font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 350; letter-spacing: -0.03em; line-height: 1.12; overflow-wrap: anywhere; }
-.modal-price { margin: 16px 0 8px; font-size: 1.7rem; font-weight: 650; letter-spacing: -0.03em; }
-.modal-price s { margin-right: 8px; font-size: .6em; font-weight: 400; color: var(--ink-3); }
+.modal-price {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;   /* a wrapped badge starts flush left */
+  margin: 16px 0 8px; font-size: 1.7rem; font-weight: 650; letter-spacing: -0.03em;
+}
+.modal-price s { font-size: .6em; font-weight: 400; color: var(--ink-3); }
+.modal-price .pill-lowest { margin-left: 0; }
 .modal-desc { margin: 16px 0 20px; font-size: .96rem; color: var(--ink-2); overflow-wrap: anywhere; }
 .specs { margin: 0 0 24px; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .specs li { display: flex; justify-content: space-between; gap: 18px; min-width: 0; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
@@ -1693,6 +1697,9 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .card { border-radius: 18px; }
   .card-media { aspect-ratio: 1 / 1; margin: 4px 4px 0; border-radius: 14px; }
+  /* A phone card's glass is too small for a second line to read; it carries
+     the lead alone, and the full name is printed under it. */
+  .card-media .plate-model { display: none; }
   .card-body { padding: 10px 11px 12px; gap: 5px; }
   .card-title { font-size: .92rem; line-height: 1.25; }
   .card-foot { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 10px; }

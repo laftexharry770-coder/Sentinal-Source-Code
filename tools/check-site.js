@@ -32,7 +32,8 @@ REQUIRED.forEach((rel) => { if (!exists(rel)) fail(rel, 'missing'); });
 if (problems.length) { report(); process.exit(1); }
 
 /* ── 2. Does every script actually parse? ───────────────────────────────── */
-['assets/js/data.js', 'assets/js/app.js', 'service-worker.js', 'tools/check-site.js']
+['assets/js/data.js', 'assets/js/app.js', 'assets/js/motion.js', 'service-worker.js', 'tools/check-site.js']
+  .filter((rel) => rel !== 'assets/js/motion.js' || exists(rel))
   .forEach((rel) => {
     try { new vm.Script(read(rel), { filename: rel }); }
     catch (err) {
@@ -161,6 +162,46 @@ if (exists('index.html')) {
   if (read('assets/js/app.js').indexOf("classList.add('ready')") === -1) {
     fail('assets/js/app.js', 'nothing marks the page as painted, so the failsafe would fire on a good page');
   }
+
+  /* The open/closed badges are painted from a copy of the opening hours kept
+     in index.html, so they are right from the first second rather than after
+     the catalogue arrives. That copy has to match data.js. */
+  const hoursBlock = html.match(/<script id="shopHours" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!hoursBlock) {
+    fail('index.html', 'the opening hours block (id="shopHours") is missing, so "Open now" waits for the catalogue');
+  } else if (data && data.SITE) {
+    let early = null;
+    try { early = JSON.parse(hoursBlock[1]); } catch (err) {
+      fail('index.html', 'the opening hours block (id="shopHours") is not valid JSON — ' + err.message);
+    }
+    if (early) {
+      const same = (a, b) => JSON.stringify(a == null ? null : a) === JSON.stringify(b == null ? null : b);
+      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const differs = days.filter((d) => !same((early.hours || {})[d], (data.SITE.hours || {})[d]));
+      if (differs.length) {
+        fail('index.html', 'the opening hours in id="shopHours" differ from SITE.hours in data.js on ' +
+          differs.join(', ') + '. Copy the hours from data.js into index.html so "Open now" is right before the catalogue loads.');
+      }
+      if (!same(early.contactHours, data.SITE.contactHours)) {
+        fail('index.html', 'contactHours in id="shopHours" differ from SITE.contactHours in data.js');
+      }
+      if ((early.timezone || '') !== (data.SITE.timezone || '')) {
+        fail('index.html', 'the timezone in id="shopHours" differs from SITE.timezone in data.js');
+      }
+    }
+  }
+
+  /* The three products floating in the first screen. app.js corrects them
+     once the catalogue is in, so a stale one is a note, not a failure. */
+  if (data && Array.isArray(data.PRODUCTS)) {
+    const tileRe = /data-hero-product="([^"]+)"/g;
+    let tile;
+    while ((tile = tileRe.exec(html))) {
+      const product = data.PRODUCTS.find((p) => p && p.id === tile[1]);
+      if (!product) notes.push('first-screen product "' + tile[1] + '" is no longer in data.js; it is hidden once the catalogue loads — pick another in index.html');
+      else if (!(product.images && product.images.length)) notes.push('first-screen product "' + tile[1] + '" has no photo in data.js; it is hidden once the catalogue loads');
+    }
+  }
 }
 
 /* ── 5. The version stamps that push a new copy onto phones ─────────────── */
@@ -174,6 +215,25 @@ if (exists('service-worker.js') && exists('assets/js/app.js')) {
       ' — they must match, or the Manage panel reports the wrong version');
   }
   if (sw) notes.push('version ' + sw);
+
+  /* The stylesheet and scripts are addressed with ?v=<build> so a phone on an
+     old service worker cannot serve the new page with the old files. Every
+     one must carry the current number, in index.html and in the worker's
+     list of files to keep. */
+  if (app && exists('index.html')) {
+    const html = read('index.html');
+    const worker = read('service-worker.js');
+    const number = app.replace(/^v/, '');
+    ['assets/css/styles.css', 'assets/js/motion.js', 'assets/js/app.js'].forEach((file) => {
+      const stamped = file + '?v=' + number;
+      if (html.indexOf(stamped) === -1) {
+        fail('index.html', file + ' must be loaded as ' + stamped + ' (the build number), so phones fetch the new copy');
+      }
+      if (worker.indexOf("'./" + stamped + "'") === -1) {
+        fail('service-worker.js', 'SHELL must list ./' + stamped + ' so the new copy works offline');
+      }
+    });
+  }
 }
 
 /* ── 6. Files that make the site installable and shareable ──────────────── */

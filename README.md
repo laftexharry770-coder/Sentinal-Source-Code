@@ -11,13 +11,17 @@ the network doesn't.
 No build step, no frameworks, no database.
 
 ```
-index.html              the page
+index.html              the page (and the icon set, drawn once at the top)
 manifest.webmanifest    makes it installable as an app
 service-worker.js       makes it work offline
-assets/css/styles.css   the look (light + dark)
+assets/css/styles.css   the look (Night + Day)
 assets/js/data.js       ← YOUR details, services and products
 assets/js/app.js        the behaviour
+assets/js/motion.js     the chrome H, scroll reveals, and the menu and theme
+                        switch working before the catalogue has loaded
+assets/fonts/           the typeface (Hanken Grotesk) and its licence
 assets/img/             product photos
+assets/img/hero/        the three products floating in the first screen
 assets/img/demo-360/    the sample 360° frames (replace with your own)
 assets/icons/           app icons
 
@@ -94,6 +98,13 @@ they stay right for a customer browsing from anywhere.
 > **Worth checking:** Saturday is set to `['08:00', '09:00']` — one hour, 8am to
 > 9am, exactly as given. If you meant 8am to 9**pm**, change it to
 > `['08:00', '21:00']`.
+
+**If you change the hours, change them in two places.** `index.html` keeps a
+copy of them near the bottom (`<script id="shopHours">`), so "Open now" shows
+the moment the page opens instead of after the catalogue has finished arriving,
+which on a weak connection can take over a minute. Copy the same hours,
+`contactHours` and `timezone` across. If the two ever disagree, the check that
+runs on GitHub after every change goes red and names the day that differs.
 
 ---
 
@@ -272,9 +283,18 @@ is a signal, so a price you publish this morning is the price a returning
 customer sees this afternoon — the saved copy is only used when they have no
 network at all.
 
-**Only if you change the design** (`index.html`, `styles.css`, `app.js`) bump
-`CACHE_VERSION` at the top of `service-worker.js` (`homcom-v2` → `homcom-v3`).
-That tells phones which already have the site saved to fetch the new files.
+**Only if you change the design** (`index.html`, `styles.css`, `app.js`,
+`motion.js`) bump the version number, in four places that must agree:
+
+- `CACHE_VERSION` at the top of `service-worker.js` (`homcom-v28` → `homcom-v29`);
+- `BUILD` in `app.js` (`v28` → `v29`), which the Manage panel shows;
+- the `?v=28` after `styles.css`, `motion.js` and `app.js` in `index.html`;
+- the same three `?v=28` addresses in the `SHELL` list in `service-worker.js`.
+
+The first tells phones which already have the site saved to fetch the new
+files. The `?v=` numbers make sure a phone still running the old version never
+shows the new page wearing the old stylesheet while it updates. The check on
+GitHub fails if any of the four is left behind.
 
 ### The domain: homcomtech.com
 
@@ -510,89 +530,89 @@ with `/impeccable hooks off`.
 
 ## Look and feel
 
-### Light and dark
+The page is a product launch for the shop itself: the HOMCOM H in polished
+chrome, turning in its own light, with real stock and the open/closed status
+round it. Two themes share one world.
 
-Every colour on the site comes from a named variable with a light value and a
-dark value, at the top of `styles.css` — including the ones that used to be
-fixed: the red on discount badges and error messages, the amber on "low stock"
-and "outside contact hours", the refurbished badge. Nothing is stuck in one
-theme, and the reds and ambers are lifted in dark mode so they stay readable
-against a near-black page. Every text colour clears the WCAG AA contrast
-threshold in both themes.
+- **Night** is deep space ink (`#07080C`) with ion light running from violet
+  (`#7B6BFF`) to blue (`#4C8DFF`), and amber (`#FFB45A`) kept for offers.
+- **Day** is pale lavender (`#F3F2F8`) with the same light at low strength and
+  violet glass ribbons behind the H.
 
-### Ambience
+Every colour is a named variable at the top of `styles.css`, with a Night value
+and a Day value, written as plain `rgba()` so older iPhones get exactly the same
+page. Every text colour was measured against WCAG AA in both themes (the values
+are noted beside them). Surfaces are defined by a hairline and a lit top edge at
+night, and by soft elevation by day: never both.
 
-Two fixed layers sit behind the page: a soft wash of colour, and a fine grain
-that stops large flat areas from banding. Dark mode adds a gentle vignette.
-Raised surfaces — cards, panels, the form — get a one-pixel highlight along
-their top edge, the way lit surfaces catch light. Tune it all with `--amb-1`,
-`--amb-2`, `--amb-3`, `--amb-grain` and `--sheen-top`.
+### Type and icons
 
-### Glass
+One typeface, **Hanken Grotesk**, self-hosted in `assets/fonts/` and cut down to
+the characters the shop uses (30 KB for every weight). Big lines are set light;
+prices are set heavier, and its figures are all one width, so prices line up in
+every list. While the font is still arriving the text uses the phone's own sans,
+resized to the same proportions so nothing jumps when it lands.
 
-The search bar, the header search button and the search overlay are "liquid
-glass": translucent panes that frost whatever is behind them, with a bright top
-edge, a highlight that follows the cursor and a slow glint sliding across.
-`--glass-bg`, `--glass-brd` and `--glass-blur` control it, per theme. On phones
-the blur radius drops automatically — it's the most expensive thing on the page
-to scroll and nobody can tell at that size.
+Icons are [Phosphor](https://phosphoricons.com) (MIT), drawn once in a sprite at
+the top of `index.html` and reused everywhere as `<use href="#i-name">`. To add
+one, copy its `<symbol>` from Phosphor's `regular` set into the sprite with the
+id `i-<name>`.
+
+### The first screen
+
+- **The chrome H** is drawn by `motion.js` on the phone's graphics chip: the
+  logo's two bars and crossbar, the phone speaker slot and the monitor power
+  light, reflecting a studio of light strips. It turns gently by itself, leans
+  toward a mouse, and a finger can spin it; it coasts and swings back to face
+  front. Under it sits a drawn picture of the same H, which stays on any device
+  where the 3D version should not run (an old phone, lite mode, high-contrast
+  settings) and crossfades away where it does.
+- **The three floating products** are real listings: the HP Elite DragonFly,
+  the mechanical keyboard and the Oraimo SpaceBuds. Their photos are small crops
+  in `assets/img/hero/` so they show long before the catalogue has arrived; once
+  it has, `app.js` corrects each name and price from `data.js`, swaps in a
+  changed photo, and takes a tile away if the product is gone or has no photo.
+  To feature a different product, change the `data-hero-product` id, the name,
+  the price and the image in the `float-tile` markup in `index.html`, and set
+  `data-photo-sig` to the length of that product's first photo in `data.js`.
+- **Products without a photo** are not given clip-art. They become a pane of
+  glass with the maker's name set large and the model under it; where there is
+  no maker's name, the product's own name is the headline.
 
 ### Motion
 
-A reading-progress line under the header; cards that lift and light up under
-the cursor; product images that ease in; a sweep of light across buttons; spring
-feedback when a filter or product is picked; sections that fade up in sequence;
-the hero's haze drifting against the pointer.
+The H turning in its light; light streaks flowing into it at night; the product
+tiles floating; sections rising into place as they scroll into view; cards
+lifting under a cursor; the product pop-up rising as a sheet from the bottom of a
+phone. Entrances use a strong ease-out, everything is described in time rather
+than frames, and only transform and opacity move, so the compositor does the
+work.
 
-**Phones get a different build of the atmosphere.** A phone scrolls smoothly
-only when the browser can hand scrolling to the compositor and leave the main
-thread alone, and three things prevented that: a fixed full-screen layer, a
-blend mode over the whole viewport, and a blurred header re-blurring the moving
-content behind it every frame. On touch devices the wash is painted once into
-the page background instead of floating above it, the header is simply opaque,
-and every hover-only flourish — invisible to a finger — is skipped. It looks
-the same and scrolls like a native list. Measured on a mid-range Android
-profile: worst-case frame time fell from 150ms to 22ms, and main-thread work
-over a full scroll from 4.9s to 1.2s.
-
-Five rules keep it from becoming a nuisance:
-
-- **Nothing blurs while it moves.** Animated blur is what makes interfaces look
-  smeary, and it's the most expensive thing to draw. The panes still frost what
-  is behind them — that's the material, not the motion.
-- **Nothing important moves on its own.** The search bar rises into place once
-  and then holds still; the background wash doesn't drift. A full-screen
-  animated gradient cost about 35ms of every scroll frame for movement nobody
-  could point at.
-- **Touch devices skip the cursor effects** — they cost battery and nobody
-  sees them.
-- **"Reduce motion" is obeyed.** If a visitor's device is set to reduce motion,
-  every animation switches off and pointer tracking never starts.
-
-Measured on a full-page scroll: 16.7ms median frame, 17ms at the 95th
-percentile, nothing above 32ms — a steady 60fps, and that's on a machine with
-no graphics card at all.
+- **Before the catalogue arrives, the page already works.** On a phone at
+  9 KB/s the catalogue takes well over a minute. `motion.js` loads on its own,
+  ahead of it, so the menu, the theme switch, the open/closed badge, Directions,
+  WhatsApp and the H are all live within the first seconds, and the product
+  shelf shows that prices are on their way, with a WhatsApp link for anyone who
+  will not wait.
+- **The H only works when it can be seen.** It stops when scrolled away or in a
+  background tab, measures how long the graphics chip takes per frame, drops to
+  fewer pixels if it is slow, and stops turning by itself on a device that still
+  cannot keep up.
+- **"Reduce motion" is obeyed.** Nothing moves by itself: sections are simply
+  there, the tiles stay put, and the H is drawn once (it still turns under a
+  finger, because that is the visitor moving it).
+- **Touch devices skip the cursor effects and the blur**, which cost battery and
+  nobody can see.
 
 ### Any screen, any refresh rate
 
-Every animation is described in time, not in frames. CSS transitions and
-keyframes interpolate by the clock, and the 360° spinner advances on elapsed
-milliseconds rather than on each frame drawn. So the site runs at the same
-speed on a 60Hz phone, a 90Hz mid-range, a 120Hz tablet and a 144Hz monitor —
-the faster screen just draws more steps in between. Verified by simulating all
-five rates: the spinner advanced exactly 22 frames in two seconds every time.
-
-What differs between devices is whether they can *keep* their own rate. About a
-second after the page settles, it measures real frame times; if the device is
-delivering under roughly 42 frames a second — an old phone missing its target,
-or a screen that only refreshes 30 times a second — it quietly drops the blur,
-the grain and the cursor effects and keeps everything else. Add `?lite=1` to
-the web address to force that mode, or `?lite=0` to force it off. Screens that
-redraw slowly by nature, like e-ink, are detected by CSS (`update: slow`) and
-get no animation at all.
-
-If a spinning product is left in a background tab, it stops until the tab is
-looked at again.
+Every animation runs on the clock, so a 60Hz phone and a 144Hz monitor show the
+same speed; the faster screen just draws more steps. About a second after the
+page settles it measures real frame times, and if the device is delivering
+under roughly 42 frames a second it drops the blur, the 3D H (back to the drawn
+one) and the cursor effects, and keeps everything else. Add `?lite=1` to the web
+address to force that mode, or `?lite=0` to force everything on. Screens that
+redraw slowly by nature, like e-ink, get no animation at all.
 
 ---
 

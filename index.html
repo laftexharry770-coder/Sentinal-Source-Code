@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <!-- viewport-fit=cover is what switches on env(safe-area-inset-*) in the
@@ -7,8 +7,9 @@
        style below is translucent, the header slides under an iPhone's notch. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>HOMCOM COMPUTERS — Computers, Phones, Accessories &amp; Repairs</title>
-  <meta name="description" content="HOMCOM COMPUTERS sells laptops, desktops, phones and genuine accessories, and repairs computers and phones. Open 7 days a week in Nairobi. Browse the catalogue and inquire by WhatsApp or email." />
-  <meta name="theme-color" content="#0f1115" />
+  <meta name="description" content="HOMCOM COMPUTERS sells laptops, desktops, phones and genuine accessories, and repairs computers and phones. Open 7 days a week on Tom Mboya Street, Nairobi. Every price is on the page; inquire by WhatsApp or email." />
+  <meta name="theme-color" content="#07080C" />
+  <meta name="color-scheme" content="dark light" />
 
   <link rel="canonical" href="https://homcomtech.com/" />
 
@@ -24,10 +25,15 @@
   <meta property="og:image:alt" content="HOMCOM COMPUTERS — computers, phones, accessories and repairs, Tom Mboya Street, Nairobi." />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/styles.css" />
+  <!-- One typeface, served from this site: Hanken Grotesk, cut down to the
+       characters the shop uses (30 KB). Asked for first so it arrives with the
+       stylesheet rather than after it. -->
+  <link rel="preload" href="assets/fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- ?v= is the build number (BUILD in app.js, CACHE_VERSION in the service
+       worker). A phone still running last version's worker serves stylesheets
+       and scripts from its cache; a new address is one it has never seen, so
+       the new page never arrives wearing the old stylesheet. -->
+  <link rel="stylesheet" href="assets/css/styles.css?v=28" />
   <!-- The H mark, inline so the tab icon paints on the first response with no
        extra request. Safari on iPhone ignores this and uses apple-touch-icon. -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231f6feb'/><g fill='%23fff'><rect x='16.5' y='14' width='11' height='36' rx='4'/><rect x='36.5' y='14' width='11' height='36' rx='4'/><rect x='25' y='27.5' width='14' height='9' rx='3'/></g></svg>" />
@@ -52,21 +58,21 @@
     (function () {
       try {
         var saved = localStorage.getItem('homcom-theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+        var prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        var theme = saved || (prefersLight ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+        /* The browser's own bar matches the page, not the other theme. */
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'light' ? '#F3F2F8' : '#07080C');
       } catch (e) {}
-      /* The fade-in-on-scroll effect starts elements invisible, which means a
-         single script error used to leave a blank page. Only arm it once we
-         know scripts are running: if anything later fails, the page is plain
-         but perfectly readable. */
+      /* Scripts are running. The stylesheet uses this to show the loading
+         state of the catalogue, which only makes sense if something is going
+         to fill it. */
       document.documentElement.className += ' js';
 
-      /* That class hides every section until app.js reveals it. app.js cannot
-         run until data.js is here, and data.js is megabytes — on a slow phone
-         that is a blank page for a minute or more. So the wait is capped: if
-         the scripts have not finished shortly, show what is already on the
-         page. The catalogue arrives when it arrives, but the shop's name,
-         address, hours and both phone numbers are readable long before it. */
+      /* Anything app.js has not revealed by now is shown regardless. The
+         catalogue arrives when it arrives, but the shop's name, address, hours
+         and both phone numbers are readable long before it. */
       setTimeout(function () {
         if (document.documentElement.className.indexOf('ready') < 0) {
           document.documentElement.className += ' show-all';
@@ -79,7 +85,7 @@
          which is exactly the situation that leaves a blank page. app.js marks
          the page "ready" once it has painted. If that has not happened, show
          everything anyway and offer a one-tap repair. */
-      var armed = Date.now(), waitTimer;
+      var waitTimer;
       var isReady = function () {
         return document.documentElement.className.indexOf('ready') > -1;
       };
@@ -89,14 +95,14 @@
 
         var style = document.createElement('style');
         style.textContent =
-          '.reveal,.reveal.in{opacity:1!important;transform:none!important;animation:none!important}' +
-          '.card,.feature{animation:none!important;opacity:1!important}' +
+          '.reveal,.reveal.in{opacity:1!important;transform:none!important;filter:none!important;animation:none!important}' +
+          '.card{animation:none!important;opacity:1!important}' +
           '#stalePage{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;display:flex;' +
           'gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;' +
-          'padding:12px 14px;border-radius:14px;font:500 14px/1.4 system-ui,sans-serif;' +
-          'background:#14161a;color:#f2f3f5;box-shadow:0 8px 30px rgba(0,0,0,.35)}' +
-          '#stalePage button{border:0;border-radius:999px;padding:8px 16px;font:inherit;' +
-          'font-weight:650;background:#f2f3f5;color:#14161a}';
+          'padding:12px 14px;border-radius:16px;font:500 15px/1.4 "Hanken Grotesk",system-ui,sans-serif;' +
+          'background:#12131B;color:#F2F1F7;border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(0,0,0,.45)}' +
+          '#stalePage button{border:0;border-radius:999px;min-height:44px;padding:8px 18px;font:inherit;' +
+          'font-weight:650;background:#F2F1F7;color:#12131B}';
         document.head.appendChild(style);
 
         var bar = document.createElement('div');
@@ -120,22 +126,15 @@
       }
 
       /* Slow is not broken. The catalogue is a single large file, and on a
-         weak connection it can take half a minute to arrive — a phone at
-         68 KB/s needs about thirty seconds for it alone. A fixed timer called
-         that a failure and told the customer the shop was broken while it was
-         quietly still loading, and the repair button then threw away the cache
-         and started the whole download again.
+         weak connection it can take well over a minute to arrive. A fixed
+         timer called that a failure and told the customer the shop was broken
+         while it was quietly still loading, and the repair button then threw
+         away the cache and started the whole download again.
 
-         So: while the browser is still fetching, keep waiting. Only give up if
-         nothing has arrived for a long stretch. */
+         So: while the browser is still fetching, keep waiting. Only give up
+         once loading has finished without the shop appearing. */
       function considerStale() {
         if (isReady()) return;
-        /* No deadline while the browser is still fetching. A minute was not
-           enough — this catalogue needs about eighty-five seconds on a weak
-           connection, and the page was called broken at sixty while it was
-           quietly still arriving. Slowness has no upper bound worth guessing
-           at; what matters is whether loading finished without the shop
-           appearing, and that is what is waited for. */
         if (document.readyState !== 'complete') {
           waitTimer = setTimeout(considerStale, 2000);
           return;
@@ -157,14 +156,53 @@
   </script>
 </head>
 <body>
-  <a class="skip-link" href="#catalogue">Skip to catalogue</a>
+  <a class="skip-link" href="#catalogue">Skip to the prices</a>
+
+  <!-- Every icon on the site, from Phosphor (MIT), drawn once and reused with
+       <use href="#i-…">. Generated; see assets/img/README.md. -->
+  <!--SPRITE-->
+  <svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0"><defs>
+    <symbol id="i-magnifying-glass" viewBox="0 0 256 256"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 256 256"><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 256 256"><path d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,136,224a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM188.9,190.34A88,88,0,0,1,65.66,67.11a89,89,0,0,1,31.4-26A106,106,0,0,0,96,56,104.11,104.11,0,0,0,200,160a106,106,0,0,0,14.92-1.06A89,89,0,0,1,188.9,190.34Z"/></symbol>
+    <symbol id="i-download-simple" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z"/></symbol>
+    <symbol id="i-clipboard-text" viewBox="0 0 256 256"><path d="M168,152a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,152Zm-8-40H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16Zm56-64V216a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V48A16,16,0,0,1,56,32H92.26a47.92,47.92,0,0,1,71.48,0H200A16,16,0,0,1,216,48ZM96,64h64a32,32,0,0,0-64,0ZM200,48H173.25A47.93,47.93,0,0,1,176,64v8a8,8,0,0,1-8,8H88a8,8,0,0,1-8-8V64a47.93,47.93,0,0,1,2.75-16H56V216H200Z"/></symbol>
+    <symbol id="i-whatsapp-logo" viewBox="0 0 256 256"><path d="M187.58,144.84l-32-16a8,8,0,0,0-8,.5l-14.69,9.8a40.55,40.55,0,0,1-16-16l9.8-14.69a8,8,0,0,0,.5-8l-16-32A8,8,0,0,0,104,64a40,40,0,0,0-40,40,88.1,88.1,0,0,0,88,88,40,40,0,0,0,40-40A8,8,0,0,0,187.58,144.84ZM152,176a72.08,72.08,0,0,1-72-72A24,24,0,0,1,99.29,80.46l11.48,23L101,118a8,8,0,0,0-.73,7.51,56.47,56.47,0,0,0,30.15,30.15A8,8,0,0,0,138,155l14.61-9.74,23,11.48A24,24,0,0,1,152,176ZM128,24A104,104,0,0,0,36.18,176.88L24.83,210.93a16,16,0,0,0,20.24,20.24l34.05-11.35A104,104,0,1,0,128,24Zm0,192a87.87,87.87,0,0,1-44.06-11.81,8,8,0,0,0-6.54-.67L40,216,52.47,178.6a8,8,0,0,0-.66-6.54A88,88,0,1,1,128,216Z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 256 256"><path d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46ZM176,208A128.14,128.14,0,0,1,48,80,40.2,40.2,0,0,1,82.87,40a.61.61,0,0,0,0,.12l21,47L83.2,111.86a6.13,6.13,0,0,0-.57.77,16,16,0,0,0-1,15.7c9.06,18.53,27.73,37.06,46.46,46.11a16,16,0,0,0,15.75-1.14,8.44,8.44,0,0,0,.74-.56L168.89,152l47,21.05h0s.08,0,.11,0A40.21,40.21,0,0,1,176,208Z"/></symbol>
+    <symbol id="i-envelope-simple" viewBox="0 0 256 256"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></symbol>
+    <symbol id="i-map-pin" viewBox="0 0 256 256"><path d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z"/></symbol>
+    <symbol id="i-navigation-arrow" viewBox="0 0 256 256"><path d="M237.33,106.21,61.41,41l-.16-.05A16,16,0,0,0,40.9,61.25a1,1,0,0,0,.05.16l65.26,175.92A15.77,15.77,0,0,0,121.28,248h.3a15.77,15.77,0,0,0,15-11.29l.06-.2,21.84-78,78-21.84.2-.06a16,16,0,0,0,.62-30.38ZM149.84,144.3a8,8,0,0,0-5.54,5.54L121.3,232l-.06-.17L56,56l175.82,65.22.16.06Z"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 256 256"><path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></symbol>
+    <symbol id="i-arrows-left-right" viewBox="0 0 256 256"><path d="M213.66,181.66l-32,32a8,8,0,0,1-11.32-11.32L188.69,184H48a8,8,0,0,1,0-16H188.69l-18.35-18.34a8,8,0,0,1,11.32-11.32l32,32A8,8,0,0,1,213.66,181.66Zm-139.32-64a8,8,0,0,0,11.32-11.32L67.31,88H208a8,8,0,0,0,0-16H67.31L85.66,53.66A8,8,0,0,0,74.34,42.34l-32,32a8,8,0,0,0,0,11.32Z"/></symbol>
+    <symbol id="i-hand-swipe-right" viewBox="0 0 256 256"><path d="M216,140v36c0,25.59-8.49,42.85-8.85,43.58A8,8,0,0,1,200,224a7.9,7.9,0,0,1-3.57-.85,8,8,0,0,1-3.58-10.73c.06-.12,7.16-14.81,7.16-36.42V140a12,12,0,0,0-24,0v4a8,8,0,0,1-16,0V124a12,12,0,0,0-24,0v12a8,8,0,0,1-16,0V68a12,12,0,0,0-24,0V176a8,8,0,0,1-14.79,4.23l-18.68-30-.14-.23A12,12,0,1,0,41.6,162L70.89,212A8,8,0,1,1,57.08,220l-29.32-50a28,28,0,0,1,48.41-28.17L80,148V68a28,28,0,0,1,56,0V98.7a28,28,0,0,1,38.65,16.69A28,28,0,0,1,216,140Zm37.66-89.66-32-32a8,8,0,0,0-11.31,11.32L228.68,48H176a8,8,0,0,0,0,16h52.69L210.34,82.34a8,8,0,0,0,11.31,11.32l32-32A8,8,0,0,0,253.66,50.34Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></symbol>
+    <symbol id="i-arrow-clockwise" viewBox="0 0 256 256"><path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 256 256"><path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 256 256"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 256 256"><path d="M232,168h-8V72a24,24,0,0,0-24-24H56A24,24,0,0,0,32,72v96H24a8,8,0,0,0-8,8v16a24,24,0,0,0,24,24H216a24,24,0,0,0,24-24V176A8,8,0,0,0,232,168ZM48,72a8,8,0,0,1,8-8H200a8,8,0,0,1,8,8v96H48ZM224,192a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8v-8H224ZM152,88a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h32A8,8,0,0,1,152,88Z"/></symbol>
+    <symbol id="i-device-mobile" viewBox="0 0 256 256"><path d="M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16ZM72,64H184V192H72Zm8-32h96a8,8,0,0,1,8,8v8H72V40A8,8,0,0,1,80,32Zm96,192H80a8,8,0,0,1-8-8v-8H184v8A8,8,0,0,1,176,224Z"/></symbol>
+    <symbol id="i-hard-drives" viewBox="0 0 256 256"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"/></symbol>
+    <symbol id="i-network" viewBox="0 0 256 256"><path d="M232,112H136V88h8a16,16,0,0,0,16-16V40a16,16,0,0,0-16-16H112A16,16,0,0,0,96,40V72a16,16,0,0,0,16,16h8v24H24a8,8,0,0,0,0,16H56v32H48a16,16,0,0,0-16,16v32a16,16,0,0,0,16,16H80a16,16,0,0,0,16-16V176a16,16,0,0,0-16-16H72V128H184v32h-8a16,16,0,0,0-16,16v32a16,16,0,0,0,16,16h32a16,16,0,0,0,16-16V176a16,16,0,0,0-16-16h-8V128h32a8,8,0,0,0,0-16ZM112,40h32V72H112ZM80,208H48V176H80Zm128,0H176V176h32Z"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 256 256"><path d="M226.76,69a8,8,0,0,0-12.84-2.88l-40.3,37.19-17.23-3.7-3.7-17.23,37.19-40.3A8,8,0,0,0,187,29.24,72,72,0,0,0,88,96,72.34,72.34,0,0,0,94,124.94L33.79,177c-.15.12-.29.26-.43.39a32,32,0,0,0,45.26,45.26c.13-.13.27-.28.39-.42L131.06,162A72,72,0,0,0,232,96,71.56,71.56,0,0,0,226.76,69ZM160,152a56.14,56.14,0,0,1-27.07-7,8,8,0,0,0-9.92,1.77L67.11,211.51a16,16,0,0,1-22.62-22.62L109.18,133a8,8,0,0,0,1.77-9.93,56,56,0,0,1,58.36-82.31l-31.2,33.81a8,8,0,0,0-1.94,7.1L141.83,108a8,8,0,0,0,6.14,6.14l26.35,5.66a8,8,0,0,0,7.1-1.94l33.81-31.2A56.06,56.06,0,0,1,160,152Z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/></symbol>
+    <symbol id="i-link-simple" viewBox="0 0 256 256"><path d="M165.66,90.34a8,8,0,0,1,0,11.32l-64,64a8,8,0,0,1-11.32-11.32l64-64A8,8,0,0,1,165.66,90.34ZM215.6,40.4a56,56,0,0,0-79.2,0L106.34,70.45a8,8,0,0,0,11.32,11.32l30.06-30a40,40,0,0,1,56.57,56.56l-30.07,30.06a8,8,0,0,0,11.31,11.32L215.6,119.6a56,56,0,0,0,0-79.2ZM138.34,174.22l-30.06,30.06a40,40,0,1,1-56.56-56.57l30.05-30.05a8,8,0,0,0-11.32-11.32L40.4,136.4a56,56,0,0,0,79.2,79.2l30.06-30.07a8,8,0,0,0-11.32-11.31Z"/></symbol>
+    <symbol id="i-pencil-simple" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z"/></symbol>
+  </defs></svg>
+  <!--/SPRITE-->
 
   <!-- ───────────────────────── Header ───────────────────────── -->
   <header class="site-header" id="top">
     <div class="wrap header-inner">
       <a class="brand" href="#top" aria-label="HOMCOM COMPUTERS home">
-        <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
-          <path d="M50 14 L80 26 v26c0 18-12 29-30 34-18-5-30-16-30-34V26z" />
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="16.5" y="14" width="11" height="36" rx="4" />
+          <rect x="36.5" y="14" width="11" height="36" rx="4" />
+          <rect x="25" y="27.5" width="14" height="9" rx="3" />
         </svg>
         <span class="brand-name" data-site="brand">HOMCOM COMPUTERS</span>
       </a>
@@ -176,41 +214,41 @@
         <a href="#repairs">Repairs</a>
         <a href="#contact">Contact</a>
         <button type="button" class="nav-theme" id="installBtnNav" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M5 21h14"/></svg>
+          <svg class="i" aria-hidden="true"><use href="#i-download-simple" /></svg>
           <span>Install app</span>
         </button>
         <button type="button" class="nav-theme" id="themeToggleMobile">
-          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
-          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="i i-sun" aria-hidden="true"><use href="#i-sun" /></svg>
+          <svg class="i i-moon" aria-hidden="true"><use href="#i-moon" /></svg>
           <span class="light-only">Dark mode</span><span class="dark-only">Light mode</span>
         </button>
       </nav>
 
       <div class="header-actions">
-        <button class="btn btn-ghost btn-small search-trigger glass" id="openSearch" type="button" aria-haspopup="dialog">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <button class="btn btn-ghost btn-small search-trigger" id="openSearch" type="button" aria-haspopup="dialog">
+          <svg class="i" aria-hidden="true"><use href="#i-magnifying-glass" /></svg>
           <span>Search</span>
           <kbd class="kbd-hint">/</kbd>
         </button>
 
         <button class="btn btn-ghost btn-small install-btn" id="installBtn" type="button" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M5 21h14"/></svg>
+          <svg class="i" aria-hidden="true"><use href="#i-download-simple" /></svg>
           <span>Install app</span>
         </button>
 
         <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch colour theme" title="Switch theme">
-          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
-          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="i i-sun" aria-hidden="true"><use href="#i-sun" /></svg>
+          <svg class="i i-moon" aria-hidden="true"><use href="#i-moon" /></svg>
         </button>
 
         <button class="btn btn-ghost inquiry-btn" id="openInquiry" type="button" aria-haspopup="dialog">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+          <svg class="i" aria-hidden="true"><use href="#i-clipboard-text" /></svg>
           <span>Inquiry</span>
           <span class="badge" id="inquiryCount" hidden>0</span>
         </button>
 
         <button class="icon-btn nav-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <svg class="i" aria-hidden="true"><use href="#i-list" /></svg>
         </button>
       </div>
     </div>
@@ -218,53 +256,106 @@
   </header>
 
   <main>
-    <!-- ───────────────────────── Hero ───────────────────────── -->
-    <section class="hero">
-      <div class="wrap hero-inner">
-        <p class="brand-line reveal" data-site="brand">HOMCOM COMPUTERS</p>
-        <p class="eyebrow reveal">Genuine devices · Fair prices<span class="eyebrow-more"> · Repairs done right</span></p>
-        <h1 class="reveal">Computers and phones,<br /><em>sales and repairs.</em></h1>
-        <p class="lede reveal">
-          A carefully chosen catalogue of laptops, desktops, phones and the accessories that
-          actually go with them — plus a workshop that fixes what you already own.
-          Browse below, add what interests you to an inquiry, and send it over in one tap.
-        </p>
-        <button class="hero-search glass reveal" type="button" id="heroSearch" aria-haspopup="dialog">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <span>Search laptops, chargers, earphones, repairs…</span>
-          <kbd class="kbd-hint">/</kbd>
-        </button>
-        <div class="hero-search-shadow reveal" aria-hidden="true"></div>
-
-        <div class="hero-cta reveal">
-          <a class="btn btn-primary" href="#catalogue">Browse the catalogue</a>
-          <a class="btn btn-ghost" href="#repairs">Book a repair</a>
+    <!-- ───────────────────────── Hero ─────────────────────────
+         The shop's mark as a chrome object on its own stage, with three real
+         products from the shelf floating round it. Everything a walk-in needs
+         is in the first screen: what the shop is, where, whether it is open
+         now, and the two ways to act on it. -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <h1 id="heroTitle">Genuine laptops, phones and repairs.</h1>
+          <p class="hero-sub">On Tom Mboya Street, Nairobi. Walk in, or ask on WhatsApp before you come.</p>
+          <p class="hero-status">
+            <span class="status-pill" data-status-pill></span>
+            <span class="hero-status-detail" data-status-detail></span>
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-large" data-directions target="_blank" rel="noopener"
+               href="https://www.google.com/maps/dir/?api=1&amp;destination=Rasumal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya">
+              <svg class="i" aria-hidden="true"><use href="#i-navigation-arrow" /></svg>
+              <span>Get directions</span>
+            </a>
+            <a class="btn btn-glass btn-large" data-site="linkWhatsapp" target="_blank" rel="noopener"
+               href="https://wa.me/254724359797">
+              <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
+              <span>WhatsApp us</span>
+            </a>
+          </div>
+          <button class="hero-search" type="button" id="heroSearch" aria-haspopup="dialog">
+            <svg class="i" aria-hidden="true"><use href="#i-magnifying-glass" /></svg>
+            <span>Search laptops, chargers, earphones, repairs…</span>
+            <kbd class="kbd-hint">/</kbd>
+          </button>
         </div>
-        <ul class="hero-stats reveal">
-          <li><strong id="statCount">—</strong><span>products listed</span></li>
-          <li><strong id="statOffers">—</strong><span>on offer right now</span></li>
-          <li><strong>7&nbsp;days</strong><span>a week, every week</span></li>
-          <li><strong data-status-label>—</strong><span data-status-detail></span></li>
-        </ul>
+
+        <!-- The stage. motion.js draws the chrome H into the canvas; until it
+             does, and on any device where it should not, the drawn H below
+             stands in. The three tiles are real listings: app.js corrects the
+             name, price and photo from the catalogue once it has arrived. -->
+        <div class="stage" data-hero-stage data-fill="0.56">
+          <svg class="stage-poster" viewBox="16 13 32 38" aria-hidden="true">
+            <defs>
+              <linearGradient id="posterChrome" x1="0" y1="14" x2="0" y2="50" gradientUnits="userSpaceOnUse">
+                <stop offset="0" style="stop-color: var(--chrome-1)" />
+                <stop offset=".38" style="stop-color: var(--chrome-2)" />
+                <stop offset=".5" style="stop-color: var(--chrome-3)" />
+                <stop offset=".56" style="stop-color: var(--chrome-4)" />
+                <stop offset="1" style="stop-color: var(--chrome-5)" />
+              </linearGradient>
+            </defs>
+            <g fill="url(#posterChrome)">
+              <rect x="16.5" y="14" width="11" height="36" rx="4" />
+              <rect x="36.5" y="14" width="11" height="36" rx="4" />
+              <rect x="25" y="27.5" width="14" height="9" rx="3" />
+            </g>
+            <rect class="poster-slot" x="19.5" y="17.6" width="5" height="1.8" rx=".9" />
+            <circle class="poster-led" cx="42" cy="46.4" r="1.3" />
+          </svg>
+          <canvas class="stage-canvas" aria-hidden="true"></canvas>
+
+          <a class="float-tile ft-1" href="#p=hp-250-g9" data-hero-product="hp-250-g9" data-photo-sig="47511">
+            <img src="assets/img/hero/hp-elite-dragonfly.webp" width="256" height="256" alt="" decoding="async" fetchpriority="low" />
+            <span class="ft-text">
+              <span class="ft-name">HP Elite DragonFly</span>
+              <span class="ft-price" data-hero-price>KSh 60,000</span>
+            </span>
+          </a>
+          <a class="float-tile ft-2" href="#p=kb-mech-rgb" data-hero-product="kb-mech-rgb" data-photo-sig="41531">
+            <img src="assets/img/hero/mechanical-keyboard.webp" width="256" height="256" alt="" decoding="async" fetchpriority="low" />
+            <span class="ft-text">
+              <span class="ft-name">Mechanical Gaming Keyboard (RGB)</span>
+              <span class="ft-price" data-hero-price>KSh 5,000</span>
+            </span>
+          </a>
+          <a class="float-tile ft-3" href="#p=oraimo-spacebuds" data-hero-product="oraimo-spacebuds" data-photo-sig="36199">
+            <img src="assets/img/hero/oraimo-spacebuds.webp" width="256" height="256" alt="" decoding="async" fetchpriority="low" />
+            <span class="ft-text">
+              <span class="ft-name">Oraimo SpaceBuds</span>
+              <span class="ft-price" data-hero-price>KSh 6,000</span>
+            </span>
+          </a>
+        </div>
       </div>
-      <div class="hero-glow" aria-hidden="true"></div>
     </section>
 
     <!-- ───────────────────────── Catalogue ───────────────────────── -->
-    <section id="catalogue" class="section">
+    <section id="catalogue" class="section catalogue" aria-labelledby="catalogueTitle">
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <h2>The catalogue</h2>
-            <p class="section-sub">Filter by category, search by name, sort by price. Tap any product for the full spec.</p>
+            <h2 id="catalogueTitle">Stock and prices</h2>
+            <p class="section-sub">Every price is on the page. Tap a product for the full spec, or add it to your inquiry list and send the whole list in one message.</p>
           </div>
         </div>
 
         <div class="controls reveal">
           <div class="search">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <svg class="i" aria-hidden="true"><use href="#i-magnifying-glass" /></svg>
             <input type="search" id="search" placeholder="Search laptops, phones, chargers…" aria-label="Search products" autocomplete="off" />
-            <button type="button" class="clear-search" id="clearSearch" aria-label="Clear search" hidden>&times;</button>
+            <button type="button" class="clear-search" id="clearSearch" aria-label="Clear search" hidden>
+              <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+            </button>
           </div>
 
           <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
@@ -283,38 +374,55 @@
 
         <p class="result-count" id="resultCount" aria-live="polite"></p>
 
-        <div class="grid" id="grid"></div>
+        <!-- app.js replaces everything in here with the products. Until then,
+             on a slow connection, the shelf shows it is filling, and says how
+             to get a price without waiting. -->
+        <div class="grid" id="grid">
+          <div class="skel" aria-hidden="true"></div>
+          <div class="skel" aria-hidden="true"></div>
+          <div class="skel" aria-hidden="true"></div>
+          <div class="skel" aria-hidden="true"></div>
+          <div class="skel" aria-hidden="true"></div>
+          <div class="skel" aria-hidden="true"></div>
+          <p class="grid-wait" role="status">
+            The price list is still arriving on this connection.
+            <a data-site="linkWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">Ask on WhatsApp</a>
+            for a price right now.
+          </p>
+        </div>
+        <noscript>
+          <p class="grid-wait">The price list needs JavaScript switched on. Call <a href="tel:+254724359797">+254 724 359 797</a> or WhatsApp us for any price.</p>
+        </noscript>
 
         <div class="empty" id="empty" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <svg class="i" aria-hidden="true"><use href="#i-magnifying-glass" /></svg>
           <h3>Nothing matched that</h3>
           <p>Try a different search, or clear the filters to see everything.</p>
           <button class="btn btn-ghost" type="button" id="resetFilters">Reset filters</button>
         </div>
 
         <p class="note">
-          Don't see what you need? We source to order — <a href="#contact">tell us what you're after</a>.
+          Don't see what you need? We source to order: <a href="#contact">tell us what you're after</a>.
         </p>
       </div>
     </section>
 
     <!-- ───────────────────────── Repairs ───────────────────────── -->
-    <section id="repairs" class="section section-alt">
+    <section id="repairs" class="section repairs" aria-labelledby="repairsTitle">
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <h2>Repairs</h2>
+            <h2 id="repairsTitle">Repairs, done right</h2>
             <p class="section-sub">
               Bring in the machine or the phone and we'll tell you honestly what it needs, what it costs,
               and whether it's worth fixing at all.
             </p>
           </div>
           <a class="btn btn-primary" id="repairCta" href="https://wa.me/254106998733" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/></svg>
-            Describe your fault
+            <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
+            <span>Describe your fault</span>
           </a>
         </div>
-        <div class="services" id="services"></div>
 
         <div class="repair-contact reveal">
           <div class="repair-contact-intro">
@@ -328,86 +436,82 @@
           <div class="repair-contact-links">
             <a class="contact-card" id="repairWhatsapp" href="https://wa.me/254106998733" target="_blank" rel="noopener">
               <span class="contact-icon whatsapp">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
               </span>
               <span class="contact-body">
-                <strong>Repairs — WhatsApp</strong>
+                <strong>Repairs on WhatsApp</strong>
                 <span data-site="repairPhone">+254 106 998 733</span>
                 <em>Send a photo of the fault</em>
               </span>
+              <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
             <a class="contact-card" id="repairCall" href="tel:+254106998733">
               <span class="contact-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-phone" /></svg>
               </span>
               <span class="contact-body">
-                <strong>Repairs — call</strong>
+                <strong>Call the repair desk</strong>
                 <span data-site="repairPhone">+254 106 998 733</span>
                 <em data-contact-status></em>
               </span>
+              <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
             <a class="contact-card" id="repairEmail" href="mailto:mwangiherbert225@gmail.com">
               <span class="contact-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-envelope-simple" /></svg>
               </span>
               <span class="contact-body">
-                <strong>Repairs — email</strong>
+                <strong>Email the repair desk</strong>
                 <span data-site="repairEmail">mwangiherbert225@gmail.com</span>
                 <em>For quotes and job updates</em>
               </span>
+              <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
           </div>
         </div>
+
+        <div class="services" id="services"></div>
       </div>
     </section>
 
     <!-- ───────────────────────── Why us ───────────────────────── -->
-    <section id="why" class="section">
+    <section id="why" class="section why" aria-labelledby="whyTitle">
       <div class="wrap">
-        <div class="section-head reveal">
-          <div>
-            <h2>Why buy here</h2>
-            <p class="section-sub">Four things we don't compromise on.</p>
-          </div>
-        </div>
-        <div class="features">
-          <article class="feature reveal">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h2 id="whyTitle" class="reveal">Four things we don't compromise on</h2>
+        <ul class="why-list">
+          <li class="reveal">
             <h3>Genuine stock only</h3>
             <p>Original units and OEM accessories. If something is refurbished or ex-UK, the listing says so plainly.</p>
-          </article>
-          <article class="feature reveal">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </li>
+          <li class="reveal">
             <h3>Prices you can check</h3>
             <p>Every price is on the page. Ask about bundles or bulk and we'll quote honestly, in writing.</p>
-          </article>
-          <article class="feature reveal">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </li>
+          <li class="reveal">
             <h3>Advice before the sale</h3>
-            <p>Tell us the work you do and the budget you have. We'll say which machine fits — even the cheaper one.</p>
-          </article>
-          <article class="feature reveal">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+            <p>Tell us the work you do and the budget you have. We'll say which machine fits, even when it is the cheaper one.</p>
+          </li>
+          <li class="reveal">
             <h3>Setup and after-care</h3>
             <p>Windows, drivers, data transfer and a warranty note in the box. Questions after delivery are still free.</p>
-          </article>
-        </div>
+          </li>
+        </ul>
       </div>
     </section>
 
     <!-- ───────────────────────── Contact ───────────────────────── -->
-    <section id="contact" class="section section-alt">
+    <section id="contact" class="section contact" aria-labelledby="contactTitle">
       <div class="wrap">
         <div class="section-head reveal">
           <div>
-            <h2>Get in touch</h2>
+            <h2 id="contactTitle">Get in touch</h2>
             <p class="section-sub">Ask about stock, price, delivery or a device that isn't listed.</p>
           </div>
           <span class="status-pill" data-contact-pill></span>
         </div>
 
         <p class="contact-window reveal">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <svg class="i" aria-hidden="true"><use href="#i-clock" /></svg>
           <span data-site="contactNote">Calls, texts, WhatsApp and emails are answered between 8am and 8pm, every day. Messages sent outside those hours are answered first thing.</span>
         </p>
 
@@ -415,33 +519,33 @@
           <aside class="contact-cards reveal">
             <a class="contact-card" id="cardWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">
               <span class="contact-icon whatsapp">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/><path d="M9 8.5c.3 2.5 3.9 6.1 6.4 6.4l1.1-1.6-2.1-1-1 .9c-1-.5-1.9-1.4-2.4-2.4l.9-1-1-2.1z" fill="currentColor" stroke="none"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
               </span>
               <span class="contact-body">
-                <strong>WhatsApp — sales</strong>
+                <strong>Sales on WhatsApp</strong>
                 <span data-site="whatsappNumber">+254 724 359 797</span>
                 <em data-contact-status></em>
               </span>
-              <svg class="contact-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
 
             <div id="phoneList"></div>
 
             <a class="contact-card" id="cardEmail" href="mailto:homcomcomputers@gmail.com">
               <span class="contact-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-envelope-simple" /></svg>
               </span>
               <span class="contact-body">
-                <strong>Email — sales</strong>
+                <strong>Email sales</strong>
                 <span data-site="email">homcomcomputers@gmail.com</span>
                 <em>Best for quotes and invoices</em>
               </span>
-              <svg class="contact-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
 
             <div class="contact-card static hours-card">
               <span class="contact-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-clock" /></svg>
               </span>
               <span class="contact-body">
                 <strong>Opening hours</strong>
@@ -450,23 +554,23 @@
                   <em data-status-detail></em>
                 </span>
                 <ul class="hours-list" id="hoursList">
-                  <li><span>Mon – Fri</span><span>7:00 am – 8:00 pm</span></li>
-                  <li><span>Saturday</span><span>8:00 am – 9:00 am</span></li>
-                  <li><span>Sunday</span><span>10:00 am – 5:00 pm</span></li>
+                  <li><span>Mon – Fri</span><span>7am – 8pm</span></li>
+                  <li><span>Sat</span><span>8am – 9am</span></li>
+                  <li><span>Sun</span><span>10am – 5pm</span></li>
                 </ul>
                 <em data-site="holidayNote">Open 7 days a week, public holidays included.</em>
-                <em class="hours-contact">Calls, texts and emails: <b data-contact-window>8:00 am – 8:00 pm, every day</b></em>
+                <em class="hours-contact">Calls, texts and emails: <b data-contact-window>8am – 8pm, every day</b></em>
               </span>
             </div>
 
             <div class="contact-card static">
               <span class="contact-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <svg class="i" aria-hidden="true"><use href="#i-map-pin" /></svg>
               </span>
               <span class="contact-body">
                 <strong>Where we are</strong>
-                <span data-site="address">Rasulmal House, ground floor, first shop — Tom Mboya Street</span>
-                <em>Opposite Imenti House, near Odeon · walk-ins welcome</em>
+                <span data-site="address">Rasumal House, ground floor, first shop, Tom Mboya Street, Nairobi</span>
+                <em>Opposite Imenti House, near Odeon. Walk-ins welcome.</em>
               </span>
             </div>
           </aside>
@@ -506,17 +610,17 @@
 
             <div class="form-actions">
               <button type="submit" class="btn btn-primary" data-channel="whatsapp">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/></svg>
-                Send on WhatsApp
+                <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
+                <span>Send on WhatsApp</span>
               </button>
               <button type="submit" class="btn btn-ghost" data-channel="email">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-                Send by email
+                <svg class="i" aria-hidden="true"><use href="#i-envelope-simple" /></svg>
+                <span>Send by email</span>
               </button>
             </div>
             <p class="form-foot">
-              Your details go straight to us — nothing is stored on this site or shared onward.
-              Pick "A repair" above and it goes to the repair desk instead of sales.
+              Your details go straight to us. Nothing is stored on this site or shared onward.
+              Pick “A repair” above and it goes to the repair desk instead of sales.
             </p>
           </form>
         </div>
@@ -526,17 +630,17 @@
           <div class="map-head">
             <div>
               <h3>Find the shop</h3>
-              <p data-site="address">Rasulmal House, ground floor, first shop — Tom Mboya Street, Nairobi</p>
+              <p data-site="address">Rasumal House, ground floor, first shop, Tom Mboya Street, Nairobi</p>
               <p class="map-note" data-site="mapNote">Opposite Imenti House, near Odeon. Ground floor, first shop on your right.</p>
             </div>
             <div class="map-actions">
-              <a class="btn btn-primary btn-small" id="mapOpen" href="https://www.google.com/maps/search/?api=1&amp;query=Rasulmal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Open in Google Maps
+              <a class="btn btn-primary btn-small" id="mapDirections" href="https://www.google.com/maps/dir/?api=1&amp;destination=Rasumal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya" target="_blank" rel="noopener">
+                <svg class="i" aria-hidden="true"><use href="#i-navigation-arrow" /></svg>
+                <span>Get directions</span>
               </a>
-              <a class="btn btn-ghost btn-small" id="mapDirections" href="https://www.google.com/maps/dir/?api=1&amp;destination=Rasulmal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l19-8-8 19-2-9z"/></svg>
-                Get directions
+              <a class="btn btn-ghost btn-small" id="mapOpen" href="https://www.google.com/maps/search/?api=1&amp;query=Rasumal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya" target="_blank" rel="noopener">
+                <svg class="i" aria-hidden="true"><use href="#i-map-pin" /></svg>
+                <span>Open in Google Maps</span>
               </a>
             </div>
           </div>
@@ -554,13 +658,15 @@
     <div class="wrap footer-inner">
       <div class="footer-brand">
         <span class="brand">
-          <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
-            <path d="M50 14 L80 26 v26c0 18-12 29-30 34-18-5-30-16-30-34V26z" />
+          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <rect x="16.5" y="14" width="11" height="36" rx="4" />
+            <rect x="36.5" y="14" width="11" height="36" rx="4" />
+            <rect x="25" y="27.5" width="14" height="9" rx="3" />
           </svg>
           <span class="brand-name" data-site="brand">HOMCOM COMPUTERS</span>
         </span>
-        <p data-site="tagline">Computers, phones, accessories and repairs — done properly.</p>
-        <p class="footer-address" data-site="address">Rasulmal House, ground floor, first shop — Tom Mboya Street, Nairobi</p>
+        <p data-site="tagline">Computers, phones, accessories and repairs, done properly.</p>
+        <p class="footer-address" data-site="address">Rasumal House, ground floor, first shop, Tom Mboya Street, Nairobi</p>
         <span class="status-pill" data-status-pill></span>
       </div>
 
@@ -581,7 +687,7 @@
         </div>
         <div>
           <h4>Reach us</h4>
-          <a data-site="linkWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">WhatsApp — sales</a>
+          <a data-site="linkWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">WhatsApp sales</a>
           <a data-site="linkPhone" href="tel:+254724359797">Call sales</a>
           <a data-site="linkEmail" href="mailto:homcomcomputers@gmail.com">Email sales</a>
           <a href="#repairs">Repair desk</a>
@@ -603,8 +709,8 @@
       <div class="compare-bar-actions">
         <button type="button" class="btn btn-ghost btn-small" id="compareClear">Clear</button>
         <button type="button" class="btn btn-primary btn-small" id="compareOpen">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M4 17h7M17 4v16M14 7l3-3 3 3M14 17l3 3 3-3"/></svg>
-          Compare <span id="compareCount">0</span>
+          <svg class="i" aria-hidden="true"><use href="#i-arrows-left-right" /></svg>
+          <span>Compare <span id="compareCount">0</span></span>
         </button>
       </div>
     </div>
@@ -613,20 +719,24 @@
   <!-- ───────────────────────── Search ───────────────────────── -->
   <div class="search-overlay" id="searchOverlay" hidden>
     <div class="modal-backdrop" data-close></div>
-    <div class="search-panel glass" role="dialog" aria-modal="true" aria-label="Search the shop">
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="Search the shop">
       <div class="search-bar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <svg class="i" aria-hidden="true"><use href="#i-magnifying-glass" /></svg>
         <input type="search" id="globalSearch" autocomplete="off" spellcheck="false"
                placeholder="What are you looking for?"
                aria-label="Search products and repairs" role="combobox"
                aria-expanded="true" aria-controls="searchResults" aria-autocomplete="list" />
-        <button type="button" class="search-clear" id="searchClear" aria-label="Clear" hidden>&times;</button>
-        <button type="button" class="modal-close" data-close aria-label="Close search">&times;</button>
+        <button type="button" class="search-clear" id="searchClear" aria-label="Clear" hidden>
+          <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+        </button>
+        <button type="button" class="modal-close" data-close aria-label="Close search">
+          <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+        </button>
       </div>
       <div class="search-results" id="searchResults" role="listbox" aria-label="Search results"></div>
       <div class="search-foot">
         <span class="search-keys">
-          <kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>↵</kbd> to open · <kbd>Esc</kbd> to close
+          <kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>Enter</kbd> to open · <kbd>Esc</kbd> to close
         </span>
         <button type="button" class="btn btn-ghost btn-small" id="searchAll">See all in the catalogue</button>
       </div>
@@ -637,7 +747,9 @@
   <div class="modal" id="modal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <button class="modal-close" type="button" data-close aria-label="Close">
+        <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+      </button>
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
@@ -646,15 +758,14 @@
   <div class="modal" id="compareModal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-panel wide" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
-      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <button class="modal-close" type="button" data-close aria-label="Close">
+        <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+      </button>
       <div class="compare-wrap">
         <h2 id="compareTitle">Side by side</h2>
         <p class="compare-sub">Rows that differ are highlighted, so the trade-offs are easy to spot.</p>
         <p class="compare-swipe" id="compareSwipe">
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M9 8l-4 4 4 4M15 8l4 4-4 4"/>
-          </svg>
+          <svg class="i" aria-hidden="true"><use href="#i-hand-swipe-right" /></svg>
           Swipe sideways to see the rest
         </p>
         <div class="compare-scroll"><table class="compare-table" id="compareTable"></table></div>
@@ -668,7 +779,9 @@
     <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
       <header class="drawer-head">
         <h2 id="drawerTitle">Your inquiry list</h2>
-        <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+        <button class="modal-close" type="button" data-close aria-label="Close">
+          <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+        </button>
       </header>
       <div class="drawer-body" id="drawerBody"></div>
       <footer class="drawer-foot" id="drawerFoot"></footer>
@@ -684,7 +797,9 @@
           <h2 id="manageTitle">Manage catalogue</h2>
           <p class="drawer-sub">Products, photos, 360° views, offers and categories. Applies here immediately.</p>
         </div>
-        <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+        <button class="modal-close" type="button" data-close aria-label="Close">
+          <svg class="i" aria-hidden="true"><use href="#i-x" /></svg>
+        </button>
       </header>
       <div class="drawer-body" id="manageBody"></div>
       <footer class="drawer-foot" id="manageFoot">
@@ -704,11 +819,82 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js"></script>
-  <!-- The night sky. Loaded last and on its own: it is decoration, so it must
-       never be in the way of the catalogue arriving, and if it fails the shop
-       does not notice. -->
-  <script src="assets/js/starfield.js" defer></script>
+  <!-- The moving parts and the controls that must work before the catalogue
+       arrives. async and placed after the content: it runs as soon as it is
+       here, and everything it needs has already been read. -->
+  <script async src="assets/js/motion.js?v=28"></script>
+
+  <!-- Opening hours, painted now rather than after the catalogue arrives.
+       These are the same hours as SITE.hours in data.js; app.js repaints the
+       badges from data.js once it runs, and tools/check-site.js fails if the
+       two ever disagree. -->
+  <script id="shopHours" type="application/json">{"timezone":"Africa/Nairobi","hours":{"mon":["07:00","20:00"],"tue":["07:00","20:00"],"wed":["07:00","20:00"],"thu":["07:00","20:00"],"fri":["07:00","20:00"],"sat":["08:00","09:00"],"sun":["10:00","17:00"]},"contactHours":["08:00","20:00"]}</script>
+  <script>
+    (function () {
+      try {
+        var cfg = JSON.parse(document.getElementById('shopHours').textContent);
+        var keys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        var names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        var parts = new Intl.DateTimeFormat('en-GB', {
+          weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: cfg.timezone
+        }).formatToParts(new Date());
+        var get = function (type) {
+          for (var i = 0; i < parts.length; i++) if (parts[i].type === type) return parts[i].value;
+          return '';
+        };
+        var day = keys.indexOf(get('weekday').slice(0, 3).toLowerCase());
+        if (day < 0) day = 0;
+        var now = (Number(get('hour')) % 24) * 60 + Number(get('minute'));
+        var mins = function (s) { var p = String(s).split(':'); return Number(p[0]) * 60 + Number(p[1] || 0); };
+        var clock = function (s) {
+          var m = mins(s), h = Math.floor(m / 60), mm = m % 60;
+          return (h % 12 || 12) + (mm ? ':' + (mm < 10 ? '0' : '') + mm : '') + (h >= 12 ? 'pm' : 'am');
+        };
+        var range = function (i) { var r = cfg.hours[keys[(i + 7) % 7]]; return r && r.length === 2 ? r : null; };
+
+        var shop = { open: false, label: 'Closed', detail: '' };
+        var today = range(day);
+        if (today && now >= mins(today[0]) && now < mins(today[1])) {
+          shop = { open: true, label: 'Open now', detail: 'Closes ' + clock(today[1]) };
+        } else if (today && now < mins(today[0])) {
+          shop.detail = 'Opens ' + clock(today[0]) + ' today';
+        } else {
+          for (var ahead = 1; ahead <= 7; ahead++) {
+            var next = range(day + ahead);
+            if (!next) continue;
+            shop.detail = 'Opens ' + (ahead === 1 ? 'tomorrow' : names[(day + ahead) % 7]) + ' ' + clock(next[0]);
+            break;
+          }
+        }
+
+        var c = cfg.contactHours;
+        var contact = !c ? { open: true, label: 'Message us', detail: '' }
+          : (now >= mins(c[0]) && now < mins(c[1]))
+            ? { open: true, label: 'Answering now', detail: 'until ' + clock(c[1]) }
+            : { open: false, label: 'Outside contact hours', detail: 'we reply from ' + clock(c[0]) };
+
+        var pill = function (el, s) {
+          el.classList.toggle('is-open', s.open);
+          el.classList.toggle('is-closed', !s.open);
+          el.innerHTML = '<span class="status-dot"></span><span class="status-text"></span>';
+          el.lastChild.textContent = s.label;
+        };
+        var each = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
+        each('[data-status-pill]', function (el) { pill(el, shop); el.title = shop.label + (shop.detail ? ' · ' + shop.detail : ''); });
+        each('[data-status-detail]', function (el) { el.textContent = shop.detail; });
+        each('[data-contact-pill]', function (el) { pill(el, contact); });
+        each('[data-contact-status]', function (el) {
+          el.textContent = contact.label + (contact.detail ? ' · ' + contact.detail : '');
+          el.classList.toggle('is-closed', !contact.open);
+        });
+      } catch (e) { /* app.js paints these when it arrives */ }
+    })();
+  </script>
+
+  <!-- The catalogue, then the shop that uses it. data.js is asked for at low
+       priority so the stylesheet, the typeface and the first screen get the
+       connection first; it takes longest to arrive either way. -->
+  <script src="assets/js/data.js" fetchpriority="low"></script>
+  <script src="assets/js/app.js?v=28"></script>
 </body>
 </html>

@@ -13,30 +13,51 @@
    Bump CACHE_VERSION whenever you upload changed files — that is what tells
    every phone to fetch the new version instead of serving the old one. Keep
    BUILD in app.js on the same number; the Manage panel shows it, so you can
-   see which version a phone is actually running.
+   see which version a phone is actually running. The ?v= on the stylesheet
+   and scripts, here and in index.html, is that same number too
+   (tools/check-site.js checks all four agree).
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v27';
+const CACHE_VERSION = 'homcom-v28';
 const SHELL = [
   './',
   './index.html',
-  './assets/css/styles.css',
+  './assets/css/styles.css?v=28',
+  './assets/fonts/hanken-grotesk.woff2',
   './assets/js/data.js',
-  './assets/js/app.js',
-  './assets/js/starfield.js',
+  './assets/js/motion.js?v=28',
+  './assets/js/app.js?v=28',
+  './assets/img/hero/hp-elite-dragonfly.webp',
+  './assets/img/hero/mechanical-keyboard.webp',
+  './assets/img/hero/oraimo-spacebuds.webp',
   './manifest.webmanifest',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
+  /* Where each file comes from.
+
+     On a phone's first visit there is no older worker, and the page that is
+     registering this one has just downloaded every file in SHELL itself. They
+     are sitting in the browser's own cache, fresh, so they are taken from
+     there: at 9 KB/s, fetching the megabyte catalogue a second time would
+     cost the customer minutes of data for nothing.
+
+     On an update there is an older worker, and the page may have been served
+     old files by it. Then everything but the catalogue skips the browser's
+     cache (`reload`), so a new version never precaches an old file. The
+     catalogue is always fetched network-first below anyway, so the copy kept
+     here is only the offline fallback and is replaced on the next visit. */
+  const firstInstall = !self.registration.active;
+  const modeFor = (url) => (firstInstall || /data\.js$/.test(url) ? 'default' : 'reload');
+
   event.waitUntil(
     caches.open(CACHE_VERSION)
       // addAll fails the whole install if one file 404s; add them individually
-      // so a missing optional asset can never break the install. `reload` skips
-      // the browser's own cache, so a new version never precaches an old file.
+      // so a missing optional asset can never break the install.
       .then((cache) => Promise.all(SHELL.map((url) =>
-        cache.add(new Request(url, { cache: 'reload' })).catch(() => null))))
+        cache.add(new Request(url, { cache: modeFor(url) })).catch(() => null))))
       .then(() => self.skipWaiting())
   );
 });

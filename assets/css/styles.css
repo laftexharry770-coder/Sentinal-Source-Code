@@ -50,8 +50,6 @@
   --ease-in-out: cubic-bezier(.77, 0, .175, 1);
   --ease-sheet: cubic-bezier(.32, .72, 0, 1);
 
-  --r-sm: 10px;
-  --r: 16px;
   --r-lg: 24px;
   --r-xl: 32px;
   --wrap: 1200px;
@@ -105,6 +103,7 @@
   --cta-shadow:  inset 0 1px 0 rgba(255, 255, 255, .22), 0 10px 22px -10px rgba(0, 0, 0, .7);
   --panel-border: var(--glass-edge);
   --panel-shadow: 0 0 0 0 transparent;   /* on near-black a panel is its edge; a shadow would not show */
+  --bar-shadow:   0 0 0 0 transparent;   /* the same for a bar along the bottom */
   --tile-border: var(--glass-edge);
   --tile-shadow: var(--glass-top);
   --media-bg:    #0D0E15;   /* also the floor the glass plates were rendered on */
@@ -178,6 +177,7 @@
   --cta-shadow:  inset 0 1px 0 rgba(255, 255, 255, .22), 0 10px 22px -12px rgba(0, 0, 0, .3);
   --panel-border: transparent;
   --panel-shadow: 0 30px 70px -24px rgba(0, 0, 0, .28);
+  --bar-shadow:   0 -18px 40px -20px rgba(20, 16, 50, .26);
   --tile-border: transparent;
   --tile-shadow: var(--glass-top), 0 18px 36px -18px rgba(0, 0, 0, .26);
   --media-bg:    #F4F3F9;   /* the Day plates' floor */
@@ -727,19 +727,21 @@ kbd, .kbd-hint {
 
 /* Before the catalogue arrives: the shelf, filling. */
 .skel {
+  position: relative; overflow: hidden;
   aspect-ratio: 3 / 4; border-radius: 22px;
   border: 1px solid var(--line);
-  background:
-    linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .06) 50%, transparent 70%) 0 0 / 250% 100%,
-    var(--card-bg);
+  background: var(--card-bg);
+}
+[data-theme="light"] .skel { background: #FFFFFF; }
+/* The sheen crosses on the compositor (a transform), not by repainting. */
+.skel::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .06) 50%, transparent 70%);
+  transform: translateX(-100%);
   animation: shimmer 1.8s linear infinite;
 }
-[data-theme="light"] .skel {
-  background:
-    linear-gradient(100deg, transparent 30%, rgba(123, 107, 255, .08) 50%, transparent 70%) 0 0 / 250% 100%,
-    #FFFFFF;
-}
-@keyframes shimmer { from { background-position: 125% 0, 0 0; } to { background-position: -125% 0, 0 0; } }
+[data-theme="light"] .skel::after { background: linear-gradient(100deg, transparent 30%, rgba(123, 107, 255, .08) 50%, transparent 70%); }
+@keyframes shimmer { to { transform: translateX(100%); } }
 .grid-wait {
   grid-column: 1 / -1;
   max-width: 60ch; padding-top: 6px;
@@ -1004,7 +1006,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 .repair-contact-intro p { margin: 12px 0 16px; color: var(--ink-2); font-size: .95rem; }
 .repair-contact-links { display: grid; grid-template-columns: minmax(0, 1fr); border-bottom: 1px solid var(--line); }
 
-/* The services, ruled like a price list: one row each, number and name, what
+/* The services, ruled like a price list: one row each, the service, what
    it covers and what is fixed, how long it takes and who to ask. */
 .services { margin-top: clamp(40px, 5vw, 64px); border-bottom: 1px solid var(--line-2); }
 .service {
@@ -1387,8 +1389,8 @@ html:not(.js) .map-load { display: none; }
 /* ── Compare ─────────────────────────────────────────────────────────────── */
 .compare-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
-  border-top: 1px solid var(--glass-edge);
-  background: var(--glass-solid); box-shadow: 0 -18px 40px -20px rgba(0, 0, 0, .5);
+  border-top: 1px solid var(--panel-border);
+  background: var(--glass-solid); box-shadow: var(--bar-shadow);   /* edge at night, lift by day */
   animation: bar-up .32s var(--ease-sheet);
 }
 @keyframes bar-up { from { transform: translateY(100%); } }
@@ -1632,8 +1634,8 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
     position: absolute; top: calc(100% + 1px); left: 0; right: 0;
     display: none; flex-direction: column; align-items: stretch; gap: 2px;
     padding: 10px 12px 16px;
-    background: var(--glass-solid); border-bottom: 1px solid var(--line);
-    box-shadow: 0 24px 40px -20px rgba(0, 0, 0, .5);
+    background: var(--glass-solid); border-bottom: 1px solid var(--panel-border);
+    box-shadow: var(--panel-shadow);   /* edge at night, lift by day */
   }
   .nav.open { display: flex; animation: panel-in .22s var(--ease-out); }
   .nav a { padding: 12px 14px; border-radius: 12px; font-size: 1.05rem; }
@@ -1858,7 +1860,7 @@ html.lite .site-header, html.lite .float-tile, html.lite .modal-backdrop, html.l
 }
 html.lite .site-header { background: var(--header-solid); }
 html.lite .float-tile { background: var(--glass-solid); animation: none; }
-html.lite .skel { animation: none; }
+html.lite .skel::after { animation: none; }
 html.lite .card::after { display: none !important; }
 html.lite .hero-canvas { display: none; }
 html.lite .stage .stage-poster, html.lite .stage::before { opacity: 1; }

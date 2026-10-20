@@ -551,7 +551,8 @@ round it. Two themes share one world.
 - **Night** is deep space ink (`#07080C`) with ion light running from violet
   (`#7B6BFF`) to blue (`#4C8DFF`), and amber (`#FFB45A`) kept for offers.
 - **Day** is pale lavender (`#F3F2F8`) with the same light at low strength and
-  violet glass ribbons behind the H.
+  violet glass ribbons behind the H. By day the chrome reflects that room: the
+  pale field and the ribbons' violet, never a black the page does not show.
 
 Every colour is a named variable at the top of `styles.css`, with a Night value
 and a Day value, written as plain `rgba()` so older iPhones get exactly the same
@@ -591,9 +592,11 @@ id `i-<name>`.
   `data-photo-sig` to the length of that product's first photo in `data.js`.
 - **Products without a photo** are not given clip-art. They become a pane of
   glass with the maker's name set large and the model under it; where there is
-  no maker's name, the product's own name is the headline. The glass is
+  no maker's name, what defines it leads instead (65W, 2m, AC1200, 8-in-1),
+  so the plate never just repeats the name printed under it. The glass is
   rendered, one per category for Night and for Day (`assets/img/plates/`, made
-  with `tools/plates/render.html`).
+  with `tools/plates/render.html`), and the words are laid on its face in 3D,
+  so they recede with it.
 
 ### The rest of the page
 

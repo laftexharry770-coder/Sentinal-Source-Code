@@ -105,12 +105,51 @@
   // but never just after a hyphen: a word joiner (U+2060) follows each one.
   const joinHyphens = (text) => String(text).replace(/-(?=\S)/g, '-\u2060');
 
+  /* A plate with no maker's name leads with what defines the product, its
+     wattage, length, port count or standard ("65W", "2m", "8-in-1",
+     "AC1200"), and sets the rest of its name under it: the card's title is
+     printed right below, so the plate never repeats it word for word. The
+     figure comes from the name, else from the specs; a bundle is named by
+     its parts ("Case + Glass"); failing all of those, the noun ("Case")
+     leads and its qualifiers follow. */
+  const SPEC_IN_NAME = [
+    /\b\d+-(?:Way|Socket|Camera|in-1)\b/i,     // 4-Way, 6-Socket, 8-in-1
+    /\(([^)\s]+)[^)]*\)/,                     // (2m), (AC1200), (1080p support)
+    /\b\d+(?:[.,]\d+)?(?:W|mAh|TB|GB|Hz|VA)\b/, // 65W
+    /\bwith ([A-Z]{2,})\b/                     // with ANC
+  ];
+  const SPEC_IN_SPECS = /\b\d+(?:\.\d+)?\s?(?:mm|cm|m|H|W|mAh|GB|TB|dB)\b/;
+
+  function plateLead(product) {
+    const name = String(product.name || '').trim();
+    for (const re of SPEC_IN_NAME) {
+      const m = name.match(re);
+      if (m) return { lead: m[1] || m[0], rest: headline(name.replace(m[0], ' ').replace(/\s+/g, ' ').trim()) };
+    }
+    // A bundle is named by what is in it: "Case + Glass", then "Bundle".
+    if (/\s\+\s/.test(name)) {
+      const generic = /\s+(Bundle|Kit|Set|Combo|Pack)$/i;
+      const kind = (name.match(generic) || [])[1] || '';
+      const items = name.replace(generic, '').split(/\s+\+\s+/).map((part) => part.trim().split(/\s+/).pop());
+      return { lead: items.join(' + '), rest: kind };
+    }
+    for (const value of Object.values(product.specs || {})) {
+      const m = String(value).match(SPEC_IN_SPECS);
+      if (m) return { lead: m[0].replace(/\s+/g, ''), rest: headline(name) };
+    }
+    const words = headline(name).split(/\s+/);
+    return words.length > 1
+      ? { lead: words[words.length - 1], rest: words.slice(0, -1).join(' ') }
+      : { lead: name, rest: '' };
+  }
+
   const plate = (product) => {
     const parts = plateParts(product.name);
-    return '<div class="plate" data-cat="' + esc(product.category) + '" aria-hidden="true">' +
-      (parts.brand ? '<span class="plate-brand">' + esc(joinHyphens(parts.brand)) + '</span>' : '') +
-      '<span class="plate-model">' + esc(joinHyphens(parts.model)) + '</span>' +
-    '</div>';
+    const lines = parts.brand ? { lead: parts.brand, rest: parts.model } : plateLead(product);
+    return '<div class="plate" data-cat="' + esc(product.category) + '" aria-hidden="true"><div class="plate-face">' +
+      '<span class="plate-brand' + (lines.lead.length > 8 ? ' is-long' : '') + '">' + esc(joinHyphens(lines.lead)) + '</span>' +
+      (lines.rest ? '<span class="plate-model">' + esc(joinHyphens(lines.rest)) + '</span>' : '') +
+    '</div></div>';
   };
 
   const plateMini = (product) =>
@@ -584,13 +623,12 @@
     const wrap = $('#services');
     if (!wrap || typeof SERVICES === 'undefined') return;
 
-    /* One row each, ruled like a price list: number and name, what it covers,
+    /* One row each, ruled like a price list: the service, what it covers,
        how long it takes and who to ask. */
-    wrap.innerHTML = SERVICES.map((service, i) => {
+    wrap.innerHTML = SERVICES.map((service) => {
       const ask = 'Hi ' + SITE.brand + ', I need help with ' + service.name.toLowerCase() + '. My device is ';
       return '<article class="service reveal">' +
-        '<h3 class="service-name"><span class="service-n">' + String(i + 1).padStart(2, '0') + '</span>' +
-          esc(service.name) + '</h3>' +
+        '<h3 class="service-name">' + esc(service.name) + '</h3>' +
         '<p class="service-desc">' + esc(service.desc) + '</p>' +
         '<ul class="service-items">' + (service.items || []).map((item) =>
           '<li>' + esc(item) + '</li>').join('') + '</ul>' +
@@ -684,6 +722,21 @@
     '</p>';
   }
 
+  /* Up to three facts that fit on one line ("Memory · 16GB DDR4"), for the
+     wide photo card; long ones are left to the pop-up rather than cut off.
+     With none short enough, a description that is itself short stands in. */
+  function cardFacts(p) {
+    const facts = Object.entries(p.specs || {})
+      .filter(([k, v]) => (String(k) + String(v)).length <= 30 && !/warranty/i.test(k))
+      .slice(0, 3);
+    if (facts.length) {
+      return '<ul class="card-facts">' + facts.map(([k, v]) =>
+        '<li><span class="k">' + esc(k) + '</span><span class="v">' + esc(v) + '</span></li>').join('') + '</ul>';
+    }
+    const desc = String(p.desc || '').trim();
+    return desc && desc.length <= 90 && !/\n/.test(desc) ? '<p class="card-blurb">' + esc(desc) + '</p>' : '';
+  }
+
   function cardHTML(p, index) {
     const stock = STOCK[stockOf(p)];
     const added = state.inquiry.includes(p.id);
@@ -708,6 +761,7 @@
           // Not a heading: the whole card is one button, whose contents a
           // screen reader reads as its label, never as a page outline.
           '<p class="card-title">' + keepWhole(p.name) + '</p>' +
+          (feature ? cardFacts(p) : '') +
           '<div class="card-foot">' +
             '<span class="stock ' + stock.cls + '">' + stock.text + '</span>' +
             '<span class="card-tools">' +
@@ -759,7 +813,7 @@
       if (!photo) { tile.hidden = true; return; }
       tile.hidden = false;
       const name = $('.ft-name', tile);
-      if (name) name.textContent = p.name;
+      if (name) name.textContent = headline(p.name);   // "(RGB)" and the like are for the pop-up
       const price = $('[data-hero-price]', tile);
       if (price) price.textContent = p.price == null ? '' : money(p.price);
       const img = $('img', tile);
@@ -939,7 +993,7 @@
 
     $('#modalBody').innerHTML =
       '<div class="modal-grid">' +
-        '<div class="modal-media">' + viewerHTML(p) + '</div>' +
+        '<div class="modal-media"><div class="modal-stage">' + viewerHTML(p) + '</div></div>' +
         '<div class="modal-info">' +
           '<h3 id="modalTitle">' + keepWhole(p.name) + '</h3>' +
           '<p class="modal-price">' +

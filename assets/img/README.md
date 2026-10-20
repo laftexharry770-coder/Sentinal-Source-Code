@@ -37,9 +37,14 @@ Re-rendering with the same settings gives the same file, byte for byte.
 The slab is centred (8–90% across, 17–81% down) so one image fills a square
 pop-up, a 4:3 card (which crops 12.5% off the top and bottom) and a thumbnail.
 By night the lower body of the glass is in shadow, which is where the
-product's name is set: measured against the brightest 2% of the glass behind
-each line of words on the shipped files, they hold at least 6.4:1 on desktop
-cards and in the pop-up and 5.7:1 on phone cards; by day at least 5:1. A new
+product's name is set. The words are not part of the image: the page lays them
+on the slab's front face in CSS 3D, using the renderer's own camera and the
+slab's turn for that plate (`.plate-face` in `styles.css`), so they recede
+with the glass. Measured against the brightest 2% of the glass behind each
+line on the shipped files, they hold at least 4.8:1 on desktop cards, 5.8:1 in
+the pop-up and 4.3:1 on phone cards (where the lead line is large bold text);
+by day at least 5:1. If a plate is re-rendered with a different turn, its
+`--plate-ry` in `styles.css` must follow (rotY = 0.36 − 0.02 × seed). A new
 category with no plates of its own borrows the computers ones;
 `tools/check-site.js` lists it.
 

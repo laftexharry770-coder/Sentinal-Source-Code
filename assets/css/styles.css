@@ -94,8 +94,6 @@
   --warn:        #FFC56B;
   --danger:      #FF7F7A;
   --danger-soft: rgba(255, 127, 122, .12);
-  --wa:          #25D366;
-  --wa-ink:      #04210F;
 
   /* At night a surface is defined by its edge: a hairline and a lit top.
      A drop shadow on near-black is invisible, so there is none. */
@@ -113,8 +111,9 @@
 
   /* The plates are lit from above; by night the lower body of the glass
      falls into shadow, and the name is set there. Measured against the
-     brightest 2% of the glass behind each line: at least 6.4:1 on desktop
-     cards and in the pop-up, 5.7:1 on a phone card. */
+     brightest 2% of the glass behind each line: at least 4.8:1 on desktop
+     cards, 5.8:1 in the pop-up, and 4.3:1 on a phone card, where the lead
+     line is large bold text (AA asks 3:1 of that). */
   --plate-ink:   #F2F1F7;
   --plate-ink-2: #D2CFE2;
 
@@ -134,7 +133,6 @@
   --map-filter:  invert(.9) hue-rotate(180deg) saturate(.7) brightness(.92) contrast(.92);
   --map-ground:  #0B0C12;   /* the street sketch under the live map */
   --map-block:   #12131C;
-  --map-block-edge: rgba(255, 255, 255, .06);
   --map-street:  #1A1C28;
   --map-centre:  rgba(255, 255, 255, .16);
   --map-shop:    rgba(123, 107, 255, .14);
@@ -185,7 +183,8 @@
   --media-bg:    #F4F3F9;   /* the Day plates' floor */
 
   /* By day the glass darkens toward its lower edge, where it reflects the
-     dark band of the studio: ink, not grey, to hold 5:1 there. */
+     dark band of the studio: ink, not grey, to hold 5:1 there (measured
+     5.07:1 at worst). */
   --plate-ink:   #14121F;
   --plate-ink-2: #2E2B40;
 
@@ -205,7 +204,6 @@
   --map-filter:  none;
   --map-ground:  #ECEAF4;
   --map-block:   #FFFFFF;
-  --map-block-edge: rgba(20, 16, 50, .06);
   --map-street:  #DAD7E6;
   --map-centre:  rgba(20, 16, 50, .22);
   --map-shop:    rgba(91, 75, 239, .10);
@@ -350,9 +348,11 @@ kbd, .kbd-hint {
   border-color: var(--glass-edge);
   box-shadow: var(--glass-top);
 }
+/* WhatsApp is the shop's main line, so its buttons are the page's own
+   primary action; the label and the logo say which app, not a green. */
 .btn-wa {
-  color: var(--wa-ink);
-  background: var(--wa);
+  color: #FFFFFF;
+  background: linear-gradient(135deg, var(--cta-1), var(--cta-2));
   box-shadow: var(--cta-shadow);
 }
 .btn-small { min-height: 38px; padding: 0 15px; font-size: .86rem; gap: 7px; }
@@ -518,6 +518,10 @@ kbd, .kbd-hint {
   margin-top: 20px; max-width: 34ch;
   font-size: clamp(1.02rem, 1.4vw, 1.2rem); color: var(--ink-2); line-height: 1.5;
 }
+/* The header carries the shop's status once the hero's own line is out of
+   view (motion.js watches it), so the first screen says "Closed" once. */
+.header-status { transition: opacity .3s var(--ease-out), visibility .3s; }
+.site-header.hero-status-in-view .header-status { opacity: 0; visibility: hidden; }
 .hero-status {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
   margin-top: 22px; min-height: 30px;
@@ -591,10 +595,7 @@ kbd, .kbd-hint {
   border-radius: 13px; background: var(--media-bg);
 }
 .ft-text { display: flex; flex-direction: column; gap: 1px; padding: 0 4px; min-width: 0; }
-.ft-name {
-  font-size: .78rem; font-weight: 550; line-height: 1.3; color: var(--ink-2);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.ft-name { font-size: .78rem; font-weight: 550; line-height: 1.25; color: var(--ink-2); }   /* wraps; never cut off */
 .ft-price { font-size: .95rem; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
 .ft-price:empty { display: none; }
 @media (hover: hover) and (pointer: fine) {
@@ -769,39 +770,57 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 [data-theme="light"] :is(.plate, .plate-mini)[data-cat="phone-accessories"]           { --plate-img: url("../img/plates/phone-accessories-day.webp"); }
 [data-theme="light"] :is(.plate, .plate-mini)[data-cat="other-tech"]                  { --plate-img: url("../img/plates/other-tech-day.webp"); }
 
-/* The words sit inside the slab's lower left, clear of its bevel. The slab
-   spans 8–90% of the image across and 17–81% down, so its lower edge is
-   20% up a square plate and 10% up a 4:3 one (cover crops 12.5% top and
-   bottom); padding in % is of the width, hence two values. */
+/* The words are set on the glass itself: .plate-face is the slab's front
+   face, turned exactly as tools/plates/render.html turned it, so the lettering
+   lies in the slab's plane and recedes with it. The renderer's camera sits
+   4.6 units from the slab with a focal length of 1.8 / 0.57, which makes one
+   unit 34.33% of the image's width (cqi, here) and the perspective 4.6 units;
+   the slab is 2.40 × 1.72 units, centred .03 right and .03 up, its face .17
+   in front, turned rotY (per plate, below), then rotX .24, then rotZ .03.
+   Cover cropping keeps the centre, so the same face fits a square pop-up and
+   a 4:3 card. */
 .plate {
+  --plate-ry: .40rad;
   position: relative; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: flex-end; gap: 3px;
   width: 100%; height: 100%;
-  padding: 0 24% 26% 15%;
   color: var(--plate-ink);
+  perspective: 157.9cqi; perspective-origin: 50% 50%;
 }
-.card-media > .plate {
-  padding-bottom: 13.5%;
-  background-size: 100% auto;   /* the same as cover here, but it can ease */
-  transition: background-size .6s var(--ease-out);
+.plate[data-cat="computer-accessories"] { --plate-ry: .36rad; }
+.plate[data-cat="phones"]               { --plate-ry: .32rad; }
+.plate[data-cat="phone-accessories"]    { --plate-ry: .38rad; }
+.plate[data-cat="other-tech"]           { --plate-ry: .34rad; }
+[data-theme="light"] .plate                                { --plate-ry: .38rad; }
+[data-theme="light"] .plate[data-cat="computer-accessories"] { --plate-ry: .34rad; }
+[data-theme="light"] .plate[data-cat="phones"]               { --plate-ry: .40rad; }
+[data-theme="light"] .plate[data-cat="phone-accessories"]    { --plate-ry: .36rad; }
+[data-theme="light"] .plate[data-cat="other-tech"]           { --plate-ry: .32rad; }
+/* Without container units the words sit flat in the slab's lower left. */
+.plate-face {
+  position: absolute; left: 15%; right: 22%; bottom: 24%;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: .2em;
 }
-.plate-brand, .plate-model { position: relative; overflow-wrap: anywhere; }
+@supports (width: 1cqi) {
+  .plate-face {
+    left: 50%; top: 50%; right: auto; bottom: auto;
+    width: 82.4cqi; height: 59.05cqi; margin: -29.52cqi 0 0 -41.2cqi;
+    padding: 0 9cqi 6.5cqi 7cqi;
+    transform: translate3d(1.03cqi, -1.03cqi, 0) rotateY(var(--plate-ry)) rotateX(.24rad) rotateZ(.03rad) translateZ(5.84cqi);
+  }
+}
+.card-media > .plate { transition: transform .6s var(--ease-out); }
+.plate-brand, .plate-model { overflow-wrap: anywhere; }
 .plate-brand {
   font-size: 1.6rem; font-size: clamp(1.25rem, 13cqi, 3rem);
   font-weight: 700; line-height: .95; letter-spacing: -0.04em;
 }
+/* A long lead ("Case + Glass") stays on one line, low in the shaded glass. */
+.plate-brand.is-long { font-size: 1.15rem; font-size: clamp(1rem, 9.6cqi, 2.2rem); letter-spacing: -0.03em; }
 .plate-model {
-  font-size: .95rem; font-size: clamp(.85rem, 7.2cqi, 1.6rem);
+  font-size: .95rem; font-size: clamp(.8rem, 7.2cqi, 1.6rem);
   font-weight: 400; line-height: 1.1; letter-spacing: -0.02em;
   color: var(--plate-ink-2);
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-/* A plate with no maker's name: the product name is the headline. */
-.plate-model:only-child {
-  color: var(--plate-ink);
-  font-size: 1.05rem; font-size: clamp(.95rem, 7.6cqi, 1.8rem);
-  font-weight: 600; letter-spacing: -0.03em;
-  -webkit-line-clamp: 3; line-clamp: 3;
 }
 
 /* Small places (search, compare, lists): the same glass, without the words;
@@ -825,7 +844,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
   .card:hover { transform: translateY(-4px); box-shadow: var(--card-hover); }
   [data-theme="dark"] .card:hover { border-color: var(--line-2); }
   .card:hover .card-media img { transform: scale(1.04); }
-  .card:hover .card-media > .plate { background-size: 104% auto; }
+  .card:hover .card-media > .plate { transform: scale(1.04); }
 }
 
 .card-media {
@@ -889,9 +908,25 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 }
 .grid[data-sort="featured"] .card-feature .card-media { aspect-ratio: auto; margin: 6px 0 6px 6px; }
 .grid[data-sort="featured"] .card-feature .card-media > img { position: absolute; inset: 0; }
-/* The details gather above the buttons, level with the foot of the photo. */
-.grid[data-sort="featured"] .card-feature .card-body { justify-content: flex-end; gap: 10px; padding: 26px 24px 20px 26px; }
-.grid[data-sort="featured"] .card-feature .card-foot { margin-top: 14px; }
+/* The wide card's details column is a short spec sheet: price, name, then
+   up to three facts that fit on a line, ruled like the pop-up's list. */
+.card-facts { display: none; }
+.grid[data-sort="featured"] .card-feature .card-body { gap: 10px; padding: 26px 24px 20px 26px; }
+.grid[data-sort="featured"] .card-feature .card-facts {
+  display: block; margin: 8px 0 0; padding: 0; list-style: none;
+}
+.card-facts li {
+  display: flex; justify-content: space-between; gap: 14px;
+  padding: 8px 0; border-top: 1px solid var(--line);
+  font-size: .84rem;
+}
+.card-facts .k { color: var(--ink-3); white-space: nowrap; }
+.card-facts .v { min-width: 0; text-align: right; font-weight: 550; color: var(--ink-2); }
+.card-blurb { display: none; }
+.grid[data-sort="featured"] .card-feature .card-blurb {
+  display: block; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line);
+  font-size: .9rem; color: var(--ink-2); max-width: 32ch;
+}
 .grid[data-sort="featured"] .card-feature .price { font-size: 1.7rem; }
 .grid[data-sort="featured"] .card-feature .card-title { font-size: 1.2rem; line-height: 1.25; -webkit-line-clamp: 3; line-clamp: 3; }
 
@@ -981,10 +1016,9 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
   border-top: 1px solid var(--line-2);
 }
 .service-name {
-  grid-area: name; display: flex; align-items: baseline; gap: 14px;
+  grid-area: name;
   font-size: clamp(1.35rem, 2.2vw, 1.75rem); font-weight: 350; letter-spacing: -0.025em; line-height: 1.15;
 }
-.service-n { flex: none; font-size: .82rem; font-weight: 600; letter-spacing: .02em; color: var(--ion-text); }
 .service-desc { grid-area: desc; max-width: 54ch; font-size: .98rem; color: var(--ink-2); }
 .service-items {
   grid-area: items; margin: 0; padding: 0; list-style: none;
@@ -1091,7 +1125,6 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 /* The sketch: two buildings either side of Tom Mboya Street, the shop marked. */
 .map-poster { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mp-ground { fill: var(--map-ground); }
-.mp-blocks rect { fill: var(--map-block); stroke: var(--map-block-edge); stroke-width: 1; }
 .mp-street { fill: var(--map-street); }
 .mp-centre { fill: none; stroke: var(--map-centre); stroke-width: 2; stroke-dasharray: 14 12; }
 .mp-street-name { fill: var(--ink-3); font-size: 14px; font-weight: 650; letter-spacing: .32em; text-anchor: middle; }
@@ -1253,17 +1286,23 @@ html:not(.js) .map-load { display: none; }
 .modal-close:hover { color: var(--ink); }
 .modal-close:active { transform: scale(.92); }
 
-.modal-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.modal-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
 .modal-grid > * { min-width: 0; }
 /* The picture keeps to the top of its column and stays in view while the
    details beside it scroll; it is never centred in a column the specs have
    made tall. */
 .modal-media {
-  display: grid; align-items: start; justify-items: center; padding: 20px;
+  padding: 20px;
   border-right: 1px solid var(--line);
   background: var(--media-bg);
 }
-.modal-media > .viewer { position: sticky; top: 20px; }
+/* The picture is held in the middle of the visible pop-up while the details
+   scroll beside it, never pinned to the top of a column the specs made tall. */
+.modal-stage {
+  position: sticky; top: 0;
+  display: grid; place-items: center;
+  min-height: calc(min(88vh, 800px) - 42px);
+}
 .modal-info { padding: clamp(26px, 3vw, 38px); }
 .modal-info h3 { font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 350; letter-spacing: -0.03em; line-height: 1.12; overflow-wrap: anywhere; }
 .modal-price { margin: 16px 0 8px; font-size: 1.7rem; font-weight: 650; letter-spacing: -0.03em; }
@@ -1578,6 +1617,7 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .footer-inner { grid-template-columns: 1fr; }
   .modal-grid { grid-template-columns: 1fr; }
   .modal-media { min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .modal-stage { position: static; min-height: 0; }
 }
 
 /* ── Phones ──────────────────────────────────────────────────────────────── */
@@ -1613,7 +1653,7 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
     height: 300px; height: clamp(236px, min(86vw, 44svh), 420px);
     margin-inline: calc(var(--gutter) * -1);
   }
-  .stage-poster { width: auto; height: 72%; }
+  .stage-poster { width: auto; height: 88%; }   /* matches data-fill-phone: the H is 62% of the screen's width */
   .hero h1 { font-size: 2.3rem; max-width: 13ch; }
   .hero-sub { margin-top: 12px; font-size: 1rem; }
   .hero-status { margin-top: 14px; }
@@ -1653,7 +1693,6 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .card { border-radius: 18px; }
   .card-media { aspect-ratio: 1 / 1; margin: 4px 4px 0; border-radius: 14px; }
-  .card-media > .plate { padding-bottom: 26%; }   /* square here: the slab's edge is 20% up */
   .card-body { padding: 10px 11px 12px; gap: 5px; }
   .card-title { font-size: .92rem; line-height: 1.25; }
   .card-foot { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 10px; }
@@ -1667,6 +1706,8 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .grid[data-sort="featured"] .card-feature .price { font-size: 1.35rem; }
   .grid[data-sort="featured"] .card-feature .card-title { font-size: 1rem; -webkit-line-clamp: 2; line-clamp: 2; }
   .grid[data-sort="featured"] .card-feature .card-foot { flex-direction: row; align-items: center; }
+  .grid[data-sort="featured"] .card-feature .card-facts,
+  .grid[data-sort="featured"] .card-feature .card-blurb { display: none; }
   .tag, .spin-badge { top: 7px; font-size: .72rem; padding: 3px 8px; }
   .tag { left: 7px; }
   .spin-badge { right: 7px; }
@@ -1780,7 +1821,8 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
 /* Mobile toolbars grow and shrink as you scroll; dvh is the height right now,
    so the last rows of a full-height panel are never hidden under them. */
 @supports (height: 100dvh) {
-  .modal-panel, .drawer-panel { max-height: 100dvh; }
+  .drawer-panel { max-height: 100dvh; }
+  .modal-panel { max-height: min(88dvh, 800px); }   /* with its 6vh margin, it ends on screen */
   @media (max-width: 720px) {
     .modal-panel { max-height: 92dvh; }
     .search-panel { height: 100dvh; max-height: 100dvh; }

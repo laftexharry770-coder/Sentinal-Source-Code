@@ -92,6 +92,16 @@
       early.map = true;
     }
 
+    // The first screen says the shop's status once: the header's copy steps
+    // aside while the hero's own status line is in view.
+    var header = document.querySelector('.site-header');
+    var heroStatus = document.querySelector('.hero-status');
+    if (header && heroStatus && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        header.classList.toggle('hero-status-in-view', entries[entries.length - 1].isIntersecting);
+      }).observe(heroStatus);
+    }
+
     window.HOMCOM_EARLY = early;
   }
 
@@ -206,21 +216,26 @@
     '  c+=vec3(0.07,0.05,0.18)*smoothstep(0.18,-0.25,y);',
     '  return c;',
     '}',
-    /* Day is lit like a product shot on a pale sweep: a bright wall above a
-       hard horizon, a black card held in front of the letter so its faces
-       carry a deep reflection, a hard softbox to one side and a black flag
-       beside it. Without the black, chrome on a pale page reads as plastic. */
+    /* Day is lit by the room it stands in: the page's own pale lavender
+       field above a deeper lavender floor, and the violet of the ribbons
+       behind it, one passing low in front of the letter so its faces carry a
+       deep reflection, one standing beside it as a coloured card. The darks
+       are the ribbons' violet, never a black the page does not contain. */
     'vec3 envDay(vec3 r){',
     '  float y=r.y+0.36;float x=r.x;float back=step(0.0,r.z);',
-    '  vec3 c=mix(vec3(0.42,0.40,0.54),vec3(1.30,1.29,1.36),smoothstep(0.24,0.27,y));',
-    '  c=mix(c,vec3(0.02,0.02,0.05),band(y,0.06,0.24,0.012));',
-    '  c+=vec3(2.2)*band(y,0.29,0.315,0.008)*smoothstep(1.0,0.4,abs(x));',
+    /* the ribbon in front curves, so its reflection bends across each face */
+    '  float w=0.045*sin(x*4.2+0.8)+0.02*sin(x*9.0-0.4);',
+    '  vec3 c=mix(vec3(0.58,0.54,0.84),vec3(1.26,1.25,1.34),smoothstep(0.255,0.275,y));',
+    '  c=mix(c,vec3(0.15,0.11,0.44),0.9*band(y+w,0.08,0.22,0.012));',
+    '  c+=vec3(0.55,0.45,1.0)*0.9*band(y+w,0.145,0.16,0.01);',
+    '  c=mix(c,vec3(0.34,0.26,0.80),0.7*band(y-w*0.6,0.235,0.255,0.006));',
+    '  c+=vec3(1.6)*band(y,0.29,0.315,0.01)*smoothstep(1.0,0.4,abs(x));',
     '  c+=vec3(2.4)*band(x,-0.62,-0.30,0.015)*band(y,0.30,0.95,0.02)*back;',
-    '  c=mix(c,vec3(0.03,0.03,0.07),0.92*band(x,-0.05,0.18,0.015)*band(y,0.26,0.9,0.02)*back);',
-    '  c+=vec3(1.2)*band(y,0.02,0.045,0.008);',
+    '  c=mix(c,vec3(0.30,0.23,0.74),0.75*band(x,-0.05,0.18,0.015)*band(y,0.26,0.9,0.02)*back);',
+    '  c+=vec3(0.9)*band(y,0.02,0.045,0.012);',
     '  c+=vec3(0.52,0.40,1.0)*1.1*pow(max(dot(r,normalize(vec3(1.0,0.1,-0.2))),0.0),4.0);',
     '  c+=vec3(0.36,0.56,1.0)*0.8*pow(max(dot(r,normalize(vec3(-1.0,0.0,-0.1))),0.0),5.0);',
-    '  c+=vec3(0.6)*smoothstep(0.8,0.95,y);',
+    '  c+=vec3(0.5)*smoothstep(0.8,0.95,y);',
     '  return c;',
     '}',
     'vec3 env(vec3 r){',
@@ -467,17 +482,19 @@
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     }
 
-    /* The lens is chosen so the letter spans data-fill of the stage's width,
-       but never more than 72% of its height; it is centred on the stage, a
-       touch above its middle. */
+    /* The lens is chosen so the letter spans data-fill of the stage's width
+       (data-fill-phone on a phone, where it is the screen's centrepiece),
+       but never more than 72% of its height (88% on a phone); it is centred
+       on the stage, a touch above its middle. */
     function measure() {
       var hb = hero.getBoundingClientRect();
       var sb = stage.getBoundingClientRect();
       cssW = Math.max(1, hb.width);
       cssH = Math.max(1, hb.height);
       stageBottom = Math.max(1, sb.bottom + (window.pageYOffset || 0));
-      var fill = parseFloat(stage.getAttribute('data-fill')) || 0.56;
-      focal = Math.min(fill * (sb.width / Math.max(1, sb.height)) * 5.814, 3.6);
+      var phone = media('(max-width: 720px)').matches;
+      var fill = parseFloat(stage.getAttribute(phone ? 'data-fill-phone' : 'data-fill')) || 0.56;
+      focal = Math.min(fill * (sb.width / Math.max(1, sb.height)) * 5.814, phone ? 4.4 : 3.6);
       centre.x = sb.left - hb.left + sb.width / 2;
       centre.y = sb.top - hb.top + sb.height * 0.49;
       half = (focal / 5) * sb.height / 2;

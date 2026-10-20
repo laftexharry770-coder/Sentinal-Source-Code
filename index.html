@@ -262,6 +262,9 @@
          is in the first screen: what the shop is, where, whether it is open
          now, and the two ways to act on it. -->
     <section class="hero" aria-labelledby="heroTitle">
+      <!-- motion.js draws the chrome H and its light into this, across the
+           whole first screen and behind the words. -->
+      <canvas class="hero-canvas" aria-hidden="true"></canvas>
       <div class="wrap hero-grid">
         <div class="hero-copy">
           <h1 id="heroTitle">Genuine laptops, phones and repairs.</h1>
@@ -289,10 +292,11 @@
           </button>
         </div>
 
-        <!-- The stage. motion.js draws the chrome H into the canvas; until it
-             does, and on any device where it should not, the drawn H below
-             stands in. The three tiles are real listings: app.js corrects the
-             name, price and photo from the catalogue once it has arrived. -->
+        <!-- The stage: where the chrome H sits, and the handle you drag to
+             spin it. Until motion.js has drawn it, and on any device where it
+             should not, the drawn H below stands in. The three tiles are real
+             listings: app.js corrects the name, price and photo from the
+             catalogue once it has arrived. -->
         <div class="stage" data-hero-stage data-fill="0.56">
           <svg class="stage-poster" viewBox="16 13 32 38" aria-hidden="true">
             <defs>
@@ -312,7 +316,6 @@
             <rect class="poster-slot" x="19.5" y="17.6" width="5" height="1.8" rx=".9" />
             <circle class="poster-led" cx="42" cy="46.4" r="1.3" />
           </svg>
-          <canvas class="stage-canvas" aria-hidden="true"></canvas>
 
           <a class="float-tile ft-1" href="#p=hp-250-g9" data-hero-product="hp-250-g9" data-photo-sig="47511">
             <img src="assets/img/hero/hp-elite-dragonfly.webp" width="256" height="256" alt="" decoding="async" fetchpriority="low" />
@@ -435,9 +438,6 @@
           </div>
           <div class="repair-contact-links">
             <a class="contact-card" id="repairWhatsapp" href="https://wa.me/254106998733" target="_blank" rel="noopener">
-              <span class="contact-icon whatsapp">
-                <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Repairs on WhatsApp</strong>
                 <span data-site="repairPhone">+254 106 998 733</span>
@@ -446,9 +446,6 @@
               <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
             <a class="contact-card" id="repairCall" href="tel:+254106998733">
-              <span class="contact-icon">
-                <svg class="i" aria-hidden="true"><use href="#i-phone" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Call the repair desk</strong>
                 <span data-site="repairPhone">+254 106 998 733</span>
@@ -457,9 +454,6 @@
               <svg class="i contact-arrow" aria-hidden="true"><use href="#i-arrow-up-right" /></svg>
             </a>
             <a class="contact-card" id="repairEmail" href="mailto:mwangiherbert225@gmail.com">
-              <span class="contact-icon">
-                <svg class="i" aria-hidden="true"><use href="#i-envelope-simple" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Email the repair desk</strong>
                 <span data-site="repairEmail">mwangiherbert225@gmail.com</span>
@@ -518,9 +512,6 @@
         <div class="contact-layout">
           <aside class="contact-cards reveal">
             <a class="contact-card" id="cardWhatsapp" href="https://wa.me/254724359797" target="_blank" rel="noopener">
-              <span class="contact-icon whatsapp">
-                <svg class="i" aria-hidden="true"><use href="#i-whatsapp-logo" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Sales on WhatsApp</strong>
                 <span data-site="whatsappNumber">+254 724 359 797</span>
@@ -532,9 +523,6 @@
             <div id="phoneList"></div>
 
             <a class="contact-card" id="cardEmail" href="mailto:homcomcomputers@gmail.com">
-              <span class="contact-icon">
-                <svg class="i" aria-hidden="true"><use href="#i-envelope-simple" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Email sales</strong>
                 <span data-site="email">homcomcomputers@gmail.com</span>
@@ -544,9 +532,6 @@
             </a>
 
             <div class="contact-card static hours-card">
-              <span class="contact-icon">
-                <svg class="i" aria-hidden="true"><use href="#i-clock" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Opening hours</strong>
                 <span class="hours-status">
@@ -564,9 +549,6 @@
             </div>
 
             <div class="contact-card static">
-              <span class="contact-icon">
-                <svg class="i" aria-hidden="true"><use href="#i-map-pin" /></svg>
-              </span>
               <span class="contact-body">
                 <strong>Where we are</strong>
                 <span data-site="address">Rasumal House, ground floor, first shop, Tom Mboya Street, Nairobi</span>
@@ -644,8 +626,43 @@
               </a>
             </div>
           </div>
-          <div class="map-frame">
-            <iframe id="mapFrame" title="Map showing where the shop is" loading="lazy"
+          <!-- A sketch of the street first, the live map only when asked for: the
+               Google map is one to two megabytes, which at 9 KB/s is minutes of a
+               customer's data for a page they may only be scrolling past. The
+               sketch shows only what the shop's own directions say: Rasumal House
+               on Tom Mboya Street, opposite Imenti House. It is not to scale and
+               claims nothing else (no other streets, no compass). -->
+          <div class="map-frame" id="mapWrap">
+            <svg class="map-poster" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="mapPosterTitle">
+              <title id="mapPosterTitle">Sketch of the street, not to scale: the shop is in Rasumal House on Tom Mboya Street, opposite Imenti House</title>
+              <rect class="mp-ground" width="1200" height="360" />
+              <g class="mp-blocks">
+                <rect x="60" y="34" width="300" height="104" rx="10" />
+                <rect x="690" y="34" width="440" height="104" rx="10" />
+                <rect x="80" y="226" width="440" height="76" rx="10" />
+                <rect x="830" y="226" width="320" height="76" rx="10" />
+              </g>
+              <rect class="mp-street" x="-10" y="152" width="1220" height="60" />
+              <path class="mp-centre" d="M0 182H520M770 182H1200" />
+              <text class="mp-street-name" x="645" y="188">TOM MBOYA STREET</text>
+              <rect class="mp-shop" x="390" y="34" width="270" height="104" rx="10" />
+              <text class="mp-name" x="414" y="78">Rasumal House</text>
+              <text class="mp-note" x="414" y="106">HOMCOM · ground floor, first shop</text>
+              <rect class="mp-opposite" x="550" y="226" width="250" height="76" rx="10" />
+              <text class="mp-name mp-name-2" x="574" y="271">Imenti House</text>
+              <g class="mp-pin" transform="translate(470 152)">
+                <circle class="mp-pin-ring" r="22" />
+                <circle class="mp-pin-dot" r="13" />
+                <path class="mp-pin-h" d="M-6 -6.5v13M6 -6.5v13M-6 0h12" />
+              </g>
+            </svg>
+            <p class="map-caption">A sketch, not to scale. Near Odeon.</p>
+            <button type="button" class="btn btn-glass btn-small map-load" id="mapLoad">
+              <svg class="i" aria-hidden="true"><use href="#i-map-pin" /></svg>
+              <span>Show the live map</span>
+            </button>
+            <iframe id="mapFrame" title="Map showing where the shop is" hidden
+                    data-src="https://www.google.com/maps?q=Rasumal%20House%2C%20Tom%20Mboya%20Street%2C%20Nairobi%2C%20Kenya&amp;hl=en&amp;z=17&amp;output=embed"
                     referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
           </div>
         </div>

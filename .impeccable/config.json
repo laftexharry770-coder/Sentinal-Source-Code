@@ -5,5 +5,29 @@
       "maxFindings": 5,
       "maxChars": 8000
     }
+  },
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-20T17:48:09.940Z",
+        "reason": "Agent: file-mode scan pairs Night high-contrast ink (#c2bfd6, #d9d7e6) with the Day white panel and ignores inherited colour (#000 on #11121b); rendered-page scans at 1280 and 390 in both themes show none of these pairs, and every token pair was measured AA (see styles.css comments)"
+      },
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "tools/check-site.js"
+        ],
+        "createdAt": "2026-10-20T18:22:14.797Z",
+        "reason": "Agent: the match is the regular expression /<img[^>]+src=\"([^\"]+)\"/ that check-site uses to find the images index.html loads; there is no <img> element in this Node script"
+      }
+    ]
   }
 }

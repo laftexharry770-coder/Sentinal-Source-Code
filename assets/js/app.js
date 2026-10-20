@@ -67,55 +67,77 @@
     '<svg class="i' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
 
   /* ── Products without a photo ──────────────────────────────────────────────
-     No clip-art. A plate of glass with the maker's name set large and the
-     model under it; where there is no maker's name (a surge-protected
-     extension, a braided cable), the product name itself is the headline.
-     Small places (search, lists, the compare bar) get the same glass with the
-     maker's initial. */
+     No clip-art. A plate of glass (rendered, one per category and theme, in
+     assets/img/plates/) with the maker's name set large and the model under
+     it; where there is no maker's name (a surge-protected extension, a
+     braided cable), the product name itself is the headline. Small places
+     (search, lists, the compare bar) get the same glass, without the words:
+     the name is always written beside it. */
   const BRANDS = ['Acer', 'Amaya', 'Anker', 'APC', 'Apple', 'Asus', 'Baseus', 'Belkin', 'Brother',
     'Canon', 'Dahua', 'Dell', 'Epson', 'Google', 'Hikvision', 'Hisense', 'Honor', 'HP', 'Huawei',
     'Infinix', 'Itel', 'JBL', 'Kingston', 'Lenovo', 'Lexar', 'LG', 'Logitech', 'Microsoft', 'Motorola',
     'Nokia', 'OnePlus', 'Oppo', 'Oraimo', 'Philips', 'Realme', 'Redmi', 'Samsung', 'SanDisk', 'Seagate',
     'Sony', 'TCL', 'Tecno', 'Tenda', 'Toshiba', 'TP-Link', 'Transcend', 'Ugreen', 'Vivo', 'WD', 'Xiaomi'];
 
+  /* The plate carries the name as a headline, so it stops before the small
+     print: "4-Way Power Extension with Surge Protection" is set as "4-Way
+     Power Extension", "iPhone 15 (128GB)" as "iPhone 15". A "+" is part of
+     what is sold ("Clear Case + Tempered Glass Bundle") and stays. The full
+     name is always written beside or under the plate. */
+  const headline = (text) =>
+    String(text).split(/\s+(?:with|for|–|—)\s+|\s*\(|,\s/)[0].trim() || String(text);
+
   function plateParts(name) {
     const words = String(name || '').trim().split(/\s+/);
     const first = (words[0] || '').toLowerCase();
     const known = BRANDS.some((b) => b.toLowerCase() === first);
     return known && words.length > 1
-      ? { brand: words[0], model: words.slice(1).join(' ') }
-      : { brand: '', model: String(name || '') };
+      ? { brand: words[0], model: headline(words.slice(1).join(' ')) }
+      : { brand: '', model: headline(String(name || '')) };
   }
+
+  /* "Wi-Fi", "USB-C", "4-Way" split at the hyphen read as two words. A
+     short hyphenated word is kept whole; a long one ("Multi-Functional")
+     may still break there rather than overflow a narrow card. */
+  const keepWhole = (text) => esc(text).replace(/\S+-\S+/g, (word) =>
+    word.length <= 10 ? '<span class="nb">' + word + '</span>' : word);
+  // On a plate the words are set large and may break anywhere if they must,
+  // but never just after a hyphen: a word joiner (U+2060) follows each one.
+  const joinHyphens = (text) => String(text).replace(/-(?=\S)/g, '-\u2060');
 
   const plate = (product) => {
     const parts = plateParts(product.name);
     return '<div class="plate" data-cat="' + esc(product.category) + '" aria-hidden="true">' +
-      (parts.brand ? '<span class="plate-brand">' + esc(parts.brand) + '</span>' : '') +
-      '<span class="plate-model">' + esc(parts.model) + '</span>' +
+      (parts.brand ? '<span class="plate-brand">' + esc(joinHyphens(parts.brand)) + '</span>' : '') +
+      '<span class="plate-model">' + esc(joinHyphens(parts.model)) + '</span>' +
     '</div>';
   };
 
-  /* The initial is the maker's, or the first real word's: "65W GaN Fast
-     Charger" is a G, not a 6. */
-  const monogram = (product) => {
-    const parts = plateParts(product.name);
-    const word = (parts.brand || parts.model).split(/\s+/).find((w) => /^[A-Za-z]/.test(w)) || '';
-    return '<span class="ph mono" aria-hidden="true">' + esc(word.charAt(0).toUpperCase() || '·') + '</span>';
-  };
+  const plateMini = (product) =>
+    '<span class="ph plate-mini" data-cat="' + esc(product.category) + '" aria-hidden="true"></span>';
+
+  /* The turntable frames in assets/img/demo-360/ are a drawing, there to
+     show the 360° viewer working. They are not a picture of the product, so
+     a product with only those is shown on its plate, and the frames are
+     offered in the pop-up marked as a sample. */
+  const SAMPLE_FRAMES = /(^|\/)demo-360\//;
+  const isSampleSpin = (frames) => !!(frames && frames.length) &&
+    frames.every((src) => SAMPLE_FRAMES.test(src));
 
   const mainImage = (product) => (product.images && product.images[0]) ||
-    (product.spin && product.spin[0]) || '';
+    (product.spin && !isSampleSpin(product.spin) && product.spin[0]) || '';
 
   /* media(p) is the card's picture; media(p, 'ph') is a small one. */
   const media = (product, className) => {
     const src = mainImage(product);
-    if (!src) return className ? monogram(product) : plate(product);
+    if (!src) return className ? plateMini(product) : plate(product);
     // A frame borrowed from the 360 set is a cut-out, so show it whole.
     const fromSpin = !(product.images && product.images.length);
     return '<img class="' + (fromSpin ? 'is-spin' : '') + '" src="' + esc(src) +
       '" alt="' + esc(product.name) + '" loading="lazy" />';
   };
 
+  // Services carry an icon in search results, where they sit among products.
   const SERVICE_ICONS = {
     computer: 'laptop',
     phone: 'device-mobile',
@@ -488,7 +510,6 @@
     if (phoneList) {
       phoneList.innerHTML = (SITE.phones || []).map((phone, i) =>
         '<a class="contact-card" href="' + esc(telLink(phone.number)) + '">' +
-          '<span class="contact-icon">' + icon('phone') + '</span>' +
           '<span class="contact-body">' +
             '<strong>' + esc(phone.label || (i === 0 ? 'Call us' : 'Alternative line')) + '</strong>' +
             '<span>' + esc(prettyPhone(phone.number)) + '</span>' +
@@ -536,8 +557,13 @@
     const query = encodeURIComponent(SITE.mapQuery || SITE.address || SITE.location || '');
     if (!query) return;
 
+    // The live map loads when it is asked for (see initMap); until then it
+    // only knows where it would go.
     const frame = $('#mapFrame');
-    if (frame) frame.src = 'https://www.google.com/maps?q=' + query + '&hl=en&z=17&output=embed';
+    if (frame) {
+      frame.dataset.src = 'https://www.google.com/maps?q=' + query + '&hl=en&z=17&output=embed';
+      if (frame.getAttribute('src')) frame.src = frame.dataset.src;
+    }
 
     const open = $('#mapOpen');
     if (open) open.href = 'https://www.google.com/maps/search/?api=1&query=' + query;
@@ -558,16 +584,21 @@
     const wrap = $('#services');
     if (!wrap || typeof SERVICES === 'undefined') return;
 
-    wrap.innerHTML = SERVICES.map((service) => {
+    /* One row each, ruled like a price list: number and name, what it covers,
+       how long it takes and who to ask. */
+    wrap.innerHTML = SERVICES.map((service, i) => {
       const ask = 'Hi ' + SITE.brand + ', I need help with ' + service.name.toLowerCase() + '. My device is ';
       return '<article class="service reveal">' +
-        '<h3>' + serviceIcon(service.icon) + esc(service.name) + '</h3>' +
-        '<p>' + esc(service.desc) + '</p>' +
-        '<ul>' + (service.items || []).map((item) =>
-          '<li>' + icon('check') + esc(item) + '</li>').join('') + '</ul>' +
-        (service.turnaround ? '<p class="service-turnaround">' + esc(service.turnaround) + '</p>' : '') +
-        '<a class="btn btn-ghost btn-small" target="_blank" rel="noopener" href="' + esc(repairWa(ask)) + '">' +
-          'Ask the repair desk</a>' +
+        '<h3 class="service-name"><span class="service-n">' + String(i + 1).padStart(2, '0') + '</span>' +
+          esc(service.name) + '</h3>' +
+        '<p class="service-desc">' + esc(service.desc) + '</p>' +
+        '<ul class="service-items">' + (service.items || []).map((item) =>
+          '<li>' + esc(item) + '</li>').join('') + '</ul>' +
+        '<div class="service-end">' +
+          (service.turnaround ? '<p class="service-turnaround">' + esc(service.turnaround) + '</p>' : '') +
+          '<a class="btn btn-ghost btn-small" target="_blank" rel="noopener" href="' + esc(repairWa(ask)) + '">' +
+            'Ask the repair desk' + icon('arrow-up-right') + '</a>' +
+        '</div>' +
       '</article>';
     }).join('');
   }
@@ -636,21 +667,21 @@
       (original.get(a.id) - original.get(b.id)));
   }
 
+  /* Price first: what it costs now, and under it, what it was and what that
+     saves (or that VAT is in). The percentage is repeated here, next to the
+     price, and not left only to the badge on the photo — that badge can be
+     missed, sits away from the number it refers to, and is the first thing
+     to go if anything paints over the image. */
   function priceHTML(p) {
     const off = discount(p);
-    /* The percentage is repeated here, next to the price, and not left only to
-       the badge on the photo — that badge can be missed, sits away from the
-       number it refers to, and is the first thing to go if anything paints
-       over the image. */
-    return '<span class="price">' +
-      (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') +
-      esc(money(p.price)) +
+    return '<p class="price">' +
+      '<span class="now">' + esc(money(p.price)) + '</span>' +
       (p.price != null
-        ? (off ? '<small class="save">save ' + esc(money(saving(p))) +
-                   ' <span class="off">−' + off + '%</span></small>'
+        ? (off ? '<small class="save"><s>' + esc(money(p.wasPrice)) + '</s> <span class="nb">save ' +
+                   esc(money(saving(p))) + ' <span class="off">−' + off + '%</span></span></small>'
                : '<small class="vat">incl. VAT</small>')
         : '') +
-    '</span>';
+    '</p>';
   }
 
   function cardHTML(p, index) {
@@ -659,10 +690,12 @@
     const comparing = state.compare.includes(p.id);
     const off = discount(p);
     const tagCls = p.tag === 'Refurbished' ? 'tag warn' : 'tag';
-    const keySpecs = Object.values(p.specs || {}).slice(0, 3);
+    // A product photographed in the shop leads: in the shop's own order it
+    // takes a wide place, its photo beside the details (see .card-feature).
+    const feature = !!(p.images && p.images.length);
 
     return (
-      '<article class="card" data-id="' + esc(p.id) + '" tabindex="0" role="button" ' +
+      '<article class="card' + (feature ? ' card-feature' : '') + '" data-id="' + esc(p.id) + '" tabindex="0" role="button" ' +
         'aria-label="View details for ' + esc(p.name) + '" style="animation-delay:' + Math.min(index * 35, 400) + 'ms">' +
         '<div class="card-media">' +
           (off ? '<span class="tag offer">−' + off + '%</span>'
@@ -671,17 +704,12 @@
           media(p) +
         '</div>' +
         '<div class="card-body">' +
-          '<span class="card-cat">' + esc(catLabel(p.category)) + '</span>' +
-          '<h3 class="card-title">' + esc(p.name) + '</h3>' +
-          '<p class="card-desc">' + esc(p.desc) + '</p>' +
-          (keySpecs.length
-            ? '<div class="card-specs">' + keySpecs.map((s) => '<span>' + esc(s) + '</span>').join('') + '</div>'
-            : '') +
+          priceHTML(p) +
+          // Not a heading: the whole card is one button, whose contents a
+          // screen reader reads as its label, never as a page outline.
+          '<p class="card-title">' + keepWhole(p.name) + '</p>' +
           '<div class="card-foot">' +
-            '<div class="card-price">' +
-              priceHTML(p) +
-              '<span class="stock ' + stock.cls + '">' + stock.text + '</span>' +
-            '</div>' +
+            '<span class="stock ' + stock.cls + '">' + stock.text + '</span>' +
             '<span class="card-tools">' +
               '<button type="button" class="card-add' + (comparing ? ' compare-on' : '') + '" data-compare="' + esc(p.id) + '" ' +
                 'aria-pressed="' + comparing + '" aria-label="' + (comparing ? 'Remove from' : 'Add to') + ' comparison" ' +
@@ -706,6 +734,7 @@
     const empty = $('#empty');
 
     grid.innerHTML = list.map(cardHTML).join('');
+    grid.dataset.sort = state.sort;   // wide photo cards only in the shop's own order
     empty.hidden = list.length > 0;
     grid.hidden = list.length === 0;
 
@@ -750,16 +779,18 @@
     const photos = p.images || [];
     const spin = p.spin || [];
     const hasSpin = spin.length > 1;
+    // Only sample frames: the plate comes first, the frames behind a tab.
+    const sample = !photos.length && hasSpin && isSampleSpin(spin);
 
     if (!photos.length && !hasSpin) {
       return '<div class="viewer">' + plate(p) + '</div>';
     }
 
-    const startSpin = !photos.length && hasSpin;
+    const startSpin = !photos.length && hasSpin && !sample;
     return '<div class="viewer" data-mode="' + (startSpin ? 'spin' : 'photo') + '">' +
       (photos.length
         ? '<img class="viewer-main" id="viewerMain" src="' + esc(photos[0]) + '" alt="' + esc(p.name) + '" />'
-        : '') +
+        : (sample ? '<div class="viewer-main viewer-plate">' + plate(p) + '</div>' : '')) +
       (hasSpin
         ? '<div class="spin-stage" id="spinStage">' +
             '<img id="spinFrame" src="' + esc(spin[0]) + '" alt="' + esc(p.name) + ', 360 degree view" draggable="false" />' +
@@ -769,10 +800,12 @@
             '</button>' +
           '</div>'
         : '') +
-      (photos.length && hasSpin
+      ((photos.length || sample) && hasSpin
         ? '<div class="viewer-tabs">' +
-            '<button type="button" class="vt" data-view="photo" aria-pressed="true">Photos</button>' +
-            '<button type="button" class="vt" data-view="spin" aria-pressed="false">360° view</button>' +
+            '<button type="button" class="vt" data-view="photo" aria-pressed="true">' +
+              (sample ? 'Overview' : 'Photos') + '</button>' +
+            '<button type="button" class="vt" data-view="spin" aria-pressed="false">' +
+              (sample ? '360° sample' : '360° view') + '</button>' +
           '</div>'
         : '') +
       (photos.length > 1
@@ -908,8 +941,7 @@
       '<div class="modal-grid">' +
         '<div class="modal-media">' + viewerHTML(p) + '</div>' +
         '<div class="modal-info">' +
-          '<span class="card-cat">' + esc(catLabel(p.category)) + '</span>' +
-          '<h3 id="modalTitle">' + esc(p.name) + '</h3>' +
+          '<h3 id="modalTitle">' + keepWhole(p.name) + '</h3>' +
           '<p class="modal-price">' +
             (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') + esc(money(p.price)) +
             (off ? ' <span class="pill-lowest">Save ' + esc(money(saving(p))) + ' · ' + off + '% off</span>' : '') +
@@ -1306,7 +1338,7 @@
         '<th scope="col"><span class="compare-head-cell">' +
           media(p, 'ph') +
           '<strong>' + esc(p.name) + '</strong>' +
-          '<span class="card-cat">' + esc(catLabel(p.category)) + '</span>' +
+          '<span class="compare-cat">' + esc(catLabel(p.category)) + '</span>' +
         '</span></th>').join('') + '</tr></thead>';
 
     const priceCells = items.map((p, i) =>
@@ -1871,7 +1903,9 @@
       const n = state.draft.spin.length;
       spinTray.innerHTML = n
         ? '<span class="tray-count">' + n + ' frame' + (n === 1 ? '' : 's') +
-            (n > 1 ? ' — the 360° viewer is on' : ' — needs at least 2') + '</span>' +
+            (n > 1 ? ' — the 360° viewer is on' : ' — needs at least 2') +
+            (isSampleSpin(state.draft.spin) ? '. These are the sample frames: customers see the glass plate ' +
+              'and a "360° sample" tab until you replace them with your own.' : '') + '</span>' +
           state.draft.spin.slice(0, 8).map((src) => '<span class="tray-item small"><img src="' + esc(src) + '" alt="" /></span>').join('') +
           (n > 8 ? '<span class="tray-more">+' + (n - 8) + '</span>' : '') +
           '<button type="button" class="btn btn-ghost btn-small" id="dropSpin">Remove all frames</button>'
@@ -2155,6 +2189,20 @@
      tap undo itself. */
   const early = (what) => Boolean(window.HOMCOM_EARLY && window.HOMCOM_EARLY[what]);
 
+  /* The sketch of the street stands in for the map until someone asks for
+     the real one; motion.js usually wires this long before this file runs. */
+  function initMap() {
+    const button = $('#mapLoad');
+    const frame = $('#mapFrame');
+    if (early('map') || !button || !frame) return;
+    button.addEventListener('click', () => {
+      frame.src = frame.dataset.src;
+      frame.hidden = false;
+      button.hidden = true;
+      frame.parentNode.classList.add('is-live');
+    });
+  }
+
   /* ── Install as an app (Android, desktop; iOS gets instructions) ───────── */
   function initInstall() {
     // One in the header for wide screens, one inside the menu for narrow ones,
@@ -2363,7 +2411,7 @@
     if (calmRequested()) return;
     if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
 
-    const LIT = '.card, .service, .contact-card, .float-tile';
+    const LIT = '.card, .float-tile';
     let queued = null;
     let frame = 0;
 
@@ -2472,6 +2520,7 @@
     step('frame watchdog',  initFrameWatchdog);
     step('pointer effects', initPointerFX);
     step('install button',  initInstall);
+    step('live map',        initMap);
     step('service worker',  initServiceWorker);
     step('build tag',       paintBuild);
     step('manage chip', () => {

@@ -22,8 +22,11 @@ assets/js/motion.js     the chrome H, scroll reveals, and the menu and theme
 assets/fonts/           the typeface (Hanken Grotesk) and its licence
 assets/img/             product photos
 assets/img/hero/        the three products floating in the first screen
+assets/img/plates/      the glass plates shown for products with no photo yet
 assets/img/demo-360/    the sample 360° frames (replace with your own)
 assets/icons/           app icons
+tools/check-site.js     checks everything before you upload (section 9)
+tools/plates/           the renderer the glass plates were made with
 
 .claude/, .mcp.json     design tools for Claude (section 11) — not part of the site
 ```
@@ -224,8 +227,18 @@ spin, tap play/pause, or use the arrow keys. It spins once by itself when the
 pop-up opens so they know it's there.
 
 The Samsung A55 in the catalogue has a demo spin so you can see it working — its
-frames are in `assets/img/demo-360/`. Replace them with real photos of your own
-stock and delete the demo.
+frames are in `assets/img/demo-360/`. They are a drawing, not a photo, so the
+site does not pass them off as the phone: its card shows the glass plate, and
+the pop-up offers the frames behind a tab marked "360° sample". Replace them
+with real photos of your own stock and delete the demo; real frames get the
+full treatment (the 360° view opens first when there are no photos).
+
+### Products without a photo
+
+Until a product has a photo it is shown on a plate of glass with its name,
+tinted by category (`assets/img/plates/`). Nothing to do: add a photo and the
+plate gives way to it. If you add a new category, it borrows the computers
+plate until it gets its own (see `assets/img/README.md`).
 
 For a large set, files beat uploads here too:
 
@@ -439,7 +452,8 @@ something by a name the site doesn't know.
   before they travel or ring.
 - **Ask the repair desk** directly, with the fault already in the message.
 - **Build an inquiry list** and send the lot in one WhatsApp message or email.
-- **Find the shop** on the map, or tap through for directions.
+- **Find the shop** on a sketch of the street, open the live Google map in
+  place with one tap, or tap through for directions.
 - **Install the site** as an app, and use it offline.
 - **Switch to dark mode**, and use the whole site by keyboard.
 
@@ -577,7 +591,25 @@ id `i-<name>`.
   `data-photo-sig` to the length of that product's first photo in `data.js`.
 - **Products without a photo** are not given clip-art. They become a pane of
   glass with the maker's name set large and the model under it; where there is
-  no maker's name, the product's own name is the headline.
+  no maker's name, the product's own name is the headline. The glass is
+  rendered, one per category for Night and for Day (`assets/img/plates/`, made
+  with `tools/plates/render.html`).
+
+### The rest of the page
+
+- **The catalogue is led by the photographed stock.** In the shop's own order a
+  product with a photo takes a wide card, its photo beside the price; every card
+  gives the price first, then the name, then whether it is in stock. Sorted by
+  price or name, every product takes one place so the order reads straight.
+  Specs and descriptions live in the pop-up.
+- **Repairs read like a price list**: one ruled row per service, with what it
+  covers, how long it takes and a direct line to the repair desk.
+- **Contact details are ruled rows**, not boxes: what each one is, the number
+  itself, and whether it is answered right now.
+- **The map is a sketch until asked for.** It shows only what the shop's own
+  directions say (Rasumal House on Tom Mboya Street, opposite Imenti House) and
+  is marked "not to scale". The live Google map is one to two megabytes, so it
+  loads only when someone taps **Show the live map**.
 
 ### Motion
 

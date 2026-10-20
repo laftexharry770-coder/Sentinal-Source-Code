@@ -132,6 +132,17 @@ if (data) {
       });
     });
 
+    // A product without a photo is shown on its category's glass plate. A new
+    // category without plates still works (it borrows the computers plate),
+    // but it should get its own: see assets/img/README.md.
+    keys.filter((k) => k !== 'all').forEach((k) => {
+      const missing = ['night', 'day'].filter((t) => !exists('assets/img/plates/' + k + '-' + t + '.webp'));
+      if (missing.length) {
+        notes.push('category "' + k + '" has no ' + missing.join(' or ') +
+          ' glass plate yet (assets/img/plates/' + k + '-' + missing[0] + '.webp); it borrows the computers one');
+      }
+    });
+
     const offers = PRODUCTS.filter((p) => p.wasPrice && p.price && p.wasPrice > p.price).length;
     notes.push(PRODUCTS.length + ' products, ' + offers + ' on offer, ' +
       (CATEGORIES || []).length + ' categories, ' + (SERVICES || []).length + ' services');

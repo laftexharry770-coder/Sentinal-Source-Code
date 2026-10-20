@@ -7,8 +7,9 @@
    file is small and loads on its own, ahead of it, so three things no longer
    wait that long:
 
-     1. The menu button and the theme switch. app.js sees they are already
-        wired (window.HOMCOM_EARLY) and leaves them alone.
+     1. The menu button, the theme switch and the "Show the live map"
+        button. app.js sees they are already wired (window.HOMCOM_EARLY) and
+        leaves them alone.
      2. Scroll reveals. Sections rise into place as they come into view.
      3. The chrome H in the first screen: the shop's own mark as a real 3D
         object, drawn by the phone's graphics chip, lit by the page's colours.
@@ -50,7 +51,7 @@
   function earlyControls() {
     var nav = document.getElementById('nav');
     var toggle = document.getElementById('navToggle');
-    var early = { nav: false, theme: false };
+    var early = { nav: false, theme: false, map: false };
 
     if (nav && toggle) {
       toggle.addEventListener('click', function () {
@@ -76,6 +77,20 @@
       });
     });
     early.theme = themeButtons.length > 0;
+
+    // The live map is loaded only when someone asks for it; the sketch under
+    // it costs nothing. app.js keeps the address in data-src up to date.
+    var mapButton = document.getElementById('mapLoad');
+    var mapFrame = document.getElementById('mapFrame');
+    if (mapButton && mapFrame) {
+      mapButton.addEventListener('click', function () {
+        mapFrame.src = mapFrame.getAttribute('data-src');
+        mapFrame.hidden = false;
+        mapButton.hidden = true;
+        if (mapFrame.parentNode) mapFrame.parentNode.classList.add('is-live');
+      });
+      early.map = true;
+    }
 
     window.HOMCOM_EARLY = early;
   }
@@ -139,6 +154,9 @@
     'uniform float uFocal;',
     'uniform float uBob;',
     'uniform float uLed;',
+    'uniform vec2 uCenter;',
+    'uniform float uHalf;',
+    'uniform vec4 uCopy;',
     'const float TAU = 6.2831853;',
     'const float PI = 3.14159265;',
 
@@ -188,18 +206,21 @@
     '  c+=vec3(0.07,0.05,0.18)*smoothstep(0.18,-0.25,y);',
     '  return c;',
     '}',
+    /* Day is lit like a product shot on a pale sweep: a bright wall above a
+       hard horizon, a black card held in front of the letter so its faces
+       carry a deep reflection, a hard softbox to one side and a black flag
+       beside it. Without the black, chrome on a pale page reads as plastic. */
     'vec3 envDay(vec3 r){',
     '  float y=r.y+0.36;float x=r.x;float back=step(0.0,r.z);',
-    '  vec3 c=mix(vec3(0.30,0.28,0.42),vec3(1.15,1.14,1.22),smoothstep(0.16,0.20,y));',
-    '  c=mix(c,vec3(0.07,0.06,0.12),band(y,0.20,0.29,0.01));',
-    '  c+=vec3(0.10,0.06,0.22)*smoothstep(0.18,-0.3,y);',
-    '  c+=vec3(0.6)*band(y,0.52,0.55,0.012);',
-    '  c+=vec3(0.8)*band(x,-0.62,-0.30,0.02)*band(y,0.3,0.95,0.03)*back;',
-    '  c=mix(c,vec3(0.16,0.15,0.24),0.85*band(x,-0.05,0.18,0.02)*band(y,0.28,0.9,0.03)*back);',
-    '  c+=vec3(0.7)*band(y,0.04,0.065,0.01);',
-    '  c+=vec3(0.52,0.40,1.0)*0.9*pow(max(dot(r,normalize(vec3(1.0,0.1,-0.2))),0.0),4.0);',
-    '  c+=vec3(0.36,0.56,1.0)*0.6*pow(max(dot(r,normalize(vec3(-1.0,0.0,-0.1))),0.0),5.0);',
-    '  c+=vec3(0.4)*smoothstep(0.8,0.95,y);',
+    '  vec3 c=mix(vec3(0.42,0.40,0.54),vec3(1.30,1.29,1.36),smoothstep(0.24,0.27,y));',
+    '  c=mix(c,vec3(0.02,0.02,0.05),band(y,0.06,0.24,0.012));',
+    '  c+=vec3(2.2)*band(y,0.29,0.315,0.008)*smoothstep(1.0,0.4,abs(x));',
+    '  c+=vec3(2.4)*band(x,-0.62,-0.30,0.015)*band(y,0.30,0.95,0.02)*back;',
+    '  c=mix(c,vec3(0.03,0.03,0.07),0.92*band(x,-0.05,0.18,0.015)*band(y,0.26,0.9,0.02)*back);',
+    '  c+=vec3(1.2)*band(y,0.02,0.045,0.008);',
+    '  c+=vec3(0.52,0.40,1.0)*1.1*pow(max(dot(r,normalize(vec3(1.0,0.1,-0.2))),0.0),4.0);',
+    '  c+=vec3(0.36,0.56,1.0)*0.8*pow(max(dot(r,normalize(vec3(-1.0,0.0,-0.1))),0.0),5.0);',
+    '  c+=vec3(0.6)*smoothstep(0.8,0.95,y);',
     '  return c;',
     '}',
     'vec3 env(vec3 r){',
@@ -218,36 +239,48 @@
     '  vec3 c=env(uRot*r)*F;',
     '  float ao=clamp(mapH(p+n*0.06)/0.06,0.0,1.0);',
     '  c*=0.5+0.5*ao;',
-    '  float led=1.0-smoothstep(0.045,0.07,length(p.xy-vec2(0.5556,-0.80)));',
-    '  led*=smoothstep(0.1,0.16,p.z);',
-    '  vec3 ledCol=mix(vec3(0.45,0.55,1.0),vec3(0.60,0.50,1.0),uDay)*(1.5+0.9*uLed);',
-    '  c=mix(c,ledCol,led);',
+    /* The speaker slot is an engraved groove: its walls are dark, and only
+       its rounded lip catches the light. */
+    '  float slot=roundBox(p-vec3(-0.5556,0.74,0.2),vec3(0.14,0.048,0.07),0.045);',
+    '  float groove=(1.0-smoothstep(0.0,0.01,slot))*(1.0-smoothstep(0.165,0.2,p.z));',
+    '  c*=1.0-0.88*groove;',
+    /* The power light glows: an ion-blue core with a soft spill on the face
+       around it, breathing slowly. */
+    '  float dl=length(p.xy-vec2(0.5556,-0.80));',
+    '  float core=(1.0-smoothstep(0.034,0.054,dl))*smoothstep(0.12,0.17,p.z);',
+    '  float spill=exp(-dl*dl*260.0)*smoothstep(0.1,0.2,p.z);',
+    '  vec3 ledCol=mix(vec3(0.30,0.48,1.0),vec3(0.42,0.36,1.0),uDay);',
+    '  c+=ledCol*spill*(0.35+0.25*uLed);',
+    '  c=mix(c,ledCol*(1.2+0.6*uLed),core);',
     '  return tone(c);',
     '}',
 
     /* Premultiplied "a over b". */
     'vec4 over(vec4 a,vec4 b){return a+b*(1.0-a.a);}',
 
-    /* Light streaks: a fan of fine lines around the letter, curling as they
-       widen, arriving from the lower left and leaving to the upper right, with
-       pulses of light running inward along them. q is measured in letters. */
-    'vec4 streaks(vec2 q,float pixQ){',
-    '  vec2 s=q-vec2(0.08,0.04);',
+    /* Light streaks: a dense fan of fine lines curling in toward the letter
+       from the lower left, running on past it to the upper right, with pulses
+       of light travelling inward along them and a faint haze where they
+       crowd. q is measured in letter heights from the letter's centre, so the
+       fan reaches across the whole first screen, under the headline. */
+    'vec4 streaks(vec2 q,float pixQ,float soft){',
+    '  vec2 s=q-vec2(0.06,0.02);',
     '  float rad=length(s);',
     '  float a0=atan(s.y,s.x);',
-    '  float lane=(a0+0.30*rad)/TAU*120.0;',
+    '  float lane=(a0+0.20*rad)/TAU*210.0;',
     '  float h=hash11(floor(lane)+17.0);',
-    '  float dist=abs(fract(lane)-0.5)*TAU/120.0*rad;',
-    '  float line=smoothstep(pixQ*(0.8+0.9*h),0.0,dist);',
-    '  float sector=max(smoothstep(0.95,0.2,adiff(a0,3.75)),0.55*smoothstep(0.7,0.12,adiff(a0,0.5)));',
-    '  float reach=smoothstep(6.0,1.3,rad)*smoothstep(0.9,1.5,rad);',
-    '  float ph=fract(rad*0.32+uTime*(0.07+0.08*h)+h*7.0);',
-    '  float pulse=smoothstep(0.0,0.04,ph)*smoothstep(0.30,0.04,ph);',
-    '  float k=line*sector*reach*step(0.3,h)*(0.20+1.15*pulse);',
+    '  float dist=abs(fract(lane)-0.5)*TAU/210.0*rad;',
+    '  float line=smoothstep(pixQ*(1.0+1.1*h),0.0,dist);',
+    '  float sector=max(smoothstep(1.05,0.25,adiff(a0,3.70)),0.6*smoothstep(0.8,0.15,adiff(a0,0.55)));',
+    '  float reach=smoothstep(0.95,1.45,rad)*(1.0-smoothstep(4.5,8.0,rad));',
+    '  float ph=fract(rad*0.22+uTime*(0.06+0.07*h)+h*7.0);',
+    '  float pulse=smoothstep(0.0,0.035,ph)*smoothstep(0.26,0.035,ph);',
+    '  float k=line*sector*reach*step(0.22,h)*(0.34+0.5*h+1.1*pulse);',
+    '  float haze=sector*reach*0.07*exp(-(rad-1.2)*0.6);',
     '  vec3 cN=mix(vec3(0.50,0.42,1.0),vec3(0.30,0.56,1.0),h);',
     '  cN=mix(cN,vec3(0.95,0.93,1.0),pulse*0.55);',
-    '  vec3 cD=mix(vec3(0.40,0.30,0.95),vec3(0.28,0.42,0.92),h);',
-    '  float a=k*mix(1.0,0.45,uDay);',
+    '  vec3 cD=mix(vec3(0.40,0.30,0.95),vec3(0.26,0.42,0.92),h);',
+    '  float a=min((k+haze)*mix(0.95,0.6,uDay)*soft,1.0);',
     '  return vec4(mix(cN,cD,uDay)*a,a);',
     '}',
 
@@ -260,15 +293,15 @@
     '  float inside=1.0-smoothstep(0.86,1.0,abs(s));',
     '  if(inside<=0.0)return vec4(0.0);',
     '  float edge=pow(abs(s),6.0);',
-    '  vec3 c=mix(tint,vec3(1.0),0.30+0.45*twist);',
+    '  vec3 c=mix(tint,vec3(1.0),0.25+0.45*twist);',
     '  c=mix(c,vec3(1.0),edge*0.85);',
-    '  float a=inside*(0.20+0.30*twist+0.45*edge);',
+    '  float a=inside*(0.26+0.32*twist+0.5*edge);',
     '  return vec4(c*a,a);',
     '}',
 
-    'vec4 background(vec2 uv,vec2 q,float pixQ){',
+    'vec4 background(vec2 uv,vec2 q,float pixQ,float soft){',
     '  float night=1.0-uDay;',
-    '  float halo=exp(-dot(q,q)*0.45);',
+    '  float halo=exp(-dot(q,q)*0.35);',
     '  float haloA=mix(0.42,0.34,uDay)*halo;',
     '  vec4 acc=vec4(mix(vec3(0.34,0.28,0.92),vec3(0.74,0.68,1.0),uDay)*haloA,haloA);',
     '  if(night>0.01){',
@@ -283,10 +316,11 @@
     '    }',
     '  }',
     '  if(uDay>0.01){',
-    '    acc=over(ribbon(q,0.95,0.55,0.75,0.5+uTime*0.11,0.34,vec3(0.56,0.44,1.0))*uDay,acc);',
-    '    acc=over(ribbon(q,-1.25,0.35,1.05,2.3-uTime*0.08,0.2,vec3(0.44,0.54,1.0))*uDay,acc);',
+    '    acc=over(ribbon(q,-0.2,0.9,0.35,4.0+uTime*0.06,0.20,vec3(0.66,0.50,1.0))*(0.7*uDay),acc);',
+    '    acc=over(ribbon(q,0.9,0.7,0.5,0.4+uTime*0.10,0.42,vec3(0.56,0.44,1.0))*uDay,acc);',
+    '    acc=over(ribbon(q,-1.5,0.45,0.7,2.3-uTime*0.08,0.26,vec3(0.44,0.54,1.0))*uDay,acc);',
     '  }',
-    '  acc=over(streaks(q,pixQ),acc);',
+    '  acc=over(streaks(q,pixQ,soft),acc);',
     '  float f=exp(-(q.x*q.x*1.4+pow((q.y+1.28)*4.2,2.0)));',
     '  float floorA=mix(0.40,0.20,uDay)*f;',
     '  acc=over(vec4(mix(vec3(0.45,0.38,1.0),vec3(0.16,0.12,0.30),uDay)*floorA,floorA),acc);',
@@ -294,12 +328,22 @@
     '}',
 
     'void main(){',
-    '  vec2 uv=(2.0*gl_FragCoord.xy-uRes)/uRes.y;',
+    '  vec2 frag=gl_FragCoord.xy;',
+    '  vec2 uv=(2.0*frag-uRes)/uRes.y;',
     '  float hy=uFocal/5.0;',
-    '  vec2 hv=uv-vec2(0.0,0.02+uBob*hy);',
-    '  float pixUV=2.0/uRes.y;',
-    '  vec2 e=gl_FragCoord.xy/uRes*2.0-1.0;',
-    '  vec4 col=background(uv,hv/hy,pixUV/hy)*(1.0-smoothstep(0.55,1.0,length(e)));',
+    /* q: letter heights from the letter's centre; hv: the same in lens units. */
+    '  vec2 q=(frag-uCenter)/uHalf-vec2(0.0,uBob);',
+    '  vec2 hv=q*hy;',
+    '  float pixQ=1.0/uHalf;',
+    /* Streaks are held back under the headline and the copy, so they never
+       compete with the words they flow into. */
+    '  vec2 inA=smoothstep(uCopy.xy-40.0,uCopy.xy+16.0,frag)*(1.0-smoothstep(uCopy.zw-16.0,uCopy.zw+40.0,frag));',
+    '  float soft=1.0-0.6*inA.x*inA.y;',
+    /* The canvas spans the whole first screen; it fades out at its edges so
+       it melts into the page. */
+    '  vec2 e=frag/uRes;',
+    '  float vig=smoothstep(0.0,0.16,e.y)*(1.0-smoothstep(0.93,1.0,e.y))*smoothstep(0.0,0.05,e.x)*(1.0-smoothstep(0.95,1.0,e.x));',
+    '  vec4 col=background(uv,q,pixQ,soft)*vig;',
     '  vec3 rdW=normalize(vec3(hv,-uFocal));',
     '  vec3 ro=vec3(0.0,0.0,5.0)*uRot;',
     '  vec3 rd=rdW*uRot;',
@@ -324,7 +368,7 @@
     '    }else{',
     /* A ray that just grazed the letter still covers part of its pixel.
        At that angle chrome reflects almost exactly what is behind it. */
-    '      float cov=1.0-smoothstep(0.0,pixUV/uFocal*1.3,best);',
+    '      float cov=1.0-smoothstep(0.0,pixQ*hy/uFocal*1.3,best);',
     '      if(cov>0.0)col=vec4(tone(env(rdW)*0.8)*cov,cov)+col*(1.0-cov);',
     '    }',
     '  }',
@@ -333,9 +377,14 @@
   ].join('\n');
 
   function chromeH() {
+    /* The canvas covers the whole first screen, behind the words, so the
+       light can run across it; the letter itself is drawn where the stage
+       is. The stage stays on top as the thing you drag. */
+    var hero = document.querySelector('.hero');
     var stage = document.querySelector('[data-hero-stage]');
-    var canvas = stage && stage.querySelector('canvas');
-    if (!canvas || !window.WebGLRenderingContext) return;
+    var canvas = hero && hero.querySelector('.hero-canvas');
+    var copy = hero && hero.querySelector('.hero-copy');
+    if (!canvas || !stage || !window.WebGLRenderingContext) return;
 
     /* ?lite=0 means "full effects, whatever the device" everywhere on the
        site; here it also accepts a software renderer, which is what a
@@ -393,7 +442,7 @@
       gl.enableVertexAttribArray(aPos);
       gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-      ['uRes', 'uTime', 'uRot', 'uDay', 'uFocal', 'uBob', 'uLed'].forEach(function (name) {
+      ['uRes', 'uTime', 'uRot', 'uDay', 'uFocal', 'uBob', 'uLed', 'uCenter', 'uHalf', 'uCopy'].forEach(function (name) {
         loc[name] = gl.getUniformLocation(program, name);
       });
       gl.disable(gl.DEPTH_TEST);
@@ -403,25 +452,39 @@
     if (!build()) return;
 
     /* ── size ── */
-    var scale = Math.min(window.devicePixelRatio || 1, 2);
     var MIN_SCALE = 0.8;
+    var scale = Math.min(window.devicePixelRatio || 1, 2);
     var cssW = 1, cssH = 1, focal = 3.3, stageBottom = 1;
+    var centre = { x: 0, y: 0 }, half = 100, copyBox = [0, 0, 0, 0];
 
+    /* At most about 1.5 million pixels: a full-width first screen on a 3x
+       phone would otherwise be twice that, for light nobody can tell apart. */
     function fitCanvas() {
+      var cap = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(1.5e6 / (cssW * cssH)));
+      scale = Math.max(Math.min(scale, cap), Math.min(MIN_SCALE, cap));
       var w = Math.max(1, Math.round(cssW * scale));
       var h = Math.max(1, Math.round(cssH * scale));
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     }
 
     /* The lens is chosen so the letter spans data-fill of the stage's width,
-       but never more than 72% of its height. */
+       but never more than 72% of its height; it is centred on the stage, a
+       touch above its middle. */
     function measure() {
-      var box = stage.getBoundingClientRect();
-      cssW = Math.max(1, box.width);
-      cssH = Math.max(1, box.height);
-      stageBottom = Math.max(1, box.bottom + (window.pageYOffset || 0));
+      var hb = hero.getBoundingClientRect();
+      var sb = stage.getBoundingClientRect();
+      cssW = Math.max(1, hb.width);
+      cssH = Math.max(1, hb.height);
+      stageBottom = Math.max(1, sb.bottom + (window.pageYOffset || 0));
       var fill = parseFloat(stage.getAttribute('data-fill')) || 0.56;
-      focal = Math.min(fill * (cssW / cssH) * 5.814, 3.6);
+      focal = Math.min(fill * (sb.width / Math.max(1, sb.height)) * 5.814, 3.6);
+      centre.x = sb.left - hb.left + sb.width / 2;
+      centre.y = sb.top - hb.top + sb.height * 0.49;
+      half = (focal / 5) * sb.height / 2;
+      if (copy) {
+        var cb = copy.getBoundingClientRect();
+        copyBox = [cb.left - hb.left, cb.top - hb.top, cb.right - hb.left, cb.bottom - hb.top];
+      }
       fitCanvas();
     }
 
@@ -457,11 +520,16 @@
       gl.uniform1f(loc.uFocal, focal);
       gl.uniform1f(loc.uBob, moving ? 0.045 * Math.sin(t * 0.9) : 0);
       gl.uniform1f(loc.uLed, moving ? 0.5 + 0.5 * Math.sin(t * 1.7) : 0.6);
+      /* The canvas counts its pixels from the bottom; the page from the top. */
+      gl.uniform2f(loc.uCenter, centre.x * scale, (cssH - centre.y) * scale);
+      gl.uniform1f(loc.uHalf, Math.max(1, half * scale));
+      gl.uniform4f(loc.uCopy, copyBox[0] * scale, (cssH - copyBox[3]) * scale,
+                              copyBox[2] * scale, (cssH - copyBox[1]) * scale);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       if (!live) {
         live = true;
         /* The drawn picture underneath fades out once a real frame is up. */
-        requestAnimationFrame(function () { if (!dead) stage.classList.add('is-live'); });
+        requestAnimationFrame(function () { if (!dead) hero.classList.add('is-live'); });
       }
     }
 
@@ -549,20 +617,22 @@
       });
     }
 
-    /* ── touch and mouse ── */
+    /* ── touch and mouse ──
+       The stage is the handle. A press on one of the product tiles is a tap
+       on that product, not a drag. */
     var lastX = 0, lastY = 0, lastT = 0;
-    canvas.addEventListener('pointerdown', function (e) {
-      if (e.button !== 0) return;
+    stage.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || !live || (e.target.closest && e.target.closest('.float-tile'))) return;
       dragging = true;
       velUser = 0;
       lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
-      try { canvas.setPointerCapture(e.pointerId); } catch (x) {}
+      try { stage.setPointerCapture(e.pointerId); } catch (x) {}
       stage.classList.add('is-grabbing');
     });
-    canvas.addEventListener('pointermove', function (e) {
+    stage.addEventListener('pointermove', function (e) {
       if (!dragging) return;
       var now = performance.now();
-      var width = cssW || 300;
+      var width = stage.clientWidth || 300;
       var turn = (e.clientX - lastX) / width * Math.PI * 1.25;
       yawUser += turn;
       pitchUser = Math.max(-0.5, Math.min(0.5, pitchUser + (e.clientY - lastY) / width * 1.1));
@@ -580,8 +650,8 @@
       velUser = Math.max(-14, Math.min(14, velUser));
       if (!animating()) velUser = 0;
     };
-    canvas.addEventListener('pointerup', release);
-    canvas.addEventListener('pointercancel', release);
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', release);
 
     /* The letter leans toward a mouse, anywhere on the screen. */
     if (mqFine.matches) {
@@ -599,13 +669,18 @@
         visible = entries[entries.length - 1].isIntersecting;
         last = 0;
         schedule();
-      }, { rootMargin: '120px 0px' }).observe(stage);
+      }, { rootMargin: '120px 0px' }).observe(hero);
     }
     document.addEventListener('visibilitychange', function () { last = 0; schedule(); });
 
     var onResize = function () { measure(); if (!animating()) redraw(); };
-    if ('ResizeObserver' in window) new ResizeObserver(onResize).observe(stage);
-    else window.addEventListener('resize', onResize, { passive: true });
+    if ('ResizeObserver' in window) {
+      var watcher = new ResizeObserver(onResize);
+      watcher.observe(hero);
+      watcher.observe(stage);
+    } else {
+      window.addEventListener('resize', onResize, { passive: true });
+    }
 
     /* The theme switch lights a different studio; the change is eased unless
        motion has been turned down, in which case it simply changes. */
@@ -623,14 +698,14 @@
       dead = true;
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
-      stage.classList.remove('is-live');
+      hero.classList.remove('is-live');
     }
 
     canvas.addEventListener('webglcontextlost', function (e) {
       e.preventDefault();
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
-      stage.classList.remove('is-live');
+      hero.classList.remove('is-live');
       live = false;
     });
     canvas.addEventListener('webglcontextrestored', function () {

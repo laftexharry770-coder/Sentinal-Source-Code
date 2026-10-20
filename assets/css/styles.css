@@ -109,15 +109,14 @@
   --panel-shadow: 0 0 0 0 transparent;   /* on near-black a panel is its edge; a shadow would not show */
   --tile-border: var(--glass-edge);
   --tile-shadow: var(--glass-top);
-  --media-bg:    #0E0F18;
+  --media-bg:    #0D0E15;   /* also the floor the glass plates were rendered on */
 
-  /* Light falls on the plate from the upper right, ion violet fading into
-     blue: a lit pane of glass, not a spotlight. */
-  --plate-bg:
-    linear-gradient(205deg, rgba(123, 107, 255, .34) 0%, rgba(76, 141, 255, .10) 42%, transparent 70%),
-    linear-gradient(180deg, #12131E, #0B0C13);
+  /* The plates are lit from above; by night the lower body of the glass
+     falls into shadow, and the name is set there. Measured against the
+     brightest 2% of the glass behind each line: at least 6.4:1 on desktop
+     cards and in the pop-up, 5.7:1 on a phone card. */
   --plate-ink:   #F2F1F7;
-  --plate-ink-2: #B4B1C9;
+  --plate-ink-2: #D2CFE2;
 
   --page-glow:
     radial-gradient(1100px 680px at 78% -8%, rgba(123, 107, 255, .17), transparent 62%),
@@ -133,6 +132,12 @@
   --scroll-thumb: rgba(255, 255, 255, .16);
   --selection:   rgba(123, 107, 255, .45);
   --map-filter:  invert(.9) hue-rotate(180deg) saturate(.7) brightness(.92) contrast(.92);
+  --map-ground:  #0B0C12;   /* the street sketch under the live map */
+  --map-block:   #12131C;
+  --map-block-edge: rgba(255, 255, 255, .06);
+  --map-street:  #1A1C28;
+  --map-centre:  rgba(255, 255, 255, .16);
+  --map-shop:    rgba(123, 107, 255, .14);
 }
 
 /* Day */
@@ -177,13 +182,12 @@
   --panel-shadow: 0 30px 70px -24px rgba(0, 0, 0, .28);
   --tile-border: transparent;
   --tile-shadow: var(--glass-top), 0 18px 36px -18px rgba(0, 0, 0, .26);
-  --media-bg:    #F4F3F9;
+  --media-bg:    #F4F3F9;   /* the Day plates' floor */
 
-  --plate-bg:
-    linear-gradient(205deg, rgba(123, 107, 255, .22) 0%, rgba(76, 141, 255, .08) 42%, transparent 70%),
-    linear-gradient(180deg, #FFFFFF, #F0EEF8);
+  /* By day the glass darkens toward its lower edge, where it reflects the
+     dark band of the studio: ink, not grey, to hold 5:1 there. */
   --plate-ink:   #14121F;
-  --plate-ink-2: #454259;
+  --plate-ink-2: #2E2B40;
 
   --page-glow:
     radial-gradient(1100px 680px at 78% -8%, rgba(123, 107, 255, .16), transparent 62%),
@@ -199,6 +203,12 @@
   --scroll-thumb: rgba(20, 16, 50, .22);
   --selection:   rgba(123, 107, 255, .28);
   --map-filter:  none;
+  --map-ground:  #ECEAF4;
+  --map-block:   #FFFFFF;
+  --map-block-edge: rgba(20, 16, 50, .06);
+  --map-street:  #DAD7E6;
+  --map-centre:  rgba(20, 16, 50, .22);
+  --map-shop:    rgba(91, 75, 239, .10);
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
@@ -478,7 +488,18 @@ kbd, .kbd-hint {
 .site-header.scrolled .scroll-progress { opacity: 1; }
 
 /* ── Hero and stage ──────────────────────────────────────────────────────── */
-.hero { position: relative; padding: 28px 0 clamp(56px, 8vw, 104px); }
+.hero { position: relative; isolation: isolate; overflow-x: clip; padding: 28px 0 clamp(56px, 8vw, 104px); }
+
+/* The light layer: motion.js draws the chrome H, the streaks (night) and the
+   glass ribbons (day) across the whole first screen. It sits under the words
+   and never takes a tap; the stage above it is what you drag. */
+.hero-canvas {
+  position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%;
+  pointer-events: none; opacity: 0;
+  transition: opacity .7s var(--ease-out);
+}
+.hero.is-live .hero-canvas { opacity: 1; }
+.hero-grid { position: relative; z-index: 1; }
 
 .hero-grid {
   display: grid; align-items: center;
@@ -547,15 +568,10 @@ kbd, .kbd-hint {
 [data-theme="light"] .stage-poster { filter: drop-shadow(0 18px 26px rgba(40, 30, 90, .22)); }
 .poster-slot { fill: var(--chrome-3); opacity: .7; }
 .poster-led { fill: var(--ion-2); }
-.stage-canvas {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  opacity: 0; cursor: grab;
-  transition: opacity .7s var(--ease-out);
-}
-.stage.is-grabbing .stage-canvas { cursor: grabbing; }
-.stage.is-live .stage-canvas { opacity: 1; }
-.stage.is-live .stage-poster,
-.stage.is-live::before { opacity: 0; }
+.hero.is-live .stage { cursor: grab; }
+.hero.is-live .stage.is-grabbing { cursor: grabbing; }
+.hero.is-live .stage-poster,
+.hero.is-live .stage::before { opacity: 0; }
 
 /* Real products from the shelf, floating in glass round the letter. */
 .float-tile {
@@ -606,15 +622,10 @@ kbd, .kbd-hint {
 .hero-copy > :nth-child(3) { animation-delay: .12s; }
 .hero-copy > :nth-child(4) { animation-delay: .18s; }
 .hero-copy > :nth-child(5) { animation-delay: .24s; }
-.hero h1 { animation-name: rise-soft; }
 .stage { animation: stage-in 1.2s var(--ease-out) both; }
 @keyframes rise {
   from { opacity: 0; transform: translate3d(0, 16px, 0); }
   to   { opacity: 1; transform: none; }
-}
-@keyframes rise-soft {
-  from { opacity: 0; transform: translate3d(0, 18px, 0); filter: blur(6px); }
-  to   { opacity: 1; transform: none; filter: blur(0); }
 }
 @keyframes stage-in {
   from { opacity: 0; transform: scale(.96); }
@@ -739,59 +750,64 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 /* ── Product plates ──────────────────────────────────────────────────────────
    Thirty of the forty-one products have no photo yet. They are not given a
    clip-art icon: they get a plate of glass with the maker's name set large,
-   the way a product is introduced before its picture is ready. */
+   the way a product is introduced before its picture is ready. The glass is
+   rendered (assets/img/plates/: a ray-traced slab with thickness, refraction
+   and a tint per category, one for Night and one for Day), square, with the
+   slab centred, so one image serves a square pop-up, a 4:3 card and a
+   thumbnail. */
 .card-media, .viewer { container-type: inline-size; }
+.plate, .plate-mini {
+  --plate-img: url("../img/plates/computers-night.webp");
+  background: var(--media-bg) var(--plate-img) center / cover no-repeat;
+}
+.plate[data-cat="computer-accessories"], .plate-mini[data-cat="computer-accessories"] { --plate-img: url("../img/plates/computer-accessories-night.webp"); }
+.plate[data-cat="phones"], .plate-mini[data-cat="phones"]                             { --plate-img: url("../img/plates/phones-night.webp"); }
+.plate[data-cat="phone-accessories"], .plate-mini[data-cat="phone-accessories"]       { --plate-img: url("../img/plates/phone-accessories-night.webp"); }
+.plate[data-cat="other-tech"], .plate-mini[data-cat="other-tech"]                     { --plate-img: url("../img/plates/other-tech-night.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)                                         { --plate-img: url("../img/plates/computers-day.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-cat="computer-accessories"]        { --plate-img: url("../img/plates/computer-accessories-day.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-cat="phones"]                      { --plate-img: url("../img/plates/phones-day.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-cat="phone-accessories"]           { --plate-img: url("../img/plates/phone-accessories-day.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-cat="other-tech"]                  { --plate-img: url("../img/plates/other-tech-day.webp"); }
+
+/* The words sit inside the slab's lower left, clear of its bevel. The slab
+   spans 8–90% of the image across and 17–81% down, so its lower edge is
+   20% up a square plate and 10% up a 4:3 one (cover crops 12.5% top and
+   bottom); padding in % is of the width, hence two values. */
 .plate {
   position: relative; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: flex-end; gap: 2px;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 3px;
   width: 100%; height: 100%;
-  padding: 9% 9% 10%;
-  background: var(--plate-bg);
+  padding: 0 24% 26% 15%;
   color: var(--plate-ink);
 }
-/* One sweep of light across the glass. */
-.plate::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .09) 48%, transparent 58%);
+.card-media > .plate {
+  padding-bottom: 13.5%;
+  background-size: 100% auto;   /* the same as cover here, but it can ease */
+  transition: background-size .6s var(--ease-out);
 }
-[data-theme="light"] .plate::before {
-  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .7) 48%, transparent 58%);
-}
-.plate[data-cat="computers"]            { --tint: rgba(76, 141, 255, .30); }
-.plate[data-cat="phones"]               { --tint: rgba(151, 107, 255, .32); }
-.plate[data-cat="computer-accessories"] { --tint: rgba(96, 120, 255, .26); }
-.plate[data-cat="phone-accessories"]    { --tint: rgba(186, 107, 255, .24); }
-.plate[data-cat="other-tech"]           { --tint: rgba(255, 180, 90, .20); }
-/* Each category catches the light in its own hue, along the top edge. */
-.plate::after {
-  content: ""; position: absolute; inset: 0 0 auto; height: 45%; pointer-events: none;
-  background: linear-gradient(180deg, var(--tint, transparent), transparent);
-  opacity: .55;
-}
-.plate-brand, .plate-model { position: relative; z-index: 1; overflow-wrap: anywhere; }
+.plate-brand, .plate-model { position: relative; overflow-wrap: anywhere; }
 .plate-brand {
-  font-size: 1.7rem; font-size: clamp(1.3rem, 15cqi, 3.4rem);
+  font-size: 1.6rem; font-size: clamp(1.25rem, 13cqi, 3rem);
   font-weight: 700; line-height: .95; letter-spacing: -0.04em;
 }
 .plate-model {
-  font-size: 1.05rem; font-size: clamp(.95rem, 8.4cqi, 1.9rem);
-  font-weight: 300; line-height: 1.08; letter-spacing: -0.025em;
+  font-size: .95rem; font-size: clamp(.85rem, 7.2cqi, 1.6rem);
+  font-weight: 400; line-height: 1.1; letter-spacing: -0.02em;
   color: var(--plate-ink-2);
-  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 /* A plate with no maker's name: the product name is the headline. */
 .plate-model:only-child {
   color: var(--plate-ink);
-  font-size: 1.25rem; font-size: clamp(1.1rem, 10.5cqi, 2.4rem);
-  -webkit-line-clamp: 4; line-clamp: 4;
+  font-size: 1.05rem; font-size: clamp(.95rem, 7.6cqi, 1.8rem);
+  font-weight: 600; letter-spacing: -0.03em;
+  -webkit-line-clamp: 3; line-clamp: 3;
 }
 
-/* Small places (search, compare, lists): the maker's initial on the same glass. */
-.ph.mono {
-  display: grid; place-items: center; width: 100%; height: 100%;
-  background: var(--plate-bg); color: var(--plate-ink);
-  font-weight: 700; font-size: 1.2rem; letter-spacing: -0.03em;
-}
+/* Small places (search, compare, lists): the same glass, without the words;
+   the name is written beside it. */
+.ph.plate-mini { display: block; width: 100%; height: 100%; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 .card {
@@ -810,6 +826,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
   .card:hover { transform: translateY(-4px); box-shadow: var(--card-hover); }
   [data-theme="dark"] .card:hover { border-color: var(--line-2); }
   .card:hover .card-media img { transform: scale(1.04); }
+  .card:hover .card-media > .plate { background-size: 104% auto; }
 }
 
 .card-media {
@@ -838,38 +855,46 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
   font-size: .7rem; font-weight: 650;
 }
 
-.card-body { display: flex; flex-direction: column; flex: 1; gap: 6px; padding: 16px 18px 18px; }
-.card-cat { font-size: .78rem; font-weight: 550; color: var(--ink-3); }
+.card-body { display: flex; flex-direction: column; flex: 1; gap: 8px; padding: 16px 18px 18px; }
 .card-title {
-  font-size: 1.04rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.012em;
+  font-size: 1rem; font-weight: 550; line-height: 1.3; letter-spacing: -0.01em;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.card-desc {
-  flex: 1; font-size: .88rem; color: var(--ink-2); line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.card-specs { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; margin-top: 2px; }
-.card-specs span {
-  max-width: 100%; padding: 3px 9px; border-radius: 8px;
-  border: 1px solid var(--line); background: var(--glass);
-  font-size: .76rem; color: var(--ink-2);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.nb { white-space: nowrap; }   /* a short hyphenated word, kept whole: "Wi-Fi", "USB-C" */
 
 .card-foot {
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
-  margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
 }
-.card-price { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .card-tools { display: flex; gap: 8px; flex: none; }
 
+/* Price first: what it costs now, then what it was and what that saves. */
 .price {
-  display: block;
-  font-size: 1.24rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15;
+  display: block; margin: 0;
+  font-size: 1.3rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15;
 }
-.price s { display: block; margin-bottom: 2px; font-size: .78rem; font-weight: 400; color: var(--ink-3); letter-spacing: 0; }
-.price small { display: block; margin-top: 3px; font-size: .74rem; font-weight: 450; color: var(--ink-3); letter-spacing: 0; }
+.price .now { display: block; }
+.price small { display: block; margin-top: 4px; font-size: .76rem; font-weight: 450; color: var(--ink-3); letter-spacing: 0; }
+.price small s { margin-right: 4px; white-space: nowrap; }
 .price .save .off { color: var(--amber); font-weight: 700; white-space: nowrap; }
+.compare-table .price s { display: block; margin-bottom: 2px; font-size: .78rem; font-weight: 400; color: var(--ink-3); letter-spacing: 0; }
+
+/* A product photographed in the shop leads the showroom: twice as wide, its
+   photo beside the details. Only in the shop's own order; sorted by price or
+   name every product takes one place, so the order reads straight. Every row
+   is as tall as the tallest, so wide and narrow cards line up. */
+.grid[data-sort="featured"] { grid-auto-flow: row dense; grid-auto-rows: 1fr; }
+.grid[data-sort="featured"] .card-feature {
+  grid-column: span 2;
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+}
+.grid[data-sort="featured"] .card-feature .card-media { aspect-ratio: auto; margin: 6px 0 6px 6px; }
+.grid[data-sort="featured"] .card-feature .card-media > img { position: absolute; inset: 0; }
+/* The details gather above the buttons, level with the foot of the photo. */
+.grid[data-sort="featured"] .card-feature .card-body { justify-content: flex-end; gap: 10px; padding: 26px 24px 20px 26px; }
+.grid[data-sort="featured"] .card-feature .card-foot { margin-top: 14px; }
+.grid[data-sort="featured"] .card-feature .price { font-size: 1.7rem; }
+.grid[data-sort="featured"] .card-feature .card-title { font-size: 1.2rem; line-height: 1.25; -webkit-line-clamp: 3; line-clamp: 3; }
 
 .stock { display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; color: var(--ink-3); }
 .stock::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok-dot); flex: none; }
@@ -923,7 +948,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 }
 
 /* ── Glass panels (shared) ───────────────────────────────────────────────── */
-.repair-contact, .service, .contact-card, .contact-form, .map-block, .contact-window {
+.repair-contact, .contact-form, .map-block {
   border: 1px solid var(--card-border);
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
@@ -931,34 +956,48 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 
 /* ── Repairs ─────────────────────────────────────────────────────────────── */
 .repair-contact {
+  position: relative; isolation: isolate;
   display: grid; grid-template-columns: minmax(240px, .85fr) 1.4fr; gap: 28px; align-items: center;
   padding: clamp(22px, 3vw, 34px); border-radius: var(--r-xl);
-  background:
-    linear-gradient(115deg, rgba(123, 107, 255, .16), transparent 55%),
-    var(--card-bg);
+  background: var(--card-solid);
+}
+/* Light comes in across the panel from the left, behind its words. */
+.repair-contact::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, rgba(123, 107, 255, .16), rgba(123, 107, 255, 0) 55%);
 }
 .repair-contact-intro h3 { font-size: clamp(1.35rem, 2.2vw, 1.75rem); font-weight: 350; letter-spacing: -0.025em; line-height: 1.15; }
 .repair-contact-intro p { margin: 12px 0 16px; color: var(--ink-2); font-size: .95rem; }
-.repair-contact-links { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
-.repair-contact-links .contact-card { background: var(--glass-2); box-shadow: var(--glass-top); border-color: var(--line); }
+.repair-contact-links { display: grid; grid-template-columns: minmax(0, 1fr); border-bottom: 1px solid var(--line); }
 
-.services {
-  display: grid; gap: 16px; margin-top: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+/* The services, ruled like a price list: one row each, number and name, what
+   it covers and what is fixed, how long it takes and who to ask. */
+.services { margin-top: clamp(40px, 5vw, 64px); border-bottom: 1px solid var(--line-2); }
+.service {
+  display: grid; align-items: start;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5.4fr) minmax(0, 2.6fr);
+  grid-template-areas: "name desc end" "name items end";
+  gap: 14px clamp(24px, 4vw, 56px);
+  padding: clamp(26px, 3vw, 36px) 0;
+  border-top: 1px solid var(--line-2);
 }
-.service { display: flex; flex-direction: column; padding: 24px; border-radius: var(--r-lg); }
-.service h3 { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; }
-.service h3 .i { width: 22px; height: 22px; color: var(--ion-text); }
-.service > p { margin-top: 10px; font-size: .92rem; color: var(--ink-2); }
-.service ul { margin: 16px 0 18px; padding: 0; list-style: none; }
-.service li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: .9rem; color: var(--ink-2); }
-.service li .i { width: 15px; height: 15px; margin-top: 4px; color: var(--ok); }
-/* Pushed to the bottom, so the four cards end on one line whatever their lists. */
-.service-turnaround {
-  margin: auto 0 0 !important; padding-top: 14px; border-top: 1px solid var(--line);
-  font-size: .84rem !important; color: var(--ink-3) !important;
+.service-name {
+  grid-area: name; display: flex; align-items: baseline; gap: 14px;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem); font-weight: 350; letter-spacing: -0.025em; line-height: 1.15;
 }
-.service .btn { margin-top: 18px; align-self: flex-start; }
+.service-n { flex: none; font-size: .82rem; font-weight: 600; letter-spacing: .02em; color: var(--ion-text); }
+.service-desc { grid-area: desc; max-width: 54ch; font-size: .98rem; color: var(--ink-2); }
+.service-items {
+  grid-area: items; margin: 0; padding: 0; list-style: none;
+  columns: 2; column-gap: 28px;
+}
+.service-items li {
+  break-inside: avoid; padding: 7px 0; border-top: 1px solid var(--line);
+  font-size: .9rem; color: var(--ink-2);
+}
+.service-end { grid-area: end; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.service-turnaround { font-size: .9rem; font-weight: 550; color: var(--ink); }
+.service-end .btn .i { width: 14px; height: 14px; }
 
 /* ── Why buy here ────────────────────────────────────────────────────────── */
 .why-list {
@@ -974,42 +1013,34 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 /* ── Contact ─────────────────────────────────────────────────────────────── */
 .contact-window {
   display: flex; align-items: flex-start; gap: 12px;
-  margin-bottom: 20px; padding: 16px 18px; border-radius: var(--r);
+  margin-bottom: 24px;
   font-size: .93rem; color: var(--ink-2);
 }
 .contact-window .i { width: 19px; height: 19px; margin-top: 2px; color: var(--ion-text); }
 .contact-window span { max-width: 72ch; }
 .contact-layout { display: grid; gap: 20px; grid-template-columns: minmax(270px, .85fr) 1.15fr; align-items: start; }
-.contact-cards { display: grid; gap: 10px; align-content: start; position: sticky; top: calc(var(--header-h) + 20px); }
-#phoneList { display: grid; gap: 10px; }
+/* Ways to reach the shop: ruled rows, no boxes. Each says what it is, the
+   number or address itself, and when it is answered. */
+.contact-cards { display: grid; align-content: start; position: sticky; top: calc(var(--header-h) + 20px); border-bottom: 1px solid var(--line); }
+#phoneList { display: grid; }
 
 .contact-card {
   display: flex; align-items: center; gap: 14px;
-  min-height: 64px; padding: 14px 16px; border-radius: var(--r);
-  transition: transform .2s var(--ease-out), border-color .2s var(--ease-out);
+  min-height: 64px; padding: 16px 2px;
+  border-top: 1px solid var(--line);
 }
 @media (hover: hover) and (pointer: fine) {
-  .contact-card:not(.static):hover { border-color: var(--line-2); transform: translateX(2px); }
+  .contact-card:not(.static):hover .contact-body > span { color: var(--ion-text); }
   .contact-card:not(.static):hover .contact-arrow { transform: translate(2px, -2px); color: var(--ink); }
 }
-.contact-icon {
-  display: grid; place-items: center; flex: none;
-  width: 42px; height: 42px; border-radius: 13px;
-  background: var(--glass-2); color: var(--ink);
-  border: 1px solid var(--line);
-}
-.contact-icon .i { width: 20px; height: 20px; }
-.contact-icon.whatsapp { color: var(--wa); }
-[data-theme="light"] .contact-icon.whatsapp { color: #0E7A43; }
 .contact-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .contact-body strong { font-size: .82rem; font-weight: 550; color: var(--ink-3); }
-.contact-body > span { font-size: 1rem; font-weight: 550; overflow-wrap: anywhere; }
+.contact-body > span { font-size: 1.05rem; font-weight: 550; overflow-wrap: anywhere; transition: color .2s var(--ease-out); }
 .contact-body em { font-style: normal; font-size: .82rem; color: var(--ink-3); }
 .contact-arrow { width: 16px; height: 16px; margin-left: auto; color: var(--ink-3); transition: transform .2s var(--ease-out), color .2s var(--ease-out); }
 [data-contact-status].is-closed { color: var(--warn) !important; }
 
 .hours-card { align-items: flex-start; }
-.hours-card .contact-icon { margin-top: 2px; }
 .hours-status { display: flex !important; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; }
 .hours-status em { font-size: .82rem; color: var(--ink-3); }
 .hours-list { margin: 0 0 8px; padding: 0; list-style: none; }
@@ -1054,8 +1085,33 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 .map-head p { margin-top: 6px; font-size: .95rem; color: var(--ink-2); }
 .map-note { font-size: .86rem !important; color: var(--ink-3) !important; }
 .map-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.map-frame { position: relative; height: 360px; border-top: 1px solid var(--line); background: var(--panel-2); }
-.map-frame iframe { display: block; width: 100%; height: 100%; border: 0; filter: var(--map-filter); }
+.map-frame { position: relative; height: 360px; overflow: hidden; border-top: 1px solid var(--line); background: var(--map-ground); }
+.map-frame iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; filter: var(--map-filter); }
+.map-frame.is-live .map-poster, .map-frame.is-live .map-caption { visibility: hidden; }
+
+/* The sketch: two buildings either side of Tom Mboya Street, the shop marked. */
+.map-poster { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mp-ground { fill: var(--map-ground); }
+.mp-blocks rect { fill: var(--map-block); stroke: var(--map-block-edge); stroke-width: 1; }
+.mp-street { fill: var(--map-street); }
+.mp-centre { fill: none; stroke: var(--map-centre); stroke-width: 2; stroke-dasharray: 14 12; }
+.mp-street-name { fill: var(--ink-3); font-size: 14px; font-weight: 650; letter-spacing: .32em; text-anchor: middle; }
+.mp-shop { fill: var(--map-shop); stroke: var(--accent); stroke-width: 1.5; }
+.mp-opposite { fill: var(--map-block); stroke: var(--line-2); stroke-width: 1; }
+.mp-name { fill: var(--ink); font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+.mp-name-2 { fill: var(--ink-2); font-weight: 500; }
+.mp-note { fill: var(--ink-2); font-size: 15px; }
+.mp-pin-ring { fill: none; stroke: var(--accent); stroke-width: 2; opacity: .55; transform-box: fill-box; transform-origin: center; }
+.mp-pin-dot { fill: var(--accent); }
+.mp-pin-h { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; }
+html.motion .mp-pin-ring { animation: pin-ring 2.4s var(--ease-out) infinite; }
+@keyframes pin-ring { from { transform: scale(.6); opacity: .7; } to { transform: scale(1.5); opacity: 0; } }
+.map-caption {
+  position: absolute; left: 22px; bottom: 18px;
+  font-size: .82rem; color: var(--ink-3);
+}
+.map-load { position: absolute; right: 18px; bottom: 14px; }
+html:not(.js) .map-load { display: none; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .site-footer {
@@ -1200,13 +1256,16 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 
 .modal-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .modal-grid > * { min-width: 0; }
+/* The picture keeps to the top of its column and stays in view while the
+   details beside it scroll; it is never centred in a column the specs have
+   made tall. */
 .modal-media {
-  display: grid; place-items: center; min-height: 320px; padding: 20px;
+  display: grid; align-items: start; justify-items: center; padding: 20px;
   border-right: 1px solid var(--line);
-  background: radial-gradient(120% 100% at 50% 0%, rgba(123, 107, 255, .12), transparent 70%);
+  background: var(--media-bg);
 }
+.modal-media > .viewer { position: sticky; top: 20px; }
 .modal-info { padding: clamp(26px, 3vw, 38px); }
-.modal-info .card-cat { display: block; margin-bottom: 8px; }
 .modal-info h3 { font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 350; letter-spacing: -0.03em; line-height: 1.12; overflow-wrap: anywhere; }
 .modal-price { margin: 16px 0 8px; font-size: 1.7rem; font-weight: 650; letter-spacing: -0.03em; }
 .modal-price s { margin-right: 8px; font-size: .6em; font-weight: 400; color: var(--ink-3); }
@@ -1235,7 +1294,8 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 .share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 .viewer { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
-.viewer > .plate { aspect-ratio: 1 / 1; border-radius: 22px; }
+.viewer > .plate, .viewer-plate { aspect-ratio: 1 / 1; border-radius: 22px; }
+.viewer-plate { overflow: hidden; max-height: none; }
 .viewer-main { width: 100%; max-height: 420px; object-fit: contain; border-radius: 18px; background: var(--media-bg); }
 .viewer[data-mode="spin"] .viewer-main { display: none; }
 .viewer[data-mode="photo"] .spin-stage { display: none; }
@@ -1301,7 +1361,6 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 }
 .compare-pick .pick-media { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; overflow: hidden; background: var(--media-bg); }
 .compare-pick .pick-media img { width: 100%; height: 100%; object-fit: cover; }
-.compare-pick .pick-media .mono { font-size: .8rem; }
 .compare-pick button {
   display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
   border: 0; border-radius: 50%; background: none; color: var(--ink-3);
@@ -1342,8 +1401,9 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 .compare-head-cell > img, .compare-head-cell > .ph {
   width: 100%; height: 88px; object-fit: contain; border-radius: 12px; background: var(--media-bg);
 }
-.compare-head-cell > .ph.mono { font-size: 1.8rem; }
+.compare-head-cell > .plate-mini { background-size: contain; }
 .compare-head-cell strong { font-size: .97rem; }
+.compare-cat { font-size: .78rem; font-weight: 550; color: var(--ink-3); }
 .compare-table .price { font-size: 1.05rem; }
 .compare-table .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -1490,14 +1550,13 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
 
 /* Cursor-lit surfaces: the light follows the pointer (--mx, --my from app.js). */
 @media (hover: hover) and (pointer: fine) {
-  .card::after, .service::after, .contact-card:not(.static)::after, .float-tile::after {
+  .card::after, .float-tile::after {
     content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
     background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(123, 107, 255, .14), transparent 65%);
     opacity: 0; transition: opacity .3s var(--ease-out);
   }
-  .card:hover::after, .service:hover::after, .contact-card:not(.static):hover::after, .float-tile:hover::after { opacity: 1; }
-  .service, .contact-card { position: relative; }
-  .card > *, .service > *, .contact-card > *, .float-tile > * { position: relative; z-index: 1; }
+  .card:hover::after, .float-tile:hover::after { opacity: 1; }
+  .card > *, .float-tile > * { position: relative; z-index: 1; }
 }
 
 /* ── Wide screens ────────────────────────────────────────────────────────── */
@@ -1513,6 +1572,10 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .contact-layout { grid-template-columns: 1fr; }
   .contact-cards { position: static; }
   .repair-contact { grid-template-columns: 1fr; }
+  .service {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+    grid-template-areas: "name desc" "name items" "name end";
+  }
   .footer-inner { grid-template-columns: 1fr; }
   .modal-grid { grid-template-columns: 1fr; }
   .modal-media { min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -1591,14 +1654,20 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .card { border-radius: 18px; }
   .card-media { aspect-ratio: 1 / 1; margin: 4px 4px 0; border-radius: 14px; }
-  .card-body { padding: 10px 11px 12px; gap: 4px; }
-  .card-cat { font-size: .72rem; }
+  .card-media > .plate { padding-bottom: 26%; }   /* square here: the slab's edge is 20% up */
+  .card-body { padding: 10px 11px 12px; gap: 5px; }
   .card-title { font-size: .92rem; line-height: 1.25; }
-  .card-desc, .card-specs { display: none; }
-  .card-foot { flex-direction: column; align-items: stretch; gap: 10px; margin-top: 8px; padding-top: 10px; }
+  .card-foot { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 10px; }
   .card-tools { justify-content: flex-start; }
-  .price { font-size: 1.05rem; }
+  .price { font-size: 1.1rem; }
   .price .vat { display: none; }
+  /* The wide photo card stands a full row, photo on top, details under it. */
+  .grid[data-sort="featured"] .card-feature { display: flex; }
+  .grid[data-sort="featured"] .card-feature .card-media { aspect-ratio: 16 / 10; margin: 4px 4px 0; }
+  .grid[data-sort="featured"] .card-feature .card-body { gap: 6px; padding: 12px 14px 14px; }
+  .grid[data-sort="featured"] .card-feature .price { font-size: 1.35rem; }
+  .grid[data-sort="featured"] .card-feature .card-title { font-size: 1rem; -webkit-line-clamp: 2; line-clamp: 2; }
+  .grid[data-sort="featured"] .card-feature .card-foot { flex-direction: row; align-items: center; }
   .tag, .spin-badge { top: 7px; font-size: .72rem; padding: 3px 8px; }
   .tag { left: 7px; }
   .spin-badge { right: 7px; }
@@ -1610,9 +1679,22 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   .form-actions .btn { flex: 1 1 100%; }
   .map-head { padding: 20px; }
   .map-actions .btn { flex: 1 1 auto; }
-  .map-frame { height: 280px; }
-  .service { padding: 20px; }
+  .service { grid-template-columns: minmax(0, 1fr); grid-template-areas: "name" "desc" "items" "end"; gap: 12px; padding: 24px 0 26px; }
+  .service-items { columns: 1; }
+  .service-end { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 4px; }
   .repair-contact { padding: 20px; border-radius: var(--r-lg); }
+  /* The sketch on its own, the caption and the button under it, so neither
+     covers a building. */
+  .map-frame { display: flex; flex-direction: column; height: auto; }
+  .map-frame.is-live { height: 320px; }
+  .map-poster { position: relative; flex: none; height: 220px; }
+  .map-caption { position: static; padding: 14px 16px 0; }
+  .map-load { position: static; align-self: stretch; margin: 12px 16px 16px; }
+  /* Three short lists: the third runs across both columns, in two, so the
+     footer does not end on a half-empty column. */
+  .footer-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 20px; }
+  .footer-nav > div:last-child { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+  .footer-nav > div:last-child h4 { grid-column: 1 / -1; }
 
   /* Product pop-up becomes a sheet from the bottom, the way phones do it. */
   .modal-panel {
@@ -1711,13 +1793,13 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
   :root, [data-theme="dark"] { --ink-2: #D9D7E6; --ink-3: #C2BFD6; --line: rgba(255, 255, 255, .28); --line-2: rgba(255, 255, 255, .5); }
   [data-theme="light"] { --ink-2: #2A2838; --ink-3: #3B394C; --line: rgba(20, 16, 50, .35); --line-2: rgba(20, 16, 50, .6); }
   .section::before, .site-footer::before, .stage::before { display: none; }
-  .card, .service, .contact-card { border-width: 2px; }
+  .card { border-width: 2px; }
 }
 @media (forced-colors: active) {
-  .card, .service, .contact-card, .chip, .btn, .float-tile, .status-pill { border: 1px solid CanvasText; }
+  .card, .chip, .btn, .float-tile, .status-pill { border: 1px solid CanvasText; }
   .tag, .spin-badge, .badge { forced-color-adjust: none; }
-  .section::before, .site-footer::before, .stage::before, .stage-canvas { display: none; }
-  .stage.is-live .stage-poster { opacity: 1; }
+  .section::before, .site-footer::before, .stage::before, .hero-canvas { display: none; }
+  .hero.is-live .stage-poster { opacity: 1; }
 }
 
 /* ── Devices that cannot keep up ─────────────────────────────────────────────
@@ -1729,8 +1811,8 @@ html.lite .site-header, html.lite .float-tile, html.lite .modal-backdrop, html.l
 html.lite .site-header { background: var(--header-solid); }
 html.lite .float-tile { background: var(--glass-solid); animation: none; }
 html.lite .skel { animation: none; }
-html.lite .card::after, html.lite .service::after, html.lite .contact-card::after { display: none !important; }
-html.lite .stage-canvas { display: none; }
+html.lite .card::after { display: none !important; }
+html.lite .hero-canvas { display: none; }
 html.lite .stage .stage-poster, html.lite .stage::before { opacity: 1; }
 
 /* Screens that redraw slowly (e-ink, some kiosks): nothing animates. */
@@ -1753,10 +1835,11 @@ html.lite .stage .stage-poster, html.lite .stage::before { opacity: 1; }
 
 /* ── Paper ───────────────────────────────────────────────────────────────── */
 @media print {
-  .site-header, .stage, .hero-actions, .hero-search, .controls, .contact-form, .toast, .modal, .drawer,
+  .site-header, .stage, .hero-canvas, .hero-actions, .hero-search, .controls, .contact-form, .toast, .modal, .drawer,
   .compare-bar, .search-overlay, .map-frame, .section::before, .site-footer::before, .skel, .grid-wait { display: none !important; }
   html, body { background: #FFFFFF !important; color: #000000 !important; }
-  .card, .repair-contact, .service, .contact-card, .map-block { box-shadow: none !important; background: #FFFFFF !important; border-color: #BBBBBB !important; }
+  .card, .repair-contact, .map-block { box-shadow: none !important; background: #FFFFFF !important; border-color: #BBBBBB !important; }
   .card { break-inside: avoid; animation: none; }
+  .plate, .plate-model { color: #000000 !important; }   /* the glass does not print; its words do */
   .reveal { opacity: 1 !important; transform: none !important; }
 }

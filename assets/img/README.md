@@ -17,6 +17,37 @@ Made with ffmpeg: `ffmpeg -i photo.webp -vf "crop=W:H:X:Y,scale=256:256:flags=la
 When the listing's photo changes, `app.js` shows the new one in place of the crop
 (it compares the photo's length with `data-photo-sig` in `index.html`).
 
+`plates/` holds the glass plates shown for every product that has no photo
+yet: one per category, for Night and for Day, square, 720 × 720 WebP (4–7 KB
+each). They are rendered, not drawn or generated: `tools/plates/render.html`
+ray-traces a rounded slab of glass (reflection, refraction in three
+wavelengths, absorption tinted by category) on the card's own floor colour,
+at 1440 × 1440, and ffmpeg downsizes it
+(`-vf scale=720:720:flags=lanczos -c:v libwebp -quality 76 -compression_level 6`).
+Re-rendering with the same settings gives the same file, byte for byte.
+
+| Category | `tint` | `seed` Night / Day |
+|---|---|---|
+| `computers` | `0.40,0.62,1.00` | -2 / -1 |
+| `computer-accessories` | `0.52,0.56,1.00` | 0 / 1 |
+| `phones` | `0.66,0.48,1.00` | 2 / -2 |
+| `phone-accessories` | `0.80,0.48,1.00` | -1 / 0 |
+| `other-tech` | `1.00,0.72,0.42` | 1 / 2 |
+
+The slab is centred (8–90% across, 17–81% down) so one image fills a square
+pop-up, a 4:3 card (which crops 12.5% off the top and bottom) and a thumbnail.
+By night the lower body of the glass is in shadow, which is where the
+product's name is set: measured against the brightest 2% of the glass behind
+each line of words on the shipped files, they hold at least 6.4:1 on desktop
+cards and in the pop-up and 5.7:1 on phone cards; by day at least 5:1. A new
+category with no plates of its own borrows the computers ones;
+`tools/check-site.js` lists it.
+
+The turntable frames in `demo-360/` are a drawing of a phone, there only to
+show the 360° viewer working. The shop does not present them as the product:
+a product whose only pictures are these frames shows its glass plate, and the
+pop-up offers the frames behind a "360° sample" tab.
+
 The chrome H in the first screen is not an image: `assets/js/motion.js` draws it
 live from the logo's own geometry, and the stand-in under it is an inline SVG in
 `index.html`. Icons are Phosphor (MIT, phosphoricons.com), inline in

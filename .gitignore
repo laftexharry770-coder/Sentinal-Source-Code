@@ -5,6 +5,10 @@
 .impeccable/hook.cache.json
 .impeccable/hook.pending.json
 
+# Review screenshots Impeccable's finish review reads. Kept local: the whole
+# repository is published by GitHub Pages, and these are megabytes of PNG.
+.impeccable/review/
+
 # Snapshots and screenshots the Playwright MCP server writes while testing.
 .playwright-mcp/
 

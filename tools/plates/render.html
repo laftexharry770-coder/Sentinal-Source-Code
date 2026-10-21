@@ -1,0 +1,148 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Glass plate renderer</title>
+<style>html,body{margin:0;background:#000}canvas{display:block;max-width:100vw;height:auto}
+a{position:fixed;left:12px;top:12px;padding:8px 12px;border-radius:8px;background:#fff;color:#000;font:14px system-ui,sans-serif;text-decoration:none}</style></head>
+<body><canvas id="c"></canvas><a id="save" download="plate.png" hidden>Save PNG</a>
+<script>
+// The renderer behind assets/img/plates/. Ray-traces a rounded glass slab:
+// Fresnel reflection off the face, refraction through the body (three
+// wavelengths, so the edges fringe), absorption tinted per category, exit
+// refraction, bevel glints, a soft coloured caustic on the floor. The floor
+// is the card's own colour, so a plate sits in its frame without a seam.
+//
+// Open it in a browser (Chrome works) with:
+//   ?tint=R,G,B   the category's tint, 0–1 per channel
+//   &day=0|1      Night or Day studio
+//   &seed=-2..2   a slight turn, so neighbouring plates are not identical
+//   &w=1440&h=1440
+// then press "Save PNG", and encode it at 720 × 720:
+//   ffmpeg -i plate.png -vf scale=720:720:flags=lanczos -c:v libwebp -quality 76 -compression_level 6 <category>-<night|day>.webp
+//
+// The tints and seeds used for the shipped plates are listed in
+// assets/img/README.md.
+const P = new URLSearchParams(location.search);
+const W = +P.get('w') || 1440, H = +P.get('h') || 1440;
+const tint = (P.get('tint') || '0.40,0.62,1.00').split(',').map(Number);
+const day = +P.get('day') || 0;
+const seed = +P.get('seed') || 0;
+const cv = document.getElementById('c'); cv.width = W; cv.height = H;
+const gl = cv.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
+const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+const FS = `precision highp float;
+uniform vec2 uRes; uniform vec3 uTint; uniform float uDay; uniform float uSeed;
+float sdRB(vec3 p,vec3 b,float r){vec3 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-r;}
+const vec3 B=vec3(1.20,0.86,0.17);
+mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,-s, 0.,1.,0., s,0.,c);}
+mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.,0.,0., 0.,c,s, 0.,-s,c);}
+mat3 rotZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0., -s,c,0., 0.,0.,1.);}
+mat3 R;
+float map(vec3 p){return sdRB(R*(p-vec3(0.03,0.03,0.)),B,0.13);}
+vec3 nrm(vec3 p){vec2 e=vec2(0.0008,0.);return normalize(vec3(map(p+e.xyy)-map(p-e.xyy),map(p+e.yxy)-map(p-e.yxy),map(p+e.yyx)-map(p-e.yyx)));}
+float band(float x,float a,float b,float s){return smoothstep(a-s,a+s,x)*(1.-smoothstep(b-s,b+s,x));}
+// The studio the glass sees, and is seen against.
+vec3 env(vec3 d){
+  float y=d.y,x=d.x;
+  vec3 c;
+  if(uDay<0.5){
+    c=mix(vec3(0.012,0.012,0.022),vec3(0.05,0.045,0.09),smoothstep(-0.4,0.8,y));
+    c+=vec3(0.55,0.45,1.0)*3.2*pow(max(dot(d,normalize(vec3(0.55,0.5,-0.65))),0.),5.);
+    c+=uTint*2.0*band(x,0.05,0.45,0.08)*band(y,0.05,0.55,0.08)*step(d.z,0.);
+    c+=vec3(0.30,0.55,1.0)*1.5*pow(max(dot(d,normalize(vec3(-0.8,-0.3,-0.5))),0.),7.);
+    c+=vec3(2.4)*band(y,0.55,0.62,0.02)*smoothstep(0.9,0.2,abs(x-0.2))*step(d.z,0.);
+    c+=vec3(1.0,0.7,0.35)*0.5*pow(max(dot(d,normalize(vec3(0.2,-0.9,-0.4))),0.),5.);
+    c+=vec3(1.6)*band(x,-0.75,-0.55,0.02)*band(y,-0.2,0.7,0.03)*step(d.z,0.);
+  } else {
+    c=mix(vec3(0.78,0.77,0.86),vec3(1.08,1.07,1.12),smoothstep(-0.4,0.7,y));
+    c=mix(c,vec3(0.10,0.09,0.16),band(y,-0.12,0.02,0.02)*0.85);
+    c+=vec3(0.55,0.45,1.0)*1.0*pow(max(dot(d,normalize(vec3(0.55,0.5,-0.65))),0.),5.);
+    c+=uTint*0.5*band(x,0.05,0.45,0.08)*band(y,0.05,0.55,0.08)*step(d.z,0.);
+    c+=vec3(0.30,0.55,1.0)*0.6*pow(max(dot(d,normalize(vec3(-0.8,-0.3,-0.5))),0.),7.);
+    c+=vec3(1.4)*band(y,0.55,0.62,0.02)*smoothstep(0.9,0.2,abs(x-0.2))*step(d.z,0.);
+    c=mix(c,vec3(0.12,0.11,0.2),0.8*band(x,-0.75,-0.55,0.02)*band(y,-0.2,0.7,0.03)*step(d.z,0.));
+  }
+  return c;
+}
+// Frosted: a few jittered looks into the studio, so the glass softens what
+// is behind it the way a satin-finished pane does.
+vec3 envSoft(vec3 d,float rough){
+  vec3 a=vec3(0.),t=normalize(cross(d,vec3(0.,1.,0.)+0.001)),b=cross(d,t);
+  for(int i=0;i<12;i++){float fi=float(i);float an=fi*2.399+uSeed;float r=sqrt((fi+0.5)/12.)*rough;
+    a+=env(normalize(d+t*cos(an)*r+b*sin(an)*r));}
+  return a/12.;
+}
+vec3 ground(vec2 uv){
+  // exactly the card's own colour, so the plate sits in its frame seamlessly
+  vec3 g=uDay<0.5?vec3(0.051,0.055,0.082):vec3(0.957,0.953,0.976);
+  float caust=exp(-pow((uv.y+0.80)*3.0,2.)-pow((uv.x-0.08)*0.85,2.));
+  g+=uTint*(uDay<0.5?0.16:0.08)*caust;
+  float sh=exp(-pow((uv.y+0.74)*5.,2.)-pow(uv.x*1.1,2.));
+  g*=1.-(uDay<0.5?0.45:0.10)*sh;
+  return g;
+}
+vec3 tone(vec3 c){c=1.-exp(-c*1.2);return pow(c,vec3(0.4545));}
+// one colour channel through the slab: in, across, out
+vec3 through(vec3 p,vec3 rd,vec3 n,float ior,vec2 uv,out float len){
+  vec3 rd2=refract(rd,n,1./ior);
+  vec3 q=p+rd2*0.002; float s=0.;
+  for(int i=0;i<90;i++){float d=-map(q+rd2*s);if(d<0.0004)break;s+=max(d,0.002);if(s>4.)break;}
+  vec3 pe=q+rd2*s; vec3 ne=-nrm(pe);
+  vec3 rd3=refract(rd2,ne,ior);
+  if(dot(rd3,rd3)<0.01)rd3=reflect(rd2,ne);
+  len=s;
+  vec3 c=envSoft(rd3,0.10);
+  return c;
+}
+void main(){
+  R=rotZ(0.03)*rotX(0.24)*rotY(-0.36+uSeed*0.02);
+  vec2 uv=(2.*gl_FragCoord.xy-uRes)/uRes.y;
+  vec3 ro=vec3(0.,0.,4.6),rd=normalize(vec3(uv*0.57,-1.8));
+  float t=0.;bool hit=false;
+  for(int i=0;i<160;i++){float d=map(ro+rd*t);if(d<0.0004){hit=true;break;}t+=d;if(t>12.)break;}
+  vec3 col;
+  if(!hit){gl_FragColor=vec4(ground(uv),1.);return;}
+  vec3 p=ro+rd*t,n=nrm(p);
+  float cosi=clamp(dot(-rd,n),0.,1.);
+  float F=0.04+0.96*pow(1.-cosi,5.);
+  vec3 r=reflect(rd,n);
+  vec3 refl=envSoft(r,0.05);
+  // three wavelengths bend by slightly different amounts: colour at the edges
+  float lr,lg,lb;
+  vec3 tr=through(p,rd,n,1.47,uv,lr);
+  vec3 tg=through(p,rd,n,1.50,uv,lg);
+  vec3 tb=through(p,rd,n,1.53,uv,lb);
+  vec3 tra=vec3(tr.r,tg.g,tb.b);
+  float len=lg;
+  // the body takes on its colour more the further light travels through it
+  vec3 absorb=exp(-(1.-uTint)*(len*(uDay<0.5?2.6:1.1)+0.2));
+  vec3 body=tra*absorb;
+  body+=uTint*(uDay<0.5?0.035:0.10);
+  // Night: all but the top and right edges of the glass fall into the
+  // studio's shadow, and a black card kills the face's reflection there, so
+  // the maker's name set over it in white reads cleanly.
+  vec3 lp=R*(p-vec3(0.03,0.03,0.));
+  float shadeK=uDay<0.5?smoothstep(0.82,0.25,lp.y)*smoothstep(1.18,0.85,lp.x):0.;
+  body*=1.-0.80*shadeK;
+  refl*=1.-0.75*shadeK;
+  col=mix(body,refl,F);
+  // key-light glints along the bevels, and the edges catching the room
+  vec3 L1=normalize(vec3(0.5,0.7,0.5)),L2=normalize(vec3(-0.6,0.3,0.7));
+  col+=vec3(1.0)*pow(max(dot(r,L1),0.),120.)*2.5;
+  col+=vec3(0.75,0.8,1.0)*pow(max(dot(r,L2),0.),60.)*1.2;
+  vec3 ln=R*n; float edge=1.-abs(ln.z);
+  col+=mix(vec3(1.),uTint,0.4)*pow(edge,5.)*(uDay<0.5?0.45:0.35);
+  if(uDay>0.5){ col=mix(col,col*vec3(0.94,0.93,0.97),0.5); }
+  gl_FragColor=vec4(tone(col),1.);
+}`;
+function sh(t, s) { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; }
+const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr); gl.useProgram(pr);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const a = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+gl.uniform2f(gl.getUniformLocation(pr, 'uRes'), W, H);
+gl.uniform3f(gl.getUniformLocation(pr, 'uTint'), tint[0], tint[1], tint[2]);
+gl.uniform1f(gl.getUniformLocation(pr, 'uDay'), day);
+gl.uniform1f(gl.getUniformLocation(pr, 'uSeed'), seed);
+gl.viewport(0, 0, W, H); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish();
+window.DONE = true;
+const save = document.getElementById('save');
+save.href = cv.toDataURL('image/png'); save.hidden = false;
+</script></body></html>

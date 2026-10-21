@@ -60,36 +60,128 @@
   const repairEmail  = () => repairs().email || SITE.email;
   const repairWa     = (text) => 'https://wa.me/' + repairNumber() + (text ? '?text=' + encodeURIComponent(text) : '');
 
-  /* ── Placeholder artwork (used when a product has no photo) ─────────────── */
-  const ICONS = {
-    computers: '<svg viewBox="0 0 64 48"><rect x="6" y="4" width="52" height="34" rx="3"/><path d="M2 44h60M26 38h12"/></svg>',
-    'computer-accessories': '<svg viewBox="0 0 64 48"><rect x="4" y="10" width="56" height="28" rx="4"/><path d="M12 18h8M24 18h8M36 18h8M48 18h4M12 26h4M20 26h24M48 26h4M20 33h24"/></svg>',
-    phones: '<svg viewBox="0 0 64 48"><rect x="21" y="2" width="22" height="44" rx="4"/><path d="M28 7h8M29 41h6"/></svg>',
-    'phone-accessories': '<svg viewBox="0 0 64 48"><rect x="14" y="8" width="36" height="32" rx="6"/><path d="M22 20v8M42 20v8M28 16h8v16h-8z"/></svg>',
-    'other-tech': '<svg viewBox="0 0 64 48"><rect x="10" y="8" width="44" height="30" rx="3"/><path d="M20 44h24M26 38v6M38 38v6M22 18h20M22 26h12"/></svg>',
-    fallback: '<svg viewBox="0 0 64 48"><rect x="8" y="8" width="48" height="32" rx="4"/><path d="M8 30l12-10 10 8 8-6 18 12"/></svg>'
+  /* ── Icons ─────────────────────────────────────────────────────────────────
+     Every icon is a Phosphor symbol drawn once in index.html (the sprite at
+     the top of <body>); this just points at one. */
+  const icon = (name, cls) =>
+    '<svg class="i' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+
+  /* ── Products without a photo ──────────────────────────────────────────────
+     No clip-art. A plate of glass (rendered, one per category and theme, in
+     assets/img/plates/) with the maker's name set large and the model under
+     it; where there is no maker's name (a surge-protected extension, a
+     braided cable), the product name itself is the headline. Small places
+     (search, lists, the compare bar) get the same glass, without the words:
+     the name is always written beside it. */
+  const BRANDS = ['Acer', 'Amaya', 'Anker', 'APC', 'Apple', 'Asus', 'Baseus', 'Belkin', 'Brother',
+    'Canon', 'Dahua', 'Dell', 'Epson', 'Google', 'Hikvision', 'Hisense', 'Honor', 'HP', 'Huawei',
+    'Infinix', 'Itel', 'JBL', 'Kingston', 'Lenovo', 'Lexar', 'LG', 'Logitech', 'Microsoft', 'Motorola',
+    'Nokia', 'OnePlus', 'Oppo', 'Oraimo', 'Philips', 'Realme', 'Redmi', 'Samsung', 'SanDisk', 'Seagate',
+    'Sony', 'TCL', 'Tecno', 'Tenda', 'Toshiba', 'TP-Link', 'Transcend', 'Ugreen', 'Vivo', 'WD', 'Xiaomi'];
+
+  /* The plate carries the name as a headline, so it stops before the small
+     print: "4-Way Power Extension with Surge Protection" is set as "4-Way
+     Power Extension", "iPhone 15 (128GB)" as "iPhone 15". A "+" is part of
+     what is sold ("Clear Case + Tempered Glass Bundle") and stays. The full
+     name is always written beside or under the plate. */
+  const headline = (text) =>
+    String(text).split(/\s+(?:with|for|–|—)\s+|\s*\(|,\s/)[0].trim() || String(text);
+
+  function plateParts(name) {
+    const words = String(name || '').trim().split(/\s+/);
+    const first = (words[0] || '').toLowerCase();
+    const known = BRANDS.some((b) => b.toLowerCase() === first);
+    return known && words.length > 1
+      ? { brand: words[0], model: headline(words.slice(1).join(' ')) }
+      : { brand: '', model: headline(String(name || '')) };
+  }
+
+  /* "Wi-Fi", "USB-C", "4-Way" split at the hyphen read as two words. A
+     short hyphenated word is kept whole; a long one ("Multi-Functional")
+     may still break there rather than overflow a narrow card. */
+  const keepWhole = (text) => esc(text).replace(/\S+-\S+/g, (word) =>
+    word.length <= 10 ? '<span class="nb">' + word + '</span>' : word);
+  // On a plate the words are set large and may break anywhere if they must,
+  // but never just after a hyphen: a word joiner (U+2060) follows each one.
+  const joinHyphens = (text) => String(text).replace(/-(?=\S)/g, '-\u2060');
+
+  /* A plate with no maker's name carries what defines the product, and only
+     that: its wattage, length, port count or standard ("65W", "2m",
+     "8-in-1", "AC1200"). The card's title is printed right below, so the
+     plate says the one thing the title does not lead with, and never the
+     title again. The figure comes from the name, else from the specs; a
+     bundle is named by its parts ("Case + Glass"); failing all of those, the
+     thing itself does ("Wallet Case"). */
+  const SPEC_IN_NAME = [
+    /\b\d+-(?:Way|Socket|Camera|in-1)\b/i,     // 4-Way, 6-Socket, 8-in-1
+    /\(([^)\s]+)[^)]*\)/,                     // (2m), (AC1200), (1080p support)
+    /\b\d+(?:[.,]\d+)?(?:W|mAh|TB|GB|Hz|VA)\b/, // 65W
+    /\bwith ([A-Z]{2,})\b/                     // with ANC
+  ];
+  const SPEC_IN_SPECS = /\b\d+(?:\.\d+)?\s?(?:mm|cm|m|H|W|mAh|GB|TB|dB)\b/;
+
+  function plateLead(product) {
+    const name = String(product.name || '').trim();
+    for (const re of SPEC_IN_NAME) {
+      const m = name.match(re);
+      if (m) return { lead: m[1] || m[0], rest: '' };
+    }
+    // A bundle is named by what is in it: "Case + Glass", then "Bundle".
+    if (/\s\+\s/.test(name)) {
+      const generic = /\s+(Bundle|Kit|Set|Combo|Pack)$/i;
+      const kind = (name.match(generic) || [])[1] || '';
+      const items = name.replace(generic, '').split(/\s+\+\s+/).map((part) => part.trim().split(/\s+/).pop());
+      return { lead: items.join(' + '), rest: '' };
+    }
+    for (const value of Object.values(product.specs || {})) {
+      const m = String(value).match(SPEC_IN_SPECS);
+      if (m) return { lead: m[0].replace(/\s+/g, ''), rest: '' };
+    }
+    return { lead: headline(name).split(/\s+/).slice(-2).join(' '), rest: '' };
+  }
+
+  const plate = (product) => {
+    const parts = plateParts(product.name);
+    const lines = parts.brand ? { lead: parts.brand, rest: parts.model } : plateLead(product);
+    return '<div class="plate" data-cat="' + esc(product.category) + '" aria-hidden="true"><div class="plate-face">' +
+      '<span class="plate-brand' + (lines.lead.length > 8 ? ' is-long' : '') + '">' + esc(joinHyphens(lines.lead)) + '</span>' +
+      (lines.rest ? '<span class="plate-model">' + esc(joinHyphens(lines.rest)) + '</span>' : '') +
+    '</div></div>';
   };
-  const art = (product) => ICONS[product.category] || ICONS.fallback;
+
+  const plateMini = (product) =>
+    '<span class="ph plate-mini" data-cat="' + esc(product.category) + '" aria-hidden="true"></span>';
+
+  /* The turntable frames in assets/img/demo-360/ are a drawing, there to
+     show the 360° viewer working. They are not a picture of the product, so
+     a product with only those is shown on its plate, and the frames are
+     offered in the pop-up marked as a sample. */
+  const SAMPLE_FRAMES = /(^|\/)demo-360\//;
+  const isSampleSpin = (frames) => !!(frames && frames.length) &&
+    frames.every((src) => SAMPLE_FRAMES.test(src));
 
   const mainImage = (product) => (product.images && product.images[0]) ||
-    (product.spin && product.spin[0]) || '';
+    (product.spin && !isSampleSpin(product.spin) && product.spin[0]) || '';
 
+  /* media(p) is the card's picture; media(p, 'ph') is a small one. */
   const media = (product, className) => {
     const src = mainImage(product);
-    if (!src) return '<div class="' + (className || 'ph') + '">' + art(product) + '</div>';
+    if (!src) return className ? plateMini(product) : plate(product);
     // A frame borrowed from the 360 set is a cut-out, so show it whole.
     const fromSpin = !(product.images && product.images.length);
     return '<img class="' + (fromSpin ? 'is-spin' : '') + '" src="' + esc(src) +
       '" alt="' + esc(product.name) + '" loading="lazy" />';
   };
 
+  // Services carry an icon in search results, where they sit among products.
   const SERVICE_ICONS = {
-    computer: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20M10 16h4"/></svg>',
-    phone: '<svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
-    drive: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
-    network: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12M12 12L6.5 16.5M12 12l5.5 4.5"/></svg>',
-    fallback: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 1 5 5l-8.4 8.4a2.8 2.8 0 0 1-4-4z"/><path d="M6 6l3 3"/></svg>'
+    computer: 'laptop',
+    phone: 'device-mobile',
+    drive: 'hard-drives',
+    network: 'network',
+    fallback: 'wrench'
   };
+  const serviceIcon = (name) => icon(SERVICE_ICONS[name] || SERVICE_ICONS.fallback);
 
   const STOCK = {
     in:  { text: 'In stock',         cls: '',    label: 'In stock' },
@@ -100,7 +192,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v27';
+  const BUILD = 'v28';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -454,15 +546,12 @@
     if (phoneList) {
       phoneList.innerHTML = (SITE.phones || []).map((phone, i) =>
         '<a class="contact-card" href="' + esc(telLink(phone.number)) + '">' +
-          '<span class="contact-icon">' +
-            '<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>' +
-          '</span>' +
           '<span class="contact-body">' +
             '<strong>' + esc(phone.label || (i === 0 ? 'Call us' : 'Alternative line')) + '</strong>' +
             '<span>' + esc(prettyPhone(phone.number)) + '</span>' +
             '<em data-contact-status></em>' +
           '</span>' +
-          '<svg class="contact-arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg>' +
+          icon('arrow-up-right', 'contact-arrow') +
         '</a>').join('');
     }
 
@@ -475,12 +564,11 @@
     const mail = $('#cardEmail');
     if (mail) mail.href = mailLink('Product inquiry', hello);
 
-    const fWa = $('[data-site="linkWhatsapp"]');
-    if (fWa) fWa.href = waLink(hello + 'one of your products.');
-    const fTel = $('[data-site="linkPhone"]');
-    if (fTel) fTel.href = telLink();
-    const fMail = $('[data-site="linkEmail"]');
-    if (fMail) fMail.href = mailLink('Product inquiry', hello);
+    // The same links appear in the first screen, under the catalogue and in
+    // the footer, so every copy is set, not just the first.
+    $$('[data-site="linkWhatsapp"]').forEach((a) => { a.href = waLink(hello + 'one of your products.'); });
+    $$('[data-site="linkPhone"]').forEach((a) => { a.href = telLink(); });
+    $$('[data-site="linkEmail"]').forEach((a) => { a.href = mailLink('Product inquiry', hello); });
 
     // Repair desk
     const repairAsk = 'Hi ' + SITE.brand + ', I need a repair. My device is ';
@@ -505,14 +593,19 @@
     const query = encodeURIComponent(SITE.mapQuery || SITE.address || SITE.location || '');
     if (!query) return;
 
+    // The live map loads when it is asked for (see initMap); until then it
+    // only knows where it would go.
     const frame = $('#mapFrame');
-    if (frame) frame.src = 'https://www.google.com/maps?q=' + query + '&hl=en&z=17&output=embed';
+    if (frame) {
+      frame.dataset.src = 'https://www.google.com/maps?q=' + query + '&hl=en&z=17&output=embed';
+      if (frame.getAttribute('src')) frame.src = frame.dataset.src;
+    }
 
     const open = $('#mapOpen');
     if (open) open.href = 'https://www.google.com/maps/search/?api=1&query=' + query;
 
-    const directions = $('#mapDirections');
-    if (directions) directions.href = 'https://www.google.com/maps/dir/?api=1&destination=' + query;
+    const directions = 'https://www.google.com/maps/dir/?api=1&destination=' + query;
+    $$('#mapDirections, [data-directions]').forEach((a) => { a.href = directions; });
 
     $$('[data-site="address"]').forEach((el) => { el.textContent = SITE.address || SITE.location; });
     const note = $('[data-site="mapNote"]');
@@ -527,18 +620,20 @@
     const wrap = $('#services');
     if (!wrap || typeof SERVICES === 'undefined') return;
 
+    /* One row each, ruled like a price list: the service, what it covers,
+       how long it takes and who to ask. */
     wrap.innerHTML = SERVICES.map((service) => {
       const ask = 'Hi ' + SITE.brand + ', I need help with ' + service.name.toLowerCase() + '. My device is ';
       return '<article class="service reveal">' +
-        '<span class="service-icon">' + (SERVICE_ICONS[service.icon] || SERVICE_ICONS.fallback) + '</span>' +
-        '<h3>' + esc(service.name) + '</h3>' +
-        '<p>' + esc(service.desc) + '</p>' +
-        '<ul>' + (service.items || []).map((item) =>
-          '<li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>' +
-          esc(item) + '</li>').join('') + '</ul>' +
-        (service.turnaround ? '<p class="service-turnaround">' + esc(service.turnaround) + '</p>' : '') +
-        '<a class="btn btn-ghost btn-small" target="_blank" rel="noopener" href="' + esc(repairWa(ask)) + '">' +
-          'Ask the repair desk</a>' +
+        '<h3 class="service-name">' + esc(service.name) + '</h3>' +
+        '<p class="service-desc">' + esc(service.desc) + '</p>' +
+        '<ul class="service-items">' + (service.items || []).map((item) =>
+          '<li>' + esc(item) + '</li>').join('') + '</ul>' +
+        '<div class="service-end">' +
+          (service.turnaround ? '<p class="service-turnaround">' + esc(service.turnaround) + '</p>' : '') +
+          '<a class="btn btn-ghost btn-small" target="_blank" rel="noopener" href="' + esc(repairWa(ask)) + '">' +
+            'Ask the repair desk' + icon('arrow-up-right') + '</a>' +
+        '</div>' +
       '</article>';
     }).join('');
   }
@@ -607,21 +702,36 @@
       (original.get(a.id) - original.get(b.id)));
   }
 
+  /* Price first: what it costs now, and under it, what it was and what that
+     saves (or that VAT is in). The percentage is repeated here, next to the
+     price, and not left only to the badge on the photo — that badge can be
+     missed, sits away from the number it refers to, and is the first thing
+     to go if anything paints over the image. */
   function priceHTML(p) {
     const off = discount(p);
-    /* The percentage is repeated here, next to the price, and not left only to
-       the badge on the photo — that badge can be missed, sits away from the
-       number it refers to, and is the first thing to go if anything paints
-       over the image. */
-    return '<span class="price">' +
-      (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') +
-      esc(money(p.price)) +
+    return '<p class="price">' +
+      '<span class="now">' + esc(money(p.price)) + '</span>' +
       (p.price != null
-        ? (off ? '<small class="save">save ' + esc(money(saving(p))) +
-                   ' <span class="off">−' + off + '%</span></small>'
+        ? (off ? '<small class="save"><s>' + esc(money(p.wasPrice)) + '</s> <span class="nb">save ' +
+                   esc(money(saving(p))) + ' <span class="off">−' + off + '%</span></span></small>'
                : '<small class="vat">incl. VAT</small>')
         : '') +
-    '</span>';
+    '</p>';
+  }
+
+  /* Up to three facts that fit on one line ("Memory · 16GB DDR4"), for the
+     wide photo card; long ones are left to the pop-up rather than cut off.
+     With none short enough, a description that is itself short stands in. */
+  function cardFacts(p) {
+    const facts = Object.entries(p.specs || {})
+      .filter(([k, v]) => (String(k) + String(v)).length <= 30 && !/warranty/i.test(k))
+      .slice(0, 3);
+    if (facts.length) {
+      return '<ul class="card-facts">' + facts.map(([k, v]) =>
+        '<li><span class="k">' + esc(k) + '</span><span class="v">' + esc(v) + '</span></li>').join('') + '</ul>';
+    }
+    const desc = String(p.desc || '').trim();
+    return desc && desc.length <= 90 && !/\n/.test(desc) ? '<p class="card-blurb">' + esc(desc) + '</p>' : '';
   }
 
   function cardHTML(p, index) {
@@ -630,10 +740,12 @@
     const comparing = state.compare.includes(p.id);
     const off = discount(p);
     const tagCls = p.tag === 'Refurbished' ? 'tag warn' : 'tag';
-    const keySpecs = Object.values(p.specs || {}).slice(0, 3);
+    // A product photographed in the shop leads: in the shop's own order it
+    // takes a wide place, its photo beside the details (see .card-feature).
+    const feature = !!(p.images && p.images.length);
 
     return (
-      '<article class="card" data-id="' + esc(p.id) + '" tabindex="0" role="button" ' +
+      '<article class="card' + (feature ? ' card-feature' : '') + '" data-id="' + esc(p.id) + '" tabindex="0" role="button" ' +
         'aria-label="View details for ' + esc(p.name) + '" style="animation-delay:' + Math.min(index * 35, 400) + 'ms">' +
         '<div class="card-media">' +
           (off ? '<span class="tag offer">−' + off + '%</span>'
@@ -642,27 +754,23 @@
           media(p) +
         '</div>' +
         '<div class="card-body">' +
-          '<span class="card-cat">' + esc(catLabel(p.category)) + '</span>' +
-          '<h3 class="card-title">' + esc(p.name) + '</h3>' +
-          '<p class="card-desc">' + esc(p.desc) + '</p>' +
-          (keySpecs.length
-            ? '<div class="card-specs">' + keySpecs.map((s) => '<span>' + esc(s) + '</span>').join('') + '</div>'
-            : '') +
-          '<span class="stock ' + stock.cls + '">' + stock.text + '</span>' +
+          priceHTML(p) +
+          // Not a heading: the whole card is one button, whose contents a
+          // screen reader reads as its label, never as a page outline.
+          '<p class="card-title">' + keepWhole(p.name) + '</p>' +
+          (feature ? cardFacts(p) : '') +
           '<div class="card-foot">' +
-            priceHTML(p) +
+            '<span class="stock ' + stock.cls + '">' + stock.text + '</span>' +
             '<span class="card-tools">' +
               '<button type="button" class="card-add' + (comparing ? ' compare-on' : '') + '" data-compare="' + esc(p.id) + '" ' +
                 'aria-pressed="' + comparing + '" aria-label="' + (comparing ? 'Remove from' : 'Add to') + ' comparison" ' +
                 'title="' + (comparing ? 'Remove from comparison' : 'Compare this') + '">' +
-                '<svg viewBox="0 0 24 24"><path d="M4 7h6M4 17h6M16 4v16M13 7l3-3 3 3M13 17l3 3 3-3"/></svg>' +
+                icon('arrows-left-right') +
               '</button>' +
               '<button type="button" class="card-add' + (added ? ' added' : '') + '" data-add="' + esc(p.id) + '" ' +
                 'aria-label="' + (added ? 'Remove from' : 'Add to') + ' inquiry list" ' +
                 'title="' + (added ? 'In your inquiry list' : 'Add to inquiry') + '">' +
-                (added
-                  ? '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>'
-                  : '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>') +
+                icon(added ? 'check' : 'plus') +
               '</button>' +
             '</span>' +
           '</div>' +
@@ -677,6 +785,7 @@
     const empty = $('#empty');
 
     grid.innerHTML = list.map(cardHTML).join('');
+    grid.dataset.sort = state.sort;   // wide photo cards only in the shop's own order
     empty.hidden = list.length > 0;
     grid.hidden = list.length === 0;
 
@@ -686,10 +795,30 @@
       : '';
 
     $('#clearSearch').hidden = !state.query;
-    const stat = $('#statCount');
-    if (stat) stat.textContent = catalogue.length;
-    const offerStat = $('#statOffers');
-    if (offerStat) offerStat.textContent = catalogue.filter(discount).length;
+  }
+
+  /* The three products floating in the first screen are written into
+     index.html, so they show long before the catalogue arrives. Once it has,
+     each one is checked against it: the name and price are the catalogue's,
+     a replaced photo is swapped in (data-photo-sig is the length of the photo
+     the tile was cut from), and a product that is gone, or has lost its
+     photo, is taken off the stage rather than left advertising it. */
+  function paintHeroTiles() {
+    $$('[data-hero-product]').forEach((tile) => {
+      const p = byId(tile.dataset.heroProduct);
+      const photo = p && p.images && p.images[0];
+      if (!photo) { tile.hidden = true; return; }
+      tile.hidden = false;
+      const name = $('.ft-name', tile);
+      if (name) name.textContent = headline(p.name);   // "(RGB)" and the like are for the pop-up
+      const price = $('[data-hero-price]', tile);
+      if (price) price.textContent = p.price == null ? '' : money(p.price);
+      const img = $('img', tile);
+      if (img && String(photo.length) !== tile.dataset.photoSig) {
+        img.src = photo;
+        tile.dataset.photoSig = String(photo.length);
+      }
+    });
   }
 
   /* ── Product viewer: photo gallery + 360° spin ─────────────────────────── */
@@ -701,33 +830,33 @@
     const photos = p.images || [];
     const spin = p.spin || [];
     const hasSpin = spin.length > 1;
+    // Only sample frames: the plate comes first, the frames behind a tab.
+    const sample = !photos.length && hasSpin && isSampleSpin(spin);
 
     if (!photos.length && !hasSpin) {
-      return '<div class="viewer"><div class="ph">' + art(p) + '</div></div>';
+      return '<div class="viewer">' + plate(p) + '</div>';
     }
 
-    const startSpin = !photos.length && hasSpin;
+    const startSpin = !photos.length && hasSpin && !sample;
     return '<div class="viewer" data-mode="' + (startSpin ? 'spin' : 'photo') + '">' +
       (photos.length
         ? '<img class="viewer-main" id="viewerMain" src="' + esc(photos[0]) + '" alt="' + esc(p.name) + '" />'
-        : '') +
+        : (sample ? '<div class="viewer-main viewer-plate">' + plate(p) + '</div>' : '')) +
       (hasSpin
         ? '<div class="spin-stage" id="spinStage">' +
             '<img id="spinFrame" src="' + esc(spin[0]) + '" alt="' + esc(p.name) + ', 360 degree view" draggable="false" />' +
-            '<span class="spin-hint" id="spinHint">' +
-              '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.3 5.6"/><path d="M4 8v4h4"/></svg>' +
-              'Drag to spin' +
-            '</span>' +
+            '<span class="spin-hint" id="spinHint">' + icon('arrow-clockwise') + 'Drag to spin</span>' +
             '<button type="button" class="spin-play" id="spinPlay" aria-label="Play or pause the rotation">' +
-              '<svg class="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>' +
-              '<svg class="i-play" viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z"/></svg>' +
+              icon('pause', 'i-pause') + icon('play', 'i-play') +
             '</button>' +
           '</div>'
         : '') +
-      (photos.length && hasSpin
+      ((photos.length || sample) && hasSpin
         ? '<div class="viewer-tabs">' +
-            '<button type="button" class="vt" data-view="photo" aria-pressed="true">Photos</button>' +
-            '<button type="button" class="vt" data-view="spin" aria-pressed="false">360° view</button>' +
+            '<button type="button" class="vt" data-view="photo" aria-pressed="true">' +
+              (sample ? 'Overview' : 'Photos') + '</button>' +
+            '<button type="button" class="vt" data-view="spin" aria-pressed="false">' +
+              (sample ? '360° sample' : '360° view') + '</button>' +
           '</div>'
         : '') +
       (photos.length > 1
@@ -861,10 +990,9 @@
 
     $('#modalBody').innerHTML =
       '<div class="modal-grid">' +
-        '<div class="modal-media">' + viewerHTML(p) + '</div>' +
+        '<div class="modal-media"><div class="modal-stage">' + viewerHTML(p) + '</div></div>' +
         '<div class="modal-info">' +
-          '<span class="card-cat">' + esc(catLabel(p.category)) + '</span>' +
-          '<h3 id="modalTitle">' + esc(p.name) + '</h3>' +
+          '<h3 id="modalTitle">' + keepWhole(p.name) + '</h3>' +
           '<p class="modal-price">' +
             (off ? '<s>' + esc(money(p.wasPrice)) + '</s> ' : '') + esc(money(p.price)) +
             (off ? ' <span class="pill-lowest">Save ' + esc(money(saving(p))) + ' · ' + off + '% off</span>' : '') +
@@ -877,8 +1005,7 @@
           '</ul>' +
           '<div class="modal-actions">' +
             '<a class="btn btn-wa" href="' + esc(waLink(askText)) + '" target="_blank" rel="noopener">' +
-              '<svg viewBox="0 0 24 24"><path d="M20.5 11.6A8.4 8.4 0 0 1 7.9 19l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.5 11.6z"/></svg>' +
-              'Ask on WhatsApp</a>' +
+              icon('whatsapp-logo') + 'Ask on WhatsApp</a>' +
             '<button type="button" class="btn btn-ghost" data-add="' + esc(p.id) + '">' +
               (added ? 'In your inquiry list' : 'Add to inquiry') + '</button>' +
             '<button type="button" class="btn btn-ghost" data-compare="' + esc(p.id) + '">' +
@@ -1113,13 +1240,13 @@
 
     const serviceRows = services.map((s) =>
       '<button type="button" class="search-row" role="option" data-service="' + esc(s.id) + '" data-index="' + (n++) + '">' +
-        '<span class="row-media icon">' + (SERVICE_ICONS[s.icon] || SERVICE_ICONS.fallback) + '</span>' +
+        '<span class="row-media icon">' + serviceIcon(s.icon) + '</span>' +
         '<span class="row-text"><strong>' + esc(s.name) + '</strong><span>' + esc(s.desc) + '</span></span>' +
       '</button>').join('');
 
     const sectionRows = sections.map((s) =>
       '<button type="button" class="search-row" role="option" data-hash="' + esc(s.hash) + '" data-index="' + (n++) + '">' +
-        '<span class="row-media icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
+        '<span class="row-media icon">' + icon('list') + '</span>' +
         '<span class="row-text"><strong>' + esc(s.label) + '</strong><span>' + esc(s.sub) + '</span></span>' +
       '</button>').join('');
 
@@ -1231,7 +1358,7 @@
         '<span class="pick-media">' + media(p, 'ph') + '</span>' +
         '<span>' + esc(p.name) + '</span>' +
         (discount(p) ? '<em class="pick-off">−' + discount(p) + '%</em>' : '') +
-        '<button type="button" data-compare="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + ' from comparison">&times;</button>' +
+        '<button type="button" data-compare="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + ' from comparison">' + icon('x') + '</button>' +
       '</span>').join('') +
       (items.length < 2 ? '<span class="compare-hint">Pick one more to compare</span>' : '');
 
@@ -1262,7 +1389,7 @@
         '<th scope="col"><span class="compare-head-cell">' +
           media(p, 'ph') +
           '<strong>' + esc(p.name) + '</strong>' +
-          '<span class="card-cat">' + esc(catLabel(p.category)) + '</span>' +
+          '<span class="compare-cat">' + esc(catLabel(p.category)) + '</span>' +
         '</span></th>').join('') + '</tr></thead>';
 
     const priceCells = items.map((p, i) =>
@@ -1396,9 +1523,9 @@
     if (!items.length) {
       body.innerHTML =
         '<div class="drawer-empty">' +
-          '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>' +
+          icon('clipboard-text') +
           '<p>Your inquiry list is empty.</p>' +
-          '<p style="font-size:.85rem;opacity:.75">Tap the + on any product to line it up here, then send the whole list at once.</p>' +
+          '<p class="hint">Tap the + on any product to line it up here, then send the whole list at once.</p>' +
         '</div>';
       foot.innerHTML = '<button class="btn btn-ghost btn-block" type="button" data-close>Browse products</button>';
       return;
@@ -1415,7 +1542,7 @@
             esc(money(p.price)) +
             (off ? ' <em class="line-off">−' + off + '%</em>' : '') + '</span>' +
         '</span>' +
-        '<button class="line-remove" type="button" data-add="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + '">&times;</button>' +
+        '<button class="line-remove" type="button" data-add="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + '">' + icon('x') + '</button>' +
       '</div>';
     }).join('');
 
@@ -1603,7 +1730,7 @@
           (items.length === 0
             ? '<button type="button" class="tool-btn danger" data-delcat="' + esc(cat.key) + '" ' +
               'title="Remove this empty category" aria-label="Remove category ' + esc(cat.label) + '">' +
-              '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/></svg></button>'
+              icon('trash') + '</button>'
             : '') +
         '</h3>' +
         (items.length
@@ -1615,7 +1742,7 @@
     body.innerHTML = banner +
       '<div class="manage-actions">' +
         '<button type="button" class="btn btn-primary" id="addProduct">' +
-          '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Add a product</button>' +
+          icon('plus') + ' Add a product</button>' +
         '<button type="button" class="btn btn-ghost" id="addCategory">New category</button>' +
         // Only offered when there is a private copy to drop.
         (isEdited()
@@ -1726,14 +1853,13 @@
       '<span class="row-tools">' +
         '<button type="button" class="tool-btn" data-copy="' + esc(p.id) + '" title="Copy this product\'s link" ' +
           'aria-label="Copy link to ' + esc(p.name) + '">' +
-          '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>' +
-          '<path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>' +
+          icon('link-simple') + '</button>' +
         '<button type="button" class="tool-btn" data-edit="' + esc(p.id) + '" title="Edit everything" ' +
           'aria-label="Edit ' + esc(p.name) + '">' +
-          '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>' +
+          icon('pencil-simple') + '</button>' +
         '<button type="button" class="tool-btn danger" data-delete="' + esc(p.id) + '" title="Remove from the catalogue" ' +
           'aria-label="Delete ' + esc(p.name) + '">' +
-          '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/></svg></button>' +
+          icon('trash') + '</button>' +
       '</span>' +
     '</div>';
   }
@@ -1820,15 +1946,17 @@
         ? state.draft.images.map((src, i) =>
             '<span class="tray-item"><img src="' + esc(src) + '" alt="" />' +
               (i === 0 ? '<span class="tray-main">Main</span>' : '') +
-              '<button type="button" data-drop-photo="' + i + '" aria-label="Remove photo ' + (i + 1) + '">&times;</button>' +
+              '<button type="button" data-drop-photo="' + i + '" aria-label="Remove photo ' + (i + 1) + '">' + icon('x') + '</button>' +
             '</span>').join('')
-        : '<p class="tray-empty">No photos yet — the built-in line art is used instead.</p>';
+        : '<p class="tray-empty">No photos yet. The product shows as a glass plate with its name until one is added.</p>';
     }
     if (spinTray) {
       const n = state.draft.spin.length;
       spinTray.innerHTML = n
         ? '<span class="tray-count">' + n + ' frame' + (n === 1 ? '' : 's') +
-            (n > 1 ? ' — the 360° viewer is on' : ' — needs at least 2') + '</span>' +
+            (n > 1 ? ' — the 360° viewer is on' : ' — needs at least 2') +
+            (isSampleSpin(state.draft.spin) ? '. These are the sample frames: customers see the glass plate ' +
+              'and a "360° sample" tab until you replace them with your own.' : '') + '</span>' +
           state.draft.spin.slice(0, 8).map((src) => '<span class="tray-item small"><img src="' + esc(src) + '" alt="" /></span>').join('') +
           (n > 8 ? '<span class="tray-more">+' + (n - 8) + '</span>' : '') +
           '<button type="button" class="btn btn-ghost btn-small" id="dropSpin">Remove all frames</button>'
@@ -1951,6 +2079,7 @@
     paintAttached();
     paintCompareBar();
     paintInterestOptions();
+    paintHeroTiles();
     if (!drawer.hidden) paintDrawer();
     if (!compareModal.hidden && state.compare.length > 1) paintCompareTable();
   }
@@ -2102,6 +2231,27 @@
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('homcom-theme', next); } catch (e) {}
+    const bar = $('meta[name="theme-color"]');
+    if (bar) bar.setAttribute('content', next === 'light' ? '#F3F2F8' : '#07080C');
+  }
+
+  /* motion.js arrives long before this file on a slow connection and wires
+     the menu and the theme switch itself; wiring them twice would make every
+     tap undo itself. */
+  const early = (what) => Boolean(window.HOMCOM_EARLY && window.HOMCOM_EARLY[what]);
+
+  /* The sketch of the street stands in for the map until someone asks for
+     the real one; motion.js usually wires this long before this file runs. */
+  function initMap() {
+    const button = $('#mapLoad');
+    const frame = $('#mapFrame');
+    if (early('map') || !button || !frame) return;
+    button.addEventListener('click', () => {
+      frame.src = frame.dataset.src;
+      frame.hidden = false;
+      button.hidden = true;
+      frame.parentNode.classList.add('is-live');
+    });
   }
 
   /* ── Install as an app (Android, desktop; iOS gets instructions) ───────── */
@@ -2253,27 +2403,11 @@
     }, { passive: true });
     paintScroll();
 
-    if ('IntersectionObserver' in window) {
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add('in');
-          io.unobserve(entry.target);
-        });
-      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
-
-      // Things that arrive together arrive one after another, not all at once.
-      const groups = {};
-      $$('.reveal').forEach((el) => {
-        const parent = el.parentElement;
-        const key = parent ? (parent.dataset.revealGroup || (parent.dataset.revealGroup = Math.random())) : 'x';
-        groups[key] = (groups[key] || 0) + 1;
-        el.style.setProperty('--delay', Math.min((groups[key] - 1) * 70, 350) + 'ms');
-        io.observe(el);
-      });
-    } else {
-      $$('.reveal').forEach((el) => el.classList.add('in'));
-    }
+    /* Scroll reveals belong to motion.js, which is already running by now.
+       The sections this file drew itself (the repair services) are handed
+       over so they rise like the rest. Without motion.js nothing is ever
+       hidden, so there is nothing to do. */
+    if (window.HOMCOM_REVEAL) window.HOMCOM_REVEAL();
   }
 
   /* ── Refresh rate ──────────────────────────────────────────────────────────
@@ -2328,9 +2462,7 @@
     if (calmRequested()) return;
     if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
 
-    const LIT = '.card, .feature, .service, .contact-card, .glass, .search-row, .btn, .map-block';
-    const hero = $('.hero');
-    const glow = $('.hero-glow');
+    const LIT = '.card, .float-tile';
     let queued = null;
     let frame = 0;
 
@@ -2344,15 +2476,6 @@
         const box = target.getBoundingClientRect();
         target.style.setProperty('--mx', (((event.clientX - box.left) / box.width) * 100).toFixed(1) + '%');
         target.style.setProperty('--my', (((event.clientY - box.top) / box.height) * 100).toFixed(1) + '%');
-      }
-
-      // The hero's coloured haze drifts against the pointer, a parallax hint.
-      if (glow && hero) {
-        const box = hero.getBoundingClientRect();
-        if (box.bottom > 0 && box.top < window.innerHeight) {
-          glow.style.setProperty('--px', (((event.clientX / window.innerWidth) - .5) * -1).toFixed(3));
-          glow.style.setProperty('--py', (((event.clientY / window.innerHeight) - .5) * -1).toFixed(3));
-        }
       }
     };
 
@@ -2429,6 +2552,7 @@
     paintCount();
     paintAttached();
     paintCompareBar();
+    step('hero products', paintHeroTiles);
 
     /* Say the page loaded as soon as the catalogue is actually on screen.
 
@@ -2447,6 +2571,7 @@
     step('frame watchdog',  initFrameWatchdog);
     step('pointer effects', initPointerFX);
     step('install button',  initInstall);
+    step('live map',        initMap);
     step('service worker',  initServiceWorker);
     step('build tag',       paintBuild);
     step('manage chip', () => {
@@ -2725,19 +2850,24 @@
       else if (!compareModal.hidden) closeCompare();
       else if (!manage.hidden) closeManage();
       else if (!drawer.hidden) closeDrawer();
-      else $('#nav').classList.remove('open');
+      else if ($('#nav').classList.contains('open')) {
+        $('#nav').classList.remove('open');
+        $('#navToggle').setAttribute('aria-expanded', 'false');
+      }
     });
 
     // Mobile nav
     const navToggle = $('#navToggle');
-    navToggle.addEventListener('click', () => {
-      const open = $('#nav').classList.toggle('open');
-      navToggle.setAttribute('aria-expanded', String(open));
-    });
-    $$('.nav a').forEach((a) => a.addEventListener('click', () => {
-      $('#nav').classList.remove('open');
-      navToggle.setAttribute('aria-expanded', 'false');
-    }));
+    if (!early('nav')) {
+      navToggle.addEventListener('click', () => {
+        const open = $('#nav').classList.toggle('open');
+        navToggle.setAttribute('aria-expanded', String(open));
+      });
+      $$('.nav a').forEach((a) => a.addEventListener('click', () => {
+        $('#nav').classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      }));
+    }
 
     // Footer category shortcuts
     $$('[data-cat-link]').forEach((link) => link.addEventListener('click', () => {
@@ -2746,7 +2876,9 @@
       paintChips(); paintGrid();
     }));
 
-    $$('#themeToggle, #themeToggleMobile').forEach((btn) => btn.addEventListener('click', toggleTheme));
+    if (!early('theme')) {
+      $$('#themeToggle, #themeToggleMobile').forEach((btn) => btn.addEventListener('click', toggleTheme));
+    }
 
     // Contact form
     $('#contactForm').addEventListener('submit', submitForm);
@@ -2828,9 +2960,12 @@
     // work with no scripts at all. `display` is set directly because several of
     // these carry a display rule of their own.
     document.querySelectorAll(
-      '#catalogue .controls, #openSearch, #heroSearch, #compareBar, #contactForm,' +
-      ' #installBtnNav, .hero-stats'
+      '#catalogue .controls, #openSearch, #heroSearch, #compareBar, #contactForm, #installBtnNav'
     ).forEach((el) => { el.style.display = 'none'; });
+
+    // The shelf was showing that prices were on their way. They are not.
+    const shelf = document.getElementById('grid');
+    if (shelf) shelf.innerHTML = '';
 
     const notice = document.createElement('div');
     notice.id = 'dataError';

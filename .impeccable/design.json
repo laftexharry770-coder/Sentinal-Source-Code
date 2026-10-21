@@ -1,0 +1,1088 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T22:53:33+00:00",
+  "title": "Design System: HOMCOM COMPUTERS",
+  "extensions": {
+    "themes": {
+      "night": {
+        "selector": ":root, [data-theme=\"dark\"]",
+        "default": true
+      },
+      "day": {
+        "selector": "[data-theme=\"light\"]"
+      }
+    },
+    "colorMeta": {
+      "night-bg": {
+        "role": "neutral",
+        "displayName": "Space Ink",
+        "canonical": "#07080C",
+        "oklch": "oklch(13.5% 0.009 273)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#23252A",
+          "#404247",
+          "#5F6167",
+          "#808288",
+          "#A3A5AB",
+          "#C7C9CF",
+          "#ECEEF5"
+        ]
+      },
+      "night-bg-2": {
+        "role": "neutral",
+        "displayName": "Space Ink, Footer",
+        "canonical": "#0C0E16",
+        "oklch": "oklch(16.6% 0.017 274)",
+        "tonalRamp": [
+          "#090B12",
+          "#22252E",
+          "#3F424B",
+          "#5E616B",
+          "#7F828D",
+          "#A1A5B0",
+          "#C5C9D5",
+          "#EAEEFA"
+        ]
+      },
+      "night-panel": {
+        "role": "neutral",
+        "displayName": "Night Panel",
+        "canonical": "#11121A",
+        "oklch": "oklch(18.5% 0.016 279)",
+        "tonalRamp": [
+          "#0A0A12",
+          "#23242D",
+          "#40414B",
+          "#5F606B",
+          "#80828C",
+          "#A2A4AF",
+          "#C6C8D4",
+          "#ECEEFA"
+        ]
+      },
+      "night-glass-solid": {
+        "role": "neutral",
+        "displayName": "Night Solid Glass",
+        "canonical": "#11121B",
+        "oklch": "oklch(18.6% 0.018 280)",
+        "tonalRamp": [
+          "#090A13",
+          "#23242E",
+          "#40414C",
+          "#5F606C",
+          "#80818E",
+          "#A2A4B1",
+          "#C6C8D5",
+          "#ECEDFB"
+        ]
+      },
+      "night-card": {
+        "role": "neutral",
+        "displayName": "Night Card Floor",
+        "canonical": "#0D0E15",
+        "oklch": "oklch(16.6% 0.015 278)",
+        "tonalRamp": [
+          "#0A0B11",
+          "#23242C",
+          "#40414A",
+          "#5F616A",
+          "#80828B",
+          "#A3A4AE",
+          "#C7C8D3",
+          "#ECEEF9"
+        ]
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "#F2F1F7",
+        "oklch": "oklch(96.1% 0.008 294)",
+        "tonalRamp": [
+          "#0B0B0E",
+          "#252429",
+          "#424146",
+          "#616065",
+          "#828187",
+          "#A5A4AA",
+          "#C9C8CE",
+          "#EEEDF3"
+        ]
+      },
+      "night-ink-2": {
+        "role": "neutral",
+        "displayName": "Night Ink 2",
+        "canonical": "#B4B1C9",
+        "oklch": "oklch(77.1% 0.034 291)",
+        "tonalRamp": [
+          "#0B0818",
+          "#252234",
+          "#423F53",
+          "#615E74",
+          "#827F96",
+          "#A5A2B9",
+          "#C9C6DE",
+          "#EEECFE"
+        ]
+      },
+      "night-ink-3": {
+        "role": "neutral",
+        "displayName": "Night Ink 3",
+        "canonical": "#8E8BA6",
+        "oklch": "oklch(64.9% 0.040 290)",
+        "tonalRamp": [
+          "#0B081B",
+          "#252237",
+          "#423E56",
+          "#615E77",
+          "#827F99",
+          "#A4A1BD",
+          "#C8C5E2",
+          "#EEECFE"
+        ]
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Night Hairline",
+        "canonical": "rgba(255, 255, 255, .08)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "night-line-2": {
+        "role": "neutral",
+        "displayName": "Night Hairline Strong",
+        "canonical": "rgba(255, 255, 255, .15)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "night-glass": {
+        "role": "neutral",
+        "displayName": "Night Glass",
+        "canonical": "rgba(255, 255, 255, .035)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "night-glass-2": {
+        "role": "neutral",
+        "displayName": "Night Glass Raised",
+        "canonical": "rgba(255, 255, 255, .07)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "night-glass-edge": {
+        "role": "neutral",
+        "displayName": "Night Glass Edge",
+        "canonical": "rgba(255, 255, 255, .13)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "night-ion-text": {
+        "role": "primary",
+        "displayName": "Ion Text (Night)",
+        "canonical": "#A99CFF",
+        "oklch": "oklch(74.4% 0.141 289)",
+        "tonalRamp": [
+          "#0D002C",
+          "#280763",
+          "#422E86",
+          "#6050AB",
+          "#8072D1",
+          "#A295F7",
+          "#C6C1FE",
+          "#EDECFE"
+        ]
+      },
+      "night-accent": {
+        "role": "primary",
+        "displayName": "Focus Violet (Night)",
+        "canonical": "#8E80FF",
+        "oklch": "oklch(67.2% 0.182 285)",
+        "tonalRamp": [
+          "#0B002D",
+          "#26006A",
+          "#40219B",
+          "#5C48C2",
+          "#7B6CE9",
+          "#9D96F9",
+          "#C4C2FB",
+          "#ECEDFF"
+        ]
+      },
+      "night-plate-ink-2": {
+        "role": "neutral",
+        "displayName": "Night Plate Second Line",
+        "canonical": "#D2CFE2",
+        "oklch": "oklch(86.3% 0.026 293)",
+        "tonalRamp": [
+          "#0C0915",
+          "#252331",
+          "#42404F",
+          "#615F6F",
+          "#838091",
+          "#A5A2B4",
+          "#C9C6D9",
+          "#EFECFE"
+        ]
+      },
+      "night-ok": {
+        "role": "status",
+        "displayName": "Open Green (Night)",
+        "canonical": "#5BE49B",
+        "oklch": "oklch(82.5% 0.159 157)",
+        "tonalRamp": [
+          "#000F06",
+          "#042D19",
+          "#044F2E",
+          "#0D7446",
+          "#229A60",
+          "#2FC27B",
+          "#5FE89E",
+          "#C6FEDA"
+        ]
+      },
+      "night-warn": {
+        "role": "status",
+        "displayName": "Warn Yellow (Night)",
+        "canonical": "#FFC56B",
+        "oklch": "oklch(85.8% 0.126 77)",
+        "tonalRamp": [
+          "#120900",
+          "#342100",
+          "#593C04",
+          "#80590D",
+          "#AC7604",
+          "#D1993D",
+          "#F7BE64",
+          "#FEECD2"
+        ]
+      },
+      "night-danger": {
+        "role": "status",
+        "displayName": "Danger Coral (Night)",
+        "canonical": "#FF7F7A",
+        "oklch": "oklch(74.2% 0.157 24)",
+        "tonalRamp": [
+          "#1E0102",
+          "#4C0209",
+          "#7D0C17",
+          "#A82F32",
+          "#D05452",
+          "#F87974",
+          "#FDB3AE",
+          "#FEE9E7"
+        ]
+      },
+      "day-bg": {
+        "role": "neutral",
+        "displayName": "Lavender Paper",
+        "canonical": "#F3F2F8",
+        "oklch": "oklch(96.4% 0.008 294)",
+        "tonalRamp": [
+          "#0B0B0E",
+          "#252429",
+          "#424146",
+          "#616065",
+          "#828187",
+          "#A5A4AA",
+          "#C9C8CE",
+          "#EEEDF3"
+        ]
+      },
+      "day-bg-2": {
+        "role": "neutral",
+        "displayName": "Lavender Paper, Footer",
+        "canonical": "#ECEAF4",
+        "oklch": "oklch(94.1% 0.014 295)",
+        "tonalRamp": [
+          "#0B0A10",
+          "#25242B",
+          "#424149",
+          "#626068",
+          "#83818A",
+          "#A5A3AD",
+          "#C9C8D1",
+          "#EFEDF7"
+        ]
+      },
+      "day-panel": {
+        "role": "neutral",
+        "displayName": "Day Card Floor",
+        "canonical": "#FFFFFF",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "day-glass-solid": {
+        "role": "neutral",
+        "displayName": "Day Solid Glass",
+        "canonical": "#FCFBFF",
+        "oklch": "oklch(99.0% 0.005 298)",
+        "tonalRamp": [
+          "#0B0B0D",
+          "#252427",
+          "#424144",
+          "#616164",
+          "#828285",
+          "#A5A4A8",
+          "#C9C8CC",
+          "#EFEEF2"
+        ]
+      },
+      "day-media": {
+        "role": "neutral",
+        "displayName": "Day Plate Floor",
+        "canonical": "#F4F3F9",
+        "oklch": "oklch(96.7% 0.008 294)",
+        "tonalRamp": [
+          "#0B0B0E",
+          "#252429",
+          "#424146",
+          "#616065",
+          "#828187",
+          "#A5A4AA",
+          "#C9C8CE",
+          "#EEEDF3"
+        ]
+      },
+      "day-ink": {
+        "role": "neutral",
+        "displayName": "Day Ink",
+        "canonical": "#14121F",
+        "oklch": "oklch(19.1% 0.026 291)",
+        "tonalRamp": [
+          "#0B0915",
+          "#252331",
+          "#42404F",
+          "#615F6F",
+          "#828091",
+          "#A5A3B5",
+          "#C9C7D9",
+          "#EEECFE"
+        ]
+      },
+      "day-ink-2": {
+        "role": "neutral",
+        "displayName": "Day Ink 2",
+        "canonical": "#454259",
+        "oklch": "oklch(39.2% 0.039 290)",
+        "tonalRamp": [
+          "#0B081A",
+          "#252237",
+          "#423F55",
+          "#615E76",
+          "#827F98",
+          "#A4A1BC",
+          "#C8C5E1",
+          "#EEECFF"
+        ]
+      },
+      "day-ink-3": {
+        "role": "neutral",
+        "displayName": "Day Ink 3",
+        "canonical": "#5E5B74",
+        "oklch": "oklch(48.4% 0.040 290)",
+        "tonalRamp": [
+          "#0B081A",
+          "#252237",
+          "#423E56",
+          "#615E77",
+          "#827F99",
+          "#A4A1BD",
+          "#C8C5E2",
+          "#EEECFE"
+        ]
+      },
+      "day-line": {
+        "role": "neutral",
+        "displayName": "Day Hairline",
+        "canonical": "rgba(20, 16, 50, .10)",
+        "oklch": "oklch(20.1% 0.065 284)",
+        "tonalRamp": [
+          "#0A0525",
+          "#221F43",
+          "#3E3D63",
+          "#5D5C85",
+          "#7D7DA8",
+          "#A0A0CD",
+          "#C3C4F3",
+          "#ECEDFE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "day-line-2": {
+        "role": "neutral",
+        "displayName": "Day Hairline Strong",
+        "canonical": "rgba(20, 16, 50, .18)",
+        "oklch": "oklch(20.1% 0.065 284)",
+        "tonalRamp": [
+          "#0A0525",
+          "#221F43",
+          "#3E3D63",
+          "#5D5C85",
+          "#7D7DA8",
+          "#A0A0CD",
+          "#C3C4F3",
+          "#ECEDFE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "day-glass": {
+        "role": "neutral",
+        "displayName": "Day Glass",
+        "canonical": "rgba(255, 255, 255, .6)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "day-glass-2": {
+        "role": "neutral",
+        "displayName": "Day Glass Raised",
+        "canonical": "rgba(255, 255, 255, .85)",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ],
+        "note": "Translucent; the ramp is of its opaque hue."
+      },
+      "day-ion-text": {
+        "role": "primary",
+        "displayName": "Ion Text (Day)",
+        "canonical": "#5140D9",
+        "oklch": "oklch(49.2% 0.222 279)",
+        "tonalRamp": [
+          "#08012F",
+          "#1F016E",
+          "#380CB2",
+          "#5140D9",
+          "#6E6BF8",
+          "#9399FE",
+          "#BEC4FE",
+          "#EBEDFE"
+        ]
+      },
+      "day-accent": {
+        "role": "primary",
+        "displayName": "Focus Violet (Day)",
+        "canonical": "#5B4BEF",
+        "oklch": "oklch(53.5% 0.234 279)",
+        "tonalRamp": [
+          "#08012E",
+          "#1F046C",
+          "#3813AF",
+          "#513BE0",
+          "#6E69FE",
+          "#939AFC",
+          "#BEC4FD",
+          "#EBEDFE"
+        ]
+      },
+      "day-amber-text": {
+        "role": "secondary",
+        "displayName": "Rim Amber as Text (Day)",
+        "canonical": "#A5560A",
+        "oklch": "oklch(53.8% 0.129 55)",
+        "tonalRamp": [
+          "#170700",
+          "#3B1C03",
+          "#663201",
+          "#934C07",
+          "#BC6B29",
+          "#E28E4F",
+          "#FCB889",
+          "#FFEADD"
+        ]
+      },
+      "day-plate-ink-2": {
+        "role": "neutral",
+        "displayName": "Day Plate Second Line",
+        "canonical": "#2E2B40",
+        "oklch": "oklch(30.2% 0.038 291)",
+        "tonalRamp": [
+          "#0B081A",
+          "#252236",
+          "#423F55",
+          "#615E76",
+          "#827F98",
+          "#A4A1BC",
+          "#C8C5E1",
+          "#EEECFF"
+        ]
+      },
+      "day-ok": {
+        "role": "status",
+        "displayName": "Open Green (Day)",
+        "canonical": "#0E7A43",
+        "oklch": "oklch(51.0% 0.125 154)",
+        "tonalRamp": [
+          "#010F05",
+          "#032E16",
+          "#0B4F2B",
+          "#00753E",
+          "#39985E",
+          "#5FBC80",
+          "#84E1A3",
+          "#C8FED7"
+        ]
+      },
+      "day-warn": {
+        "role": "status",
+        "displayName": "Warn Amber-Brown (Day)",
+        "canonical": "#9A5B00",
+        "oklch": "oklch(53.1% 0.119 65)",
+        "tonalRamp": [
+          "#140801",
+          "#371E02",
+          "#5E380A",
+          "#8B5202",
+          "#B27227",
+          "#D8954E",
+          "#FFB972",
+          "#FEEBD9"
+        ]
+      },
+      "day-danger": {
+        "role": "status",
+        "displayName": "Danger Red (Day)",
+        "canonical": "#C4312B",
+        "oklch": "oklch(54.3% 0.185 28)",
+        "tonalRamp": [
+          "#1E0101",
+          "#4C0304",
+          "#7D0E0E",
+          "#B21C1B",
+          "#DB483F",
+          "#FE7467",
+          "#FDB4AA",
+          "#FEE9E6"
+        ]
+      },
+      "ion-violet": {
+        "role": "primary",
+        "displayName": "Ion Violet",
+        "canonical": "#7B6BFF",
+        "oklch": "oklch(62.1% 0.212 283)",
+        "tonalRamp": [
+          "#0A012C",
+          "#23036A",
+          "#3F10AB",
+          "#5940D2",
+          "#7766FA",
+          "#9A98F9",
+          "#C2C3FB",
+          "#ECEDFF"
+        ]
+      },
+      "ion-blue": {
+        "role": "primary",
+        "displayName": "Ion Blue",
+        "canonical": "#4C8DFF",
+        "oklch": "oklch(65.8% 0.182 261)",
+        "tonalRamp": [
+          "#000924",
+          "#011F59",
+          "#043A92",
+          "#1959C6",
+          "#3D7DED",
+          "#70A4FD",
+          "#ACCAFD",
+          "#E6EFFE"
+        ]
+      },
+      "cta-violet": {
+        "role": "primary",
+        "displayName": "Launch Violet",
+        "canonical": "#5A4BEF",
+        "oklch": "oklch(53.5% 0.235 279)",
+        "tonalRamp": [
+          "#08012E",
+          "#1E056C",
+          "#3713AF",
+          "#503CE0",
+          "#6D69FE",
+          "#939AFC",
+          "#BDC4FD",
+          "#EBEDFE"
+        ]
+      },
+      "cta-blue": {
+        "role": "primary",
+        "displayName": "Launch Blue",
+        "canonical": "#3563D6",
+        "oklch": "oklch(53.5% 0.184 264)",
+        "tonalRamp": [
+          "#000035",
+          "#010A75",
+          "#0D31A1",
+          "#2A56C8",
+          "#497AEF",
+          "#78A2FF",
+          "#AFC9FE",
+          "#E7EFFF"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Rim Amber",
+        "canonical": "#FFB45A",
+        "oklch": "oklch(82.4% 0.137 69)",
+        "tonalRamp": [
+          "#130801",
+          "#361F02",
+          "#5C390A",
+          "#885403",
+          "#B27216",
+          "#DC9335",
+          "#FFB969",
+          "#FEEBD7"
+        ]
+      },
+      "amber-ink": {
+        "role": "secondary",
+        "displayName": "Amber Ink",
+        "canonical": "#1E1203",
+        "oklch": "oklch(19.4% 0.034 73)",
+        "tonalRamp": [
+          "#130900",
+          "#2F2211",
+          "#4D3F2E",
+          "#6D5E4C",
+          "#8F806C",
+          "#B3A28E",
+          "#D7C6B1",
+          "#FDECD6"
+        ]
+      },
+      "on-cta": {
+        "role": "neutral",
+        "displayName": "On Launch White",
+        "canonical": "#FFFFFF",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The hero line only; 2.3rem on phones."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles (h2); 2.1rem on phones."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Repair services, panel heads, map head, contact form."
+      },
+      "card-title": {
+        "displayName": "Card Title",
+        "purpose": "Product names on cards, two lines at most."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text, 46-60ch measures."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, contact-row kinds, spec keys, status."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "First line of every product; tabular lining figures."
+      },
+      "plate-lead": {
+        "displayName": "Plate Lead",
+        "purpose": "Brand or defining spec on a glass plate, in container units."
+      }
+    },
+    "shadows": [
+      {
+        "name": "night-edge",
+        "value": "inset 0 1px 0 rgba(255,255,255,.06)",
+        "purpose": "Night cards and panels: the lit top, with a 1px hairline. No drop shadow."
+      },
+      {
+        "name": "night-edge-hover",
+        "value": "inset 0 1px 0 rgba(255,255,255,.1)",
+        "purpose": "Night card hover, with the hairline raised to line-2."
+      },
+      {
+        "name": "glass-top-night",
+        "value": "inset 0 1px 0 rgba(255,255,255,.08)",
+        "purpose": "Bright top edge on Night glass controls and panels."
+      },
+      {
+        "name": "glass-top-day",
+        "value": "inset 0 1px 0 rgba(255,255,255,.95)",
+        "purpose": "Bright top edge on Day glass."
+      },
+      {
+        "name": "day-rest",
+        "value": "0 1px 2px rgba(20,16,50,.06), 0 14px 30px -20px rgba(20,16,50,.26)",
+        "purpose": "Day cards and panels at rest; no hairline."
+      },
+      {
+        "name": "day-lift",
+        "value": "0 1px 2px rgba(20,16,50,.06), 0 22px 40px -22px rgba(20,16,50,.34)",
+        "purpose": "Day card hover, with a 4px rise."
+      },
+      {
+        "name": "day-overlay",
+        "value": "0 30px 70px -24px rgba(0,0,0,.28)",
+        "purpose": "Day modal, search and drawer."
+      },
+      {
+        "name": "day-tile",
+        "value": "inset 0 1px 0 rgba(255,255,255,.95), 0 18px 36px -18px rgba(0,0,0,.26)",
+        "purpose": "Floating stock tiles by Day."
+      },
+      {
+        "name": "action-night",
+        "value": "inset 0 1px 0 rgba(255,255,255,.22), 0 10px 22px -10px rgba(0,0,0,.7)",
+        "purpose": "Launch-gradient buttons at Night."
+      },
+      {
+        "name": "action-day",
+        "value": "inset 0 1px 0 rgba(255,255,255,.22), 0 10px 22px -12px rgba(0,0,0,.3)",
+        "purpose": "Launch-gradient buttons by Day."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 1px var(--accent), 0 0 0 5px rgba(123,107,255,.2)",
+        "purpose": "Focused search, field and sort."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(.23, 1, .32, 1)",
+        "purpose": "Everything arriving; state changes."
+      },
+      {
+        "name": "ease-in-out",
+        "value": "cubic-bezier(.77, 0, .175, 1)",
+        "purpose": "Things moving on screen: the float tiles' drift."
+      },
+      {
+        "name": "ease-sheet",
+        "value": "cubic-bezier(.32, .72, 0, 1)",
+        "purpose": "Drawer, compare bar, phone bottom sheet."
+      },
+      {
+        "name": "press",
+        "value": ".16s",
+        "purpose": "Press scale (.97 buttons, .96 chips, .9 toggles)."
+      },
+      {
+        "name": "state",
+        "value": ".2s",
+        "purpose": "Colour, border and fill changes on hover/focus."
+      },
+      {
+        "name": "card-hover",
+        "value": ".3s",
+        "purpose": "Card rise of 4px and media scale of 1.04."
+      },
+      {
+        "name": "card-in",
+        "value": ".55s, stagger 35ms (max 400ms)",
+        "purpose": "Cards rising 12px into the grid."
+      },
+      {
+        "name": "reveal",
+        "value": ".8s, 24px rise, sibling stagger 60ms (max 300ms)",
+        "purpose": "Scroll reveals from a visible default (html.motion only)."
+      },
+      {
+        "name": "hero-rise",
+        "value": ".9s, 16px, 60ms steps",
+        "purpose": "First-screen copy, pure CSS."
+      },
+      {
+        "name": "stage-in",
+        "value": "1.2s, scale .96 to 1",
+        "purpose": "The H stage arriving."
+      },
+      {
+        "name": "drift",
+        "value": "6.4-8.2s alternate, translate3d +/-7px, rotate ~1deg",
+        "purpose": "Float tiles; off under reduced motion and lite."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "small-phone",
+        "value": "380px"
+      },
+      {
+        "name": "phone",
+        "value": "720px"
+      },
+      {
+        "name": "tablet",
+        "value": "960px"
+      },
+      {
+        "name": "wide",
+        "value": "1200px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action: Directions, WhatsApp, Send. Launch gradient pill.",
+      "html": "<button class=\"ds-btn-primary\">Get directions</button>",
+      "css": ".ds-btn-primary { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 0 20px; border: 1px solid transparent; border-radius: 999px; color: #FFFFFF; background: linear-gradient(135deg, var(--cta-1, #5A4BEF), var(--cta-2, #3563D6)); box-shadow: var(--cta-shadow, inset 0 1px 0 rgba(255,255,255,.22), 0 10px 22px -10px rgba(0,0,0,.7)); font-size: .95rem; font-weight: 600; letter-spacing: -0.005em; cursor: pointer; transition: transform .16s cubic-bezier(.23,1,.32,1), filter .2s cubic-bezier(.23,1,.32,1); } .ds-btn-primary:hover { filter: brightness(1.1); } .ds-btn-primary:active { transform: scale(.97); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action beside a primary: Call, Email, Clear.",
+      "html": "<button class=\"ds-btn-ghost\">Call the shop</button>",
+      "css": ".ds-btn-ghost { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 20px; border: 1px solid var(--line-2, rgba(255,255,255,.15)); border-radius: 999px; background: transparent; color: var(--ink, #F2F1F7); font-size: .95rem; font-weight: 600; cursor: pointer; transition: background-color .2s cubic-bezier(.23,1,.32,1), border-color .2s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); } .ds-btn-ghost:hover { background: var(--glass-2, rgba(255,255,255,.07)); border-color: var(--ink-3, #8E8BA6); } .ds-btn-ghost:active { transform: scale(.97); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; }"
+    },
+    {
+      "name": "Glass Button",
+      "kind": "button",
+      "refersTo": "button-glass",
+      "description": "An action on glass with a bright top edge, used in the stage and map head.",
+      "html": "<button class=\"ds-btn-glass\">Load the live map</button>",
+      "css": ".ds-btn-glass { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border: 1px solid var(--glass-edge, rgba(255,255,255,.13)); border-radius: 999px; background: var(--glass-2, rgba(255,255,255,.07)); box-shadow: var(--glass-top, inset 0 1px 0 rgba(255,255,255,.08)); color: var(--ink, #F2F1F7); font-size: .95rem; font-weight: 600; cursor: pointer; transition: filter .2s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); } .ds-btn-glass:hover { filter: brightness(1.08); border-color: var(--line-2, rgba(255,255,255,.15)); } .ds-btn-glass:active { transform: scale(.97); } .ds-btn-glass:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; }"
+    },
+    {
+      "name": "Category Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Catalogue filters with tabular counts; selected flips to ink, the offer chip is amber.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">All <span class=\"ds-chip-n\">41</span></button><button class=\"ds-chip\" aria-pressed=\"false\">Phones <span class=\"ds-chip-n\">9</span></button><button class=\"ds-chip ds-chip-offer\" aria-pressed=\"false\">On offer <span class=\"ds-chip-n\">12</span></button></div>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 8px; } .ds-chip { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 8px 15px; border: 1px solid var(--line, rgba(255,255,255,.08)); border-radius: 999px; background: var(--glass, rgba(255,255,255,.035)); color: var(--ink-2, #B4B1C9); font-size: .88rem; font-weight: 500; cursor: pointer; transition: background-color .2s cubic-bezier(.23,1,.32,1), border-color .2s cubic-bezier(.23,1,.32,1), color .2s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); } .ds-chip-n { font-size: .8em; color: var(--ink-3, #8E8BA6); font-variant-numeric: tabular-nums lining-nums; } .ds-chip:hover { border-color: var(--line-2, rgba(255,255,255,.15)); color: var(--ink, #F2F1F7); } .ds-chip:active { transform: scale(.96); } .ds-chip:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; } .ds-chip[aria-pressed='true'] { background: var(--ink, #F2F1F7); border-color: var(--ink, #F2F1F7); color: var(--bg, #07080C); } .ds-chip[aria-pressed='true'] .ds-chip-n { color: inherit; opacity: .6; } .ds-chip-offer { color: var(--amber, #FFB45A); border-color: rgba(255,180,90,.35); } .ds-chip-offer[aria-pressed='true'] { background: #FFB45A; border-color: #FFB45A; color: #1E1203; }"
+    },
+    {
+      "name": "Catalogue Search",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Pill search on glass; focus turns the edge Focus Violet with a soft ion halo.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 256 256\" width=\"18\" height=\"18\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z\"/></svg><input type=\"search\" placeholder=\"Search laptops, phones, buds…\" aria-label=\"Search the catalogue\"></label>",
+      "css": ".ds-search { position: relative; display: block; max-width: 480px; color: var(--ink-3, #8E8BA6); } .ds-search svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; } .ds-search input { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); width: 100%; min-height: 48px; padding: 0 46px 0 44px; border: 1px solid var(--line, rgba(255,255,255,.08)); border-radius: 999px; background: var(--glass, rgba(255,255,255,.035)); box-shadow: var(--glass-top, inset 0 1px 0 rgba(255,255,255,.08)); color: var(--ink, #F2F1F7); caret-color: var(--accent, #8E80FF); font-size: 16px; transition: border-color .2s cubic-bezier(.23,1,.32,1), box-shadow .2s cubic-bezier(.23,1,.32,1); } .ds-search input::placeholder { color: var(--ink-3, #8E8BA6); } .ds-search input:hover { border-color: var(--line-2, rgba(255,255,255,.15)); } .ds-search input:focus { outline: none; border-color: var(--accent, #8E80FF); box-shadow: 0 0 0 1px var(--accent, #8E80FF), 0 0 0 5px rgba(123,107,255,.2); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "Live open/answering status; the ring breathes on transform and opacity only.",
+      "html": "<span class=\"ds-status is-open\"><span class=\"ds-dot\"></span>Open now · calls answered</span>",
+      "css": ".ds-status { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 12px 4px 10px; border: 1px solid var(--line, rgba(255,255,255,.08)); border-radius: 999px; background: var(--glass, rgba(255,255,255,.035)); box-shadow: var(--glass-top, inset 0 1px 0 rgba(255,255,255,.08)); color: var(--ink-2, #B4B1C9); font-size: .8rem; font-weight: 550; white-space: nowrap; } .ds-status.is-open { color: var(--ok, #5BE49B); } .ds-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--ok-dot, #3DDC84); } .ds-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--ok-dot, #3DDC84); animation: ds-breathe 2.6s cubic-bezier(.23,1,.32,1) infinite; } @keyframes ds-breathe { 0% { transform: scale(.5); opacity: .8; } 80%, 100% { transform: scale(1.5); opacity: 0; } } @media (prefers-reduced-motion: reduce) { .ds-dot::after { display: none; } }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "Media, then price first in tabular figures, then name, then a ruled foot with stock and add toggle. Edge at Night, lift by Day.",
+      "html": "<article class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-media\"><span class=\"ds-tag-offer\">−12%</span></div><div class=\"ds-card-body\"><p class=\"ds-price\"><span>KSh 38,500</span><small><s>KSh 43,800</s> save KSh 5,300 <b>−12%</b></small></p><p class=\"ds-card-title\">HP EliteBook 840 G6, Core i5, 16GB</p><div class=\"ds-card-foot\"><span class=\"ds-stock\">In stock</span><button class=\"ds-card-add\" aria-label=\"Add to inquiry list\"><svg viewBox=\"0 0 256 256\" width=\"17\" height=\"17\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z\"/></svg></button></div></div></article>",
+      "css": ".ds-card { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); position: relative; display: flex; flex-direction: column; overflow: hidden; width: 260px; border: 1px solid var(--card-border, rgba(255,255,255,.08)); border-radius: 22px; background: var(--card-bg, linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018)), #0D0E15); box-shadow: var(--card-shadow, inset 0 1px 0 rgba(255,255,255,.06)); color: var(--ink, #F2F1F7); cursor: pointer; transition: transform .3s cubic-bezier(.23,1,.32,1), box-shadow .3s cubic-bezier(.23,1,.32,1), border-color .3s cubic-bezier(.23,1,.32,1); } .ds-card:hover { transform: translateY(-4px); box-shadow: var(--card-hover, inset 0 1px 0 rgba(255,255,255,.1)); } .ds-card:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; } .ds-card-media { position: relative; aspect-ratio: 4 / 3; margin: 6px 6px 0; border-radius: 17px; background: var(--media-bg, #0D0E15) url('/assets/img/plates/computers-night.webp') center / cover no-repeat; } .ds-tag-offer { position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: 999px; background: #FFB45A; color: #1E1203; font-size: .72rem; font-weight: 650; } .ds-card-body { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 18px; } .ds-price { margin: 0; font-size: 1.3rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums lining-nums; } .ds-price span { display: block; } .ds-price small { display: block; margin-top: 4px; font-size: .76rem; font-weight: 450; letter-spacing: 0; color: var(--ink-3, #8E8BA6); } .ds-price b { color: var(--amber, #FFB45A); font-weight: 700; } .ds-card-title { margin: 0; font-size: 1rem; font-weight: 550; line-height: 1.3; letter-spacing: -0.01em; } .ds-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line, rgba(255,255,255,.08)); } .ds-stock { display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; color: var(--ink-3, #8E8BA6); } .ds-stock::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--ok-dot, #3DDC84); } .ds-card-add { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--line-2, rgba(255,255,255,.15)); border-radius: 50%; background: transparent; color: var(--ink, #F2F1F7); cursor: pointer; transition: background-color .2s cubic-bezier(.23,1,.32,1), border-color .2s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); } .ds-card-add:hover { border-color: var(--ink-2, #B4B1C9); background: var(--glass-2, rgba(255,255,255,.07)); } .ds-card-add:active { transform: scale(.9); } .ds-card-add:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; }"
+    },
+    {
+      "name": "Glass Plate",
+      "kind": "custom",
+      "refersTo": "plate-lead",
+      "description": "Stand-in for a product without a photo: the rendered slab raster with brand and model laid on its face in CSS 3D. Never a CSS imitation of the glass.",
+      "html": "<div class=\"ds-plate\"><div class=\"ds-plate-face\"><span class=\"ds-plate-brand\">Lenovo</span><span class=\"ds-plate-model\">ThinkPad T14 Gen 2</span></div></div>",
+      "css": ".ds-plate { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); position: relative; overflow: hidden; width: 320px; aspect-ratio: 4 / 3; border-radius: 17px; container-type: inline-size; perspective: 157.9cqi; color: var(--plate-ink, #F2F1F7); background: var(--media-bg, #0D0E15) url('/assets/img/plates/computers-night.webp') center / cover no-repeat; } .ds-plate-face { position: absolute; left: 50%; top: 50%; width: 82.4cqi; height: 59.05cqi; margin: -29.52cqi 0 0 -41.2cqi; padding: 0 9cqi 6.5cqi 7cqi; display: flex; flex-direction: column; justify-content: flex-end; gap: .2em; transform: translate3d(1.03cqi, -1.03cqi, 0) rotateY(.40rad) rotateX(.24rad) rotateZ(.03rad) translateZ(5.84cqi); } .ds-plate-brand { font-size: clamp(1.25rem, 13cqi, 3rem); font-weight: 700; line-height: .95; letter-spacing: -0.04em; } .ds-plate-model { font-size: clamp(.8rem, 7.2cqi, 1.6rem); font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; color: var(--plate-ink-2, #D2CFE2); }"
+    },
+    {
+      "name": "Contact Row",
+      "kind": "custom",
+      "refersTo": "label",
+      "description": "A ruled row, not a box: what it is, the number itself, when it is answered.",
+      "html": "<a class=\"ds-contact\" href=\"#\"><span class=\"ds-contact-body\"><strong>Repair desk · WhatsApp</strong><span>+254 700 000 000</span><em>Answered 08:00–20:00</em></span><svg viewBox=\"0 0 256 256\" width=\"16\" height=\"16\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z\"/></svg></a>",
+      "css": ".ds-contact { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 16px 2px; border-top: 1px solid var(--line, rgba(255,255,255,.08)); border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); color: var(--ink, #F2F1F7); text-decoration: none; } .ds-contact-body { display: flex; flex-direction: column; gap: 1px; } .ds-contact-body strong { font-size: .82rem; font-weight: 550; color: var(--ink-3, #8E8BA6); } .ds-contact-body span { font-size: 1.05rem; font-weight: 550; transition: color .2s cubic-bezier(.23,1,.32,1); } .ds-contact-body em { font-style: normal; font-size: .82rem; color: var(--ink-3, #8E8BA6); } .ds-contact svg { margin-left: auto; color: var(--ink-3, #8E8BA6); transition: transform .2s cubic-bezier(.23,1,.32,1), color .2s cubic-bezier(.23,1,.32,1); } .ds-contact:hover .ds-contact-body span { color: var(--ion-text, #A99CFF); } .ds-contact:hover svg { transform: translate(2px, -2px); color: var(--ink, #F2F1F7); } .ds-contact:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; border-radius: 8px; }"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "refersTo": "label",
+      "description": "Pill links in ink-2; the active link takes a glass fill.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" class=\"is-active\">Shop</a><a href=\"#\">Repairs</a><a href=\"#\">Visit</a><a href=\"#\">Contact</a></nav>",
+      "css": ".ds-nav { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: flex; gap: 2px; } .ds-nav a { padding: 8px 14px; border-radius: 999px; color: var(--ink-2, #B4B1C9); font-size: .93rem; font-weight: 500; text-decoration: none; transition: color .2s cubic-bezier(.23,1,.32,1), background-color .2s cubic-bezier(.23,1,.32,1); } .ds-nav a:hover { color: var(--ink, #F2F1F7); } .ds-nav a.is-active { color: var(--ink, #F2F1F7); background: var(--glass-2, rgba(255,255,255,.07)); } .ds-nav a:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Launch Stage",
+    "overview": "HOMCOM is shown the way a maker introduces a product: the shop's H in polished chrome, lit in its own studio, with real stock, real prices and the shop's live status around it. There are two themes and they are one world. Night is deep space ink lit by an ion light running from violet to blue, with warm amber kept for offers. Day is pale lavender-white with the same light turned low and violet glass ribbons passing through. Both are made of the same few materials: chrome, glass with a bright top edge, hairlines, and one typeface.\n\nThe stage belongs to the first viewport. From the catalogue down the page is an instrument: dense, ruled, price-led, built for a phone on weak data. Display lines are big and light (300 weight) and everything that does work is set heavier (550 to 700). Products without a photo are never given an icon. They get a rendered glass plate with the maker's name laid on the slab's face. Glass is used as a material with a job: it holds a product name, lifts a floating stock tile, or frames the header. It is never there just to blur things. Wherever someone reads, the surface is opaque.\n\nThe system was built to be cheap: one self-hosted font file, rasters of 4 to 7 KB, a live map that loads only when asked for, and motion that runs on the compositor. Reduced motion, lite mode, high contrast and forced colours each strip back to a still, complete page.",
+    "keyCharacteristics": [
+      "Two themes, one world: Night ink with ion light, Day lavender with the same light at low intensity.",
+      "One family, Hanken Grotesk, light for display and heavy for prices and controls.",
+      "Prices lead every product, in tabular lining figures.",
+      "Night surfaces are defined by their edge, Day surfaces by elevation.",
+      "Rendered glass plates stand in for missing photos, with the words set in the slab's plane.",
+      "Ruled rows, not boxes, for services, contact lines, specs and facts.",
+      "Pills for every control. Generous rounded rectangles for surfaces."
+    ],
+    "rules": [
+      {
+        "name": "The Amber Means Offer Rule",
+        "body": "Amber marks a price that has come down and nothing else. Low stock and refurbished use the warn yellow, and decoration never uses amber.",
+        "section": "colors"
+      },
+      {
+        "name": "The Measured Pair Rule",
+        "body": "No text colour ships until its ratio has been measured against the surface it sits on, in both themes. Write the ratio next to the token.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ours, Not Theirs Rule",
+        "body": "A WhatsApp button is the page's own primary action, in the Launch gradient. The label and the logo say which app it is. No brand green.",
+        "section": "colors"
+      },
+      {
+        "name": "The Price-First Rule",
+        "body": "On every product surface the price is the first line of the body, above the name. Under it comes what the product was and what that saves, or \"incl. VAT\". Every figure that lines up (prices, totals, counts, hours, badges) uses `tabular-nums lining-nums`.",
+        "section": "typography"
+      },
+      {
+        "name": "The Light Voice, Heavy Hands Rule",
+        "body": "Big type is light (300–350). Anything you act on or compare is 550 or heavier. Never set a display line bold.",
+        "section": "typography"
+      },
+      {
+        "name": "The Photo Earns Width Rule",
+        "body": "A product with a real photo takes two columns, photo beside a short fact list, only in the shop's own (featured) order. Sorted by price or name, every product takes one cell, so the order reads straight. On phones the wide card becomes a full row with the photo on top and no facts.",
+        "section": "layout"
+      },
+      {
+        "name": "The Edge or Lift Rule",
+        "body": "A surface is defined by an edge at Night and by elevation by Day, never both. A Night card has no drop shadow. A Day card has no hairline.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Opaque Reading Rule",
+        "body": "Any panel someone reads in is opaque: the modal, search, drawer, compare bar, phone nav and repair panel. Translucent, blurred glass is kept for small floating things (header, stock tiles, media tags). On touch screens and in lite mode it falls back to solid colour, because blur behind moving content is the most expensive thing a phone can scroll.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One-Thing Plate Rule",
+        "body": "A plate says the brand large with the model under it. With no brand, it says only the one spec that defines the product (\"65W\", \"2m\", \"8-in-1\", \"Case + Glass\"), never the title again and never an icon. Phone cards carry the lead alone.",
+        "section": "components"
+      },
+      {
+        "name": "The Words on Glass Rule",
+        "body": "The plate's words are laid on the slab's front face in CSS 3D (`.plate-face`), using the renderer's own camera and each plate's turn (`--plate-ry`), so they recede with the glass. If a plate is re-rendered, its `--plate-ry` follows it. Without container-query units the words sit flat in the slab's lower left.",
+        "section": "components"
+      },
+      {
+        "name": "The Map on Request Rule",
+        "body": "The live map loads only when someone taps for it. Until then an inline SVG sketch of Tom Mboya Street, in theme tokens, marks the shop and the building opposite.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do write every new colour as a token in both `:root`/`[data-theme=\"dark\"]` and `[data-theme=\"light\"]`, with its measured AA ratio in a comment.",
+      "Do lead every product surface with the price in 650 weight and tabular lining figures.",
+      "Do give a new surface a hairline and lit top at Night and a soft two-layer shadow by Day, never both.",
+      "Do make any panel someone reads in opaque (`--glass-solid` or `--card-solid`).",
+      "Do use rows divided by hairlines for lists of facts, services and contact lines.",
+      "Do animate only transform and opacity, with `--ease-out` (`cubic-bezier(.23,1,.32,1)`) for arrivals and `--ease-sheet` for drawers and sheets. Start from a visible default, so nothing depends on a script to appear.",
+      "Do honour `prefers-reduced-motion` (everything simply there, the H still turns under a finger), `html.lite` (no canvas, no blur, no drift), `prefers-contrast` and forced colours.",
+      "Do keep every tap target at least 44px on touch and every field at 16px.",
+      "Do draw icons from the inline Phosphor sprite only."
+    ],
+    "donts": [
+      "Don't put a category label, eyebrow or kicker above a title. The heading carries itself.",
+      "Don't number repair services or any other rows (01–04) when the order carries no information.",
+      "Don't put spec chips on product cards. Facts belong in the wide card's ruled list or in the pop-up.",
+      "Don't colour WhatsApp buttons in WhatsApp green.",
+      "Don't imitate the glass plates with CSS gradients or blur. Plates are rendered rasters with recorded provenance.",
+      "Don't let black or navy into the Day chrome's reflection. Day darks are ribbon violet.",
+      "Don't use amber for anything but offers and savings.",
+      "Don't give a photo product a wide card outside the shop's own sort.",
+      "Don't add a second typeface, a monospace or a bold display line.",
+      "Don't load the live map, or any other heavy embed, before it is asked for."
+    ]
+  }
+}

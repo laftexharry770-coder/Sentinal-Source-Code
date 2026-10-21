@@ -14,6 +14,7 @@ a{position:fixed;left:12px;top:12px;padding:8px 12px;border-radius:8px;backgroun
 //   ?tint=R,G,B   the category's tint, 0–1 per channel
 //   &day=0|1      Night or Day studio
 //   &seed=-2..2   a slight turn, so neighbouring plates are not identical
+//   &pose=rz,rx,ry  or a different turn altogether (see assets/img/README.md)
 //   &w=1440&h=1440
 // then press "Save PNG", and encode it at 720 × 720:
 //   ffmpeg -i plate.png -vf scale=720:720:flags=lanczos -c:v libwebp -quality 76 -compression_level 6 <category>-<night|day>.webp
@@ -25,11 +26,14 @@ const W = +P.get('w') || 1440, H = +P.get('h') || 1440;
 const tint = (P.get('tint') || '0.40,0.62,1.00').split(',').map(Number);
 const day = +P.get('day') || 0;
 const seed = +P.get('seed') || 0;
+// &pose=rz,rx,ry turns the slab some other way (radians, in the shader's own
+// order: R = rotZ(rz)·rotX(rx)·rotY(ry)); without it, the original turn.
+const pose = P.has('pose') ? P.get('pose').split(',').map(Number) : null;
 const cv = document.getElementById('c'); cv.width = W; cv.height = H;
 const gl = cv.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
 const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
 const FS = `precision highp float;
-uniform vec2 uRes; uniform vec3 uTint; uniform float uDay; uniform float uSeed;
+uniform vec2 uRes; uniform vec3 uTint; uniform float uDay; uniform float uSeed; uniform vec3 uPose; uniform float uHasPose;
 float sdRB(vec3 p,vec3 b,float r){vec3 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-r;}
 const vec3 B=vec3(1.20,0.86,0.17);
 mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,-s, 0.,1.,0., s,0.,c);}
@@ -93,7 +97,7 @@ vec3 through(vec3 p,vec3 rd,vec3 n,float ior,vec2 uv,out float len){
   return c;
 }
 void main(){
-  R=rotZ(0.03)*rotX(0.24)*rotY(-0.36+uSeed*0.02);
+  R=uHasPose>0.5?rotZ(uPose.x)*rotX(uPose.y)*rotY(uPose.z):rotZ(0.03)*rotX(0.24)*rotY(-0.36+uSeed*0.02);
   vec2 uv=(2.*gl_FragCoord.xy-uRes)/uRes.y;
   vec3 ro=vec3(0.,0.,4.6),rd=normalize(vec3(uv*0.57,-1.8));
   float t=0.;bool hit=false;
@@ -120,14 +124,19 @@ void main(){
   // studio's shadow, and a black card kills the face's reflection there, so
   // the maker's name set over it in white reads cleanly.
   vec3 lp=R*(p-vec3(0.03,0.03,0.));
-  float shadeK=uDay<0.5?smoothstep(0.82,0.25,lp.y)*smoothstep(1.18,0.85,lp.x):0.;
+  // A plate turned some other way (pose) catches the studio's strips across
+  // more of its face, so the black card reaches further and cuts harder.
+  float shadeK=uDay<0.5?smoothstep(0.82,0.25,lp.y)*(uHasPose>0.5?smoothstep(1.24,1.02,lp.x):smoothstep(1.18,0.85,lp.x)):0.;
   body*=1.-0.80*shadeK;
-  refl*=1.-0.75*shadeK;
+  refl*=1.-(uHasPose>0.5?0.96:0.75)*shadeK;
   col=mix(body,refl,F);
   // key-light glints along the bevels, and the edges catching the room
   vec3 L1=normalize(vec3(0.5,0.7,0.5)),L2=normalize(vec3(-0.6,0.3,0.7));
-  col+=vec3(1.0)*pow(max(dot(r,L1),0.),120.)*2.5;
-  col+=vec3(0.75,0.8,1.0)*pow(max(dot(r,L2),0.),60.)*1.2;
+  // On a posed plate the face can turn into a key light; its glint is kept off
+  // the shaded zone where the words sit (the bevels still catch it).
+  float glintK=uHasPose>0.5?1.-0.97*shadeK*smoothstep(0.35,0.8,abs((R*n).z)):1.;
+  col+=vec3(1.0)*pow(max(dot(r,L1),0.),120.)*2.5*glintK;
+  col+=vec3(0.75,0.8,1.0)*pow(max(dot(r,L2),0.),60.)*1.2*glintK;
   vec3 ln=R*n; float edge=1.-abs(ln.z);
   col+=mix(vec3(1.),uTint,0.4)*pow(edge,5.)*(uDay<0.5?0.45:0.35);
   if(uDay>0.5){ col=mix(col,col*vec3(0.94,0.93,0.97),0.5); }
@@ -141,6 +150,8 @@ gl.uniform2f(gl.getUniformLocation(pr, 'uRes'), W, H);
 gl.uniform3f(gl.getUniformLocation(pr, 'uTint'), tint[0], tint[1], tint[2]);
 gl.uniform1f(gl.getUniformLocation(pr, 'uDay'), day);
 gl.uniform1f(gl.getUniformLocation(pr, 'uSeed'), seed);
+gl.uniform1f(gl.getUniformLocation(pr, 'uHasPose'), pose ? 1 : 0);
+gl.uniform3f(gl.getUniformLocation(pr, 'uPose'), ...(pose || [0, 0, 0]));
 gl.viewport(0, 0, W, H); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish();
 window.DONE = true;
 const save = document.getElementById('save');

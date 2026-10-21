@@ -18,21 +18,22 @@
    (tools/check-site.js checks all four agree).
    ========================================================================== */
 
-const CACHE_VERSION = 'homcom-v28';
+const CACHE_VERSION = 'homcom-v29';
 const SHELL = [
   './',
   './index.html',
-  './assets/css/styles.css?v=28',
+  './assets/css/styles.css?v=29',
   './assets/fonts/hanken-grotesk.woff2',
   './assets/js/data.js',
-  './assets/js/motion.js?v=28',
-  './assets/js/app.js?v=28',
+  './assets/js/motion.js?v=29',
+  './assets/js/app.js?v=29',
   './assets/img/hero/hp-elite-dragonfly.webp',
   './assets/img/hero/mechanical-keyboard.webp',
   './assets/img/hero/oraimo-spacebuds.webp',
-  './manifest.webmanifest',
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png'
+  './manifest.webmanifest'
+  // Not the app icons: an installed app keeps its own copy of its icon, so
+  // fetching them here would only cost a first-time visitor about 110 KB in
+  // the background. If the browser asks for one, the copy is kept below.
 ];
 
 self.addEventListener('install', (event) => {

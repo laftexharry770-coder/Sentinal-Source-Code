@@ -955,7 +955,7 @@
       "name": "Status Pill",
       "kind": "chip",
       "refersTo": "status-pill",
-      "description": "Live open/answering status; the ring breathes on transform and opacity only.",
+      "description": "Live open/answering status; the ring breathes on transform and opacity only. Solid glass (glass-solid) when it sits in a section's head.",
       "html": "<span class=\"ds-status is-open\"><span class=\"ds-dot\"></span>Open now · calls answered</span>",
       "css": ".ds-status { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 12px 4px 10px; border: 1px solid var(--line, rgba(255,255,255,.08)); border-radius: 999px; background: var(--glass, rgba(255,255,255,.035)); box-shadow: var(--glass-top, inset 0 1px 0 rgba(255,255,255,.08)); color: var(--ink-2, #B4B1C9); font-size: .8rem; font-weight: 550; white-space: nowrap; } .ds-status.is-open { color: var(--ok, #5BE49B); } .ds-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--ok-dot, #3DDC84); } .ds-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--ok-dot, #3DDC84); animation: ds-breathe 2.6s cubic-bezier(.23,1,.32,1) infinite; } @keyframes ds-breathe { 0% { transform: scale(.5); opacity: .8; } 80%, 100% { transform: scale(1.5); opacity: 0; } } @media (prefers-reduced-motion: reduce) { .ds-dot::after { display: none; } }"
     },
@@ -963,8 +963,8 @@
       "name": "Product Card",
       "kind": "card",
       "refersTo": "card-product",
-      "description": "Media, then price first in tabular figures, then name, then a ruled foot with stock and add toggle. Edge at Night, lift by Day.",
-      "html": "<article class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-media\"><span class=\"ds-tag-offer\">−12%</span></div><div class=\"ds-card-body\"><p class=\"ds-price\"><span>KSh 38,500</span><small><s>KSh 43,800</s> save KSh 5,300 <b>−12%</b></small></p><p class=\"ds-card-title\">HP EliteBook 840 G6, Core i5, 16GB</p><div class=\"ds-card-foot\"><span class=\"ds-stock\">In stock</span><button class=\"ds-card-add\" aria-label=\"Add to inquiry list\"><svg viewBox=\"0 0 256 256\" width=\"17\" height=\"17\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z\"/></svg></button></div></div></article>",
+      "description": "Media, then name, then the price under it in tabular figures, then a ruled foot with stock and add toggle. Edge at Night, lift by Day.",
+      "html": "<article class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-media\"><span class=\"ds-tag-offer\">−12%</span></div><div class=\"ds-card-body\"><p class=\"ds-card-title\">HP EliteBook 840 G6, Core i5, 16GB</p><p class=\"ds-price\"><span>KSh 38,500</span><small><s>KSh 43,800</s> save KSh 5,300 <b>−12%</b></small></p><div class=\"ds-card-foot\"><span class=\"ds-stock\">In stock</span><button class=\"ds-card-add\" aria-label=\"Add to inquiry list\"><svg viewBox=\"0 0 256 256\" width=\"17\" height=\"17\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z\"/></svg></button></div></div></article>",
       "css": ".ds-card { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); position: relative; display: flex; flex-direction: column; overflow: hidden; width: 260px; border: 1px solid var(--card-border, rgba(255,255,255,.08)); border-radius: 22px; background: var(--card-bg, linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018)), #0D0E15); box-shadow: var(--card-shadow, inset 0 1px 0 rgba(255,255,255,.06)); color: var(--ink, #F2F1F7); cursor: pointer; transition: transform .3s cubic-bezier(.23,1,.32,1), box-shadow .3s cubic-bezier(.23,1,.32,1), border-color .3s cubic-bezier(.23,1,.32,1); } .ds-card:hover { transform: translateY(-4px); box-shadow: var(--card-hover, inset 0 1px 0 rgba(255,255,255,.1)); } .ds-card:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; } .ds-card-media { position: relative; aspect-ratio: 4 / 3; margin: 6px 6px 0; border-radius: 17px; background: var(--media-bg, #0D0E15) url('/assets/img/plates/computers-night.webp') center / cover no-repeat; } .ds-tag-offer { position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: 999px; background: #FFB45A; color: #1E1203; font-size: .72rem; font-weight: 650; } .ds-card-body { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 18px; } .ds-price { margin: 0; font-size: 1.3rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums lining-nums; } .ds-price span { display: block; } .ds-price small { display: block; margin-top: 4px; font-size: .76rem; font-weight: 450; letter-spacing: 0; color: var(--ink-3, #8E8BA6); } .ds-price b { color: var(--amber, #FFB45A); font-weight: 700; } .ds-card-title { margin: 0; font-size: 1rem; font-weight: 550; line-height: 1.3; letter-spacing: -0.01em; } .ds-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line, rgba(255,255,255,.08)); } .ds-stock { display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; color: var(--ink-3, #8E8BA6); } .ds-stock::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--ok-dot, #3DDC84); } .ds-card-add { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--line-2, rgba(255,255,255,.15)); border-radius: 50%; background: transparent; color: var(--ink, #F2F1F7); cursor: pointer; transition: background-color .2s cubic-bezier(.23,1,.32,1), border-color .2s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); } .ds-card-add:hover { border-color: var(--ink-2, #B4B1C9); background: var(--glass-2, rgba(255,255,255,.07)); } .ds-card-add:active { transform: scale(.9); } .ds-card-add:focus-visible { outline: 2px solid var(--accent, #8E80FF); outline-offset: 3px; }"
     },
     {
@@ -974,6 +974,14 @@
       "description": "Stand-in for a product without a photo: the rendered slab raster with brand and model laid on its face in CSS 3D. Never a CSS imitation of the glass.",
       "html": "<div class=\"ds-plate\"><div class=\"ds-plate-face\"><span class=\"ds-plate-brand\">Lenovo</span><span class=\"ds-plate-model\">ThinkPad T14 Gen 2</span></div></div>",
       "css": ".ds-plate { font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); position: relative; overflow: hidden; width: 320px; aspect-ratio: 4 / 3; border-radius: 17px; container-type: inline-size; perspective: 157.9cqi; color: var(--plate-ink, #F2F1F7); background: var(--media-bg, #0D0E15) url('/assets/img/plates/computers-night.webp') center / cover no-repeat; } .ds-plate-face { position: absolute; left: 50%; top: 50%; width: 82.4cqi; height: 59.05cqi; margin: -29.52cqi 0 0 -41.2cqi; padding: 0 9cqi 6.5cqi 7cqi; display: flex; flex-direction: column; justify-content: flex-end; gap: .2em; transform: translate3d(1.03cqi, -1.03cqi, 0) rotateY(.40rad) rotateX(.24rad) rotateZ(.03rad) translateZ(5.84cqi); } .ds-plate-brand { font-size: clamp(1.25rem, 13cqi, 3rem); font-weight: 700; line-height: .95; letter-spacing: -0.04em; } .ds-plate-model { font-size: clamp(.8rem, 7.2cqi, 1.6rem); font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; color: var(--plate-ink-2, #D2CFE2); }"
+    },
+    {
+      "name": "Section Light",
+      "kind": "decoration",
+      "refersTo": "section-light",
+      "description": "The first screen's light, carried on below it. Each section is lit from the top right by a still drawing of the hero's streaks (Night) or glass ribbons (Day), drawn by tools/light/trails.js, with a line of ion light along the seam above it. It comes in as the section's first words rise: 1.6s, opacity and transform only.",
+      "html": "<section class=\"ds-lit\"><h2>Repairs, done right</h2><p>Bring in the machine or the phone and we'll tell you honestly what it needs.</p></section>",
+      "css": ".ds-lit { position: relative; isolation: isolate; padding: 64px 24px; border-top: 1px solid var(--line, rgba(255,255,255,.08)); font-family: var(--font, 'Hanken Grotesk', system-ui, sans-serif); color: var(--ink, #F2F1F7); } .ds-lit h2 { font-weight: 300; font-size: 2.4rem; margin: 0; } .ds-lit p { color: var(--ink-2, #B4B1C9); max-width: 40ch; } .ds-lit::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: -1px; height: 70%; background: linear-gradient(90deg, transparent 34%, rgba(123,107,255,.55) 70%, rgba(76,141,255,.45) 86%, transparent) top / 100% 1px no-repeat, radial-gradient(56% 100% at 76% 0%, rgba(123,107,255,.10), transparent 72%); } .ds-lit::after { content: ''; position: absolute; z-index: -1; top: 0; right: 0; width: 100%; height: 300px; background: url('assets/img/light/trails-night.svg') right top / auto 100% no-repeat; }"
     },
     {
       "name": "Contact Row",
@@ -1021,14 +1029,19 @@
         "section": "colors"
       },
       {
-        "name": "The Price-First Rule",
-        "body": "On every product surface the price is the first line of the body, above the name. Under it comes what the product was and what that saves, or \"incl. VAT\". Every figure that lines up (prices, totals, counts, hours, badges) uses `tabular-nums lining-nums`.",
+        "name": "The Name, Then Price Rule",
+        "body": "On every product surface the name comes first and the price sits directly under it, the largest figure on the card. Under the price comes what the product was and what that saves, or \"incl. VAT\". Every figure that lines up (prices, totals, counts, hours, badges) uses `tabular-nums lining-nums`.",
         "section": "typography"
       },
       {
         "name": "The Light Voice, Heavy Hands Rule",
         "body": "Big type is light (300–350). Anything you act on or compare is 550 or heavier. Never set a display line bold.",
         "section": "typography"
+      },
+      {
+        "name": "The Light Runs On Rule",
+        "body": "The hero's light does not stop at the first screen. Every section below is lit from the top right, by a still drawing of the hero's streaks at Night and of its glass ribbons by Day. Words placed in that light keep their measured contrast. It is painted once with the section and never moves with the scroll.",
+        "section": "layout"
       },
       {
         "name": "The Photo Earns Width Rule",
@@ -1078,6 +1091,7 @@
       "Don't put spec chips on product cards. Facts belong in the wide card's ruled list or in the pop-up.",
       "Don't colour WhatsApp buttons in WhatsApp green.",
       "Don't imitate the glass plates with CSS gradients or blur. Plates are rendered rasters with recorded provenance.",
+      "Don't edit the section light's SVGs by hand, or make it move with the scroll. Change tools/light/trails.js and run it.",
       "Don't let black or navy into the Day chrome's reflection. Day darks are ribbon violet.",
       "Don't use amber for anything but offers and savings.",
       "Don't give a photo product a wide card outside the shop's own sort.",

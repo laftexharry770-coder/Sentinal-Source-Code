@@ -20,13 +20,17 @@ assets/js/app.js        the behaviour
 assets/js/motion.js     the chrome H, scroll reveals, and the menu and theme
                         switch working before the catalogue has loaded
 assets/fonts/           the typeface (Hanken Grotesk) and its licence
-assets/img/             product photos
+assets/img/products/    product photos, one file each (see section 5)
 assets/img/hero/        the three products floating in the first screen
 assets/img/plates/      the glass plates shown for products with no photo yet
+assets/img/light/       the light behind each section's head (Night and Day)
 assets/img/demo-360/    the sample 360° frames (replace with your own)
-assets/icons/           app icons
+assets/icons/           app icons and the link preview (drawn by tools/icons/)
 tools/check-site.js     checks everything before you upload (section 9)
 tools/plates/           the renderer the glass plates were made with
+tools/light/            the script that draws assets/img/light/
+tools/icons/            the renderer the app icons and link preview were made with
+tools/photos/           moves photos out of data.js into files (section 5)
 
 .claude/, .mcp.json     design tools for Claude (section 11) — not part of the site
 ```
@@ -81,7 +85,7 @@ puts the pin on your door rather than on the street.
 
 ```js
 hours: {
-  mon: ['07:00', '20:00'], ... sat: ['08:00', '09:00'], sun: ['10:00', '17:00']
+  mon: ['07:00', '20:00'], ... sat: ['08:00', '21:00'], sun: ['10:00', '17:00']
 },
 ```
 
@@ -97,10 +101,6 @@ Both are live on the page. The header badge says "Open now · closes 8pm"; every
 phone and WhatsApp card says "Answering now · until 8pm" or "Outside contact
 hours · we reply from 8am". They recompute every minute, in Nairobi time, so
 they stay right for a customer browsing from anywhere.
-
-> **Worth checking:** Saturday is set to `['08:00', '09:00']` — one hour, 8am to
-> 9am, exactly as given. If you meant 8am to 9**pm**, change it to
-> `['08:00', '21:00']`.
 
 **If you change the hours, change them in two places.** `index.html` keeps a
 copy of them near the bottom (`<script id="shopHours">`), so "Open now" shows
@@ -206,14 +206,31 @@ computer — several at once is fine. Each one is automatically shrunk to about
 first photo is the main one shown on the card; drop any of them with the ×.
 
 A browser can hold roughly 4–5MB of photos in total, which is around 40. The
-panel shows how much you've used. **For a big catalogue, use files instead:**
-put the photos in `assets/img/` and reference them from `data.js`:
+panel shows how much you've used.
+
+**The panel writes new photos inside `data.js`.** That works, but every visitor
+then downloads every photo before a single price can show. So before you
+upload a `data.js` with new photos in it, move them out into files:
+
+    node tools/photos/unpack.js
+
+It puts each photo in `assets/img/products/` (byte for byte the same picture)
+and changes `data.js` to point at it. Upload `data.js` and the new files
+together. `tools/check-site.js` reminds you when there are photos inside
+`data.js`. The shop's 26 photos were moved this way: `data.js` went from 917 KB
+to 30 KB, so prices show in a second or two on a slow phone instead of after
+the whole catalogue of pictures, and each photo is only fetched as its card
+comes near the screen.
+
+You can also add photos as files yourself: put them in `assets/img/products/`
+and reference them from `data.js`:
 
 ```js
-images: ['assets/img/epson-l3210.jpg', 'assets/img/epson-l3210-back.jpg'],
+images: ['assets/img/products/epson-l3210.jpg', 'assets/img/products/epson-l3210-back.jpg'],
 ```
 
-That has no size limit and keeps `data.js` small.
+A photo that cannot be fetched (offline, for a card never seen while online)
+shows the product's glass plate instead, never a broken picture.
 
 ### 360° views
 
@@ -238,7 +255,7 @@ full treatment (the 360° view opens first when there are no photos).
 Until a product has a photo it is shown on a plate of glass with its name,
 tinted by category (`assets/img/plates/`). Nothing to do: add a photo and the
 plate gives way to it. If you add a new category, it borrows the computers
-plate until it gets its own (see `assets/img/README.md`).
+plates until it gets its own six (see `assets/img/README.md`).
 
 For a large set, files beat uploads here too:
 
@@ -299,10 +316,10 @@ network at all.
 **Only if you change the design** (`index.html`, `styles.css`, `app.js`,
 `motion.js`) bump the version number, in four places that must agree:
 
-- `CACHE_VERSION` at the top of `service-worker.js` (`homcom-v28` → `homcom-v29`);
-- `BUILD` in `app.js` (`v28` → `v29`), which the Manage panel shows;
-- the `?v=28` after `styles.css`, `motion.js` and `app.js` in `index.html`;
-- the same three `?v=28` addresses in the `SHELL` list in `service-worker.js`.
+- `CACHE_VERSION` at the top of `service-worker.js` (`homcom-v29` → `homcom-v30`);
+- `BUILD` in `app.js` (`v29` → `v30`), which the Manage panel shows;
+- the `?v=29` after `styles.css`, `motion.js` and `app.js` in `index.html`;
+- the same three `?v=29` addresses in the `SHELL` list in `service-worker.js`.
 
 The first tells phones which already have the site saved to fetch the new
 files. The `?v=` numbers make sure a phone still running the old version never
@@ -367,7 +384,7 @@ Everything the panel does can be done in the file directly:
   },
   tag: '',                            // 'New' | 'Best seller' | 'Refurbished' | ''
   stock: 'in',                        // 'in' | 'low' | 'out'
-  images: [],                         // ['assets/img/epson.jpg']
+  images: [],                         // ['assets/img/products/epson.jpg']
   spin: []                            // ['assets/img/epson-360/01.jpg', ...]
 }
 ```
@@ -553,6 +570,13 @@ round it. Two themes share one world.
 - **Day** is pale lavender (`#F3F2F8`) with the same light at low strength and
   violet glass ribbons behind the H. By day the chrome reflects that room: the
   pale field and the ribbons' violet, never a black the page does not show.
+- **The light carries on below the first screen.** Each section's head is lit
+  from the top right by a still drawing of the same streaks (by day, the same
+  ribbons). A line of that light runs along the hairline above each section,
+  and pools of it rise down the sides of the long shelf. The drawings are two
+  small SVGs in `assets/img/light/`, made by `node tools/light/trails.js`:
+  change that script, not the files. No word on the page is harder to read
+  for it; every line of text over the light was measured.
 
 Every colour is a named variable at the top of `styles.css`, with a Night value
 and a Day value, written as plain `rgba()` so older iPhones get exactly the same
@@ -595,15 +619,16 @@ id `i-<name>`.
   no maker's name, the plate carries only what defines it (65W, 2m, AC1200,
   8-in-1), so it never repeats the name printed under it. Phone cards show
   the lead line alone; the full name is printed under every card. The glass is
-  rendered, one per category for Night and for Day (`assets/img/plates/`, made
-  with `tools/plates/render.html`), and the words are laid on its face in 3D,
-  so they recede with it.
+  rendered for each category, for Night and for Day, at three angles taken in
+  turn down the catalogue (`assets/img/plates/`, made with
+  `tools/plates/render.html`); the words are laid on its face in 3D, so they
+  recede with it, and a card's glass loads only as the card nears the screen.
 
 ### The rest of the page
 
 - **The catalogue is led by the photographed stock.** In the shop's own order a
-  product with a photo takes a wide card, its photo beside the price; every card
-  gives the price first, then the name, then whether it is in stock. Sorted by
+  product with a photo takes a wide card, its photo beside the details; every
+  card gives the name, the price under it, then whether it is in stock. Sorted by
   price or name, every product takes one place so the order reads straight.
   Specs and descriptions live in the pop-up.
 - **Repairs read like a price list**: one ruled row per service, with what it
@@ -618,18 +643,29 @@ id `i-<name>`.
 ### Motion
 
 The H turning in its light; light streaks flowing into it at night; the product
-tiles floating; sections rising into place as they scroll into view; cards
+tiles floating; sections rising into place as they scroll into view, each one's
+light coming in along the streaks as its first words rise; cards
 lifting under a cursor; the product pop-up rising as a sheet from the bottom of a
 phone. Entrances use a strong ease-out, everything is described in time rather
 than frames, and only transform and opacity move, so the compositor does the
 work.
 
-- **Before the catalogue arrives, the page already works.** On a phone at
-  9 KB/s the catalogue takes well over a minute. `motion.js` loads on its own,
-  ahead of it, so the menu, the theme switch, the open/closed badge, Directions,
-  WhatsApp and the H are all live within the first seconds, and the product
-  shelf shows that prices are on their way, with a WhatsApp link for anyone who
-  will not wait.
+- **The catalogue is small.** `data.js` holds the shop's words and prices
+  (30 KB, 8 KB as it travels); the photos are separate files fetched as their
+  cards come near. Measured on a phone slowed to a low-end one's speed, the
+  first priced product shows after 1.3 s on 3G (6 s before) and 3.6 s on slow
+  3G (18 s before).
+- **Before the catalogue arrives, the page already works.** `motion.js` loads
+  on its own, so the menu, the theme switch, the open/closed badge, Directions,
+  WhatsApp and the H are live within the first seconds, whichever script
+  arrives first, and the shelf shows that prices are on their way, with a
+  WhatsApp link for anyone who will not wait.
+- **Nothing stalls the page while it starts.** Cards off the screen are not
+  laid out or painted until they come near it, the page is measured after the
+  browser's own layout rather than in the middle of it, prices share one number
+  formatter, and the shop's clock (Nairobi is UTC+3 all year) is worked out
+  without loading the browser's time-zone tables. The H's shader is built by
+  the graphics chip while the page carries on.
 - **The H only works when it can be seen.** It stops when scrolled away or in a
   background tab, measures how long the graphics chip takes per frame, drops to
   fewer pixels if it is slow, and stops turning by itself on a device that still

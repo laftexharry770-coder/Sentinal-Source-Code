@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630"
      role="img" aria-label="HOMCOM COMPUTERS — computers, phones, accessories and repairs. Tom Mboya Street, Nairobi.">
   <title>HOMCOM COMPUTERS</title>
-  <!-- The picture that appears when someone shares homcomtech.com in WhatsApp,
-       Facebook or iMessage. 1200x630 is the size those apps crop to. Kept simple
-       because it is usually seen small, inside a chat bubble. -->
+  <!-- The picture that appeared when someone shared homcomtech.com, up to v28.
+       The site now uses assets/icons/og-image.jpg, rendered with the chrome H
+       by tools/icons/render.html. This one is kept with the other blue-tile
+       brand files. -->
   <defs>
     <linearGradient id="hcOg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#2f7bf6"/>

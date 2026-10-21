@@ -1,0 +1,127 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Icon renderer</title>
+<style>html,body{margin:0;background:#3a3a3a}canvas{display:block;max-width:100vw;height:auto}
+#c{display:none}
+a{position:fixed;left:12px;top:12px;padding:8px 12px;border-radius:8px;background:#fff;color:#000;font:14px system-ui,sans-serif;text-decoration:none}</style></head>
+<body><canvas id="c"></canvas><canvas id="out"></canvas><a id="save" download="icon.png" hidden>Save PNG</a>
+<script src="../../assets/js/motion.js"></script>
+<script>
+// The renderer behind assets/icons/: the app icons and the picture shown when
+// someone shares the site. The chrome H in them is not redrawn: this page
+// takes the shader the first screen runs (window.HOMCOM_SHADER, from
+// assets/js/motion.js) and renders the same letter, in the same studio and
+// light streaks, still, at the size each file needs, at twice that size so
+// it can be scaled down cleanly.
+//
+// Open it in a browser (Chrome works) with ?kind=
+//   any       the installed-app icon: a rounded ink tile, corners clear
+//   full      full-bleed and opaque, for iPhone home screens, which round
+//             the corners themselves
+//   maskable  full-bleed and opaque, for Android, which cuts it to a circle
+//             or a squircle: the letter stays inside the safe circle
+//   og        the 1200 × 630 link preview, with the shop's name and where it is
+// and &size=N for the icons (og is always 1200 × 630). Press "Save PNG", then
+// scale it to the size it was asked for:
+//   ffmpeg -i icon.png -vf scale=N:N:flags=lanczos icon-N.png
+// Every file shipped and the line that made it are in assets/img/README.md.
+const P = new URLSearchParams(location.search);
+const kind = P.get('kind') || 'any';
+const SS = 2;                                   // drawn at twice the size, scaled down after
+const size = +P.get('size') || 512;
+const W = (kind === 'og' ? 1200 : size) * SS, H = (kind === 'og' ? 630 : size) * SS;
+const INK = '#07080C';                          // --bg at Night
+const S = window.HOMCOM_SHADER;
+
+// The letter's pose: a touch turned and tipped back, so its bars catch the
+// studio's strips the way they do when the page opens.
+const YAW = -0.30, PITCH = 0.15;
+// Where it stands, how tall, and the box kept clear of streaks (the words).
+const L = kind === 'og'
+  ? { cx: 0.735 * W, cy: 0.5 * H, letter: 0.66 * H, copy: [0.06 * W, 0.12 * H, 0.56 * W, 0.88 * H] }
+  : kind === 'maskable'
+    ? { cx: 0.5 * W, cy: 0.5 * H, letter: 0.46 * H, copy: null }
+    : { cx: 0.5 * W, cy: 0.5 * H, letter: 0.54 * H, copy: null };
+
+function pose(yaw, pitch) {                     // as motion.js: R = Ry(yaw) · Rx(pitch)
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  return new Float32Array([cy, 0, -sy, sy * sp, cp, cy * sp, sy * cp, -sp, cy * cp]);
+}
+
+function letter() {
+  const cv = document.getElementById('c'); cv.width = W; cv.height = H;
+  const gl = cv.getContext('webgl', { alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true, antialias: false });
+  const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const pr = gl.createProgram();
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, S.vert));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, 'precision highp float;\n' + S.frag));
+  gl.linkProgram(pr); gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const a = gl.getAttribLocation(pr, 'aPos'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+  const u = (n) => gl.getUniformLocation(pr, n);
+  const half = L.letter / 2.08;                 // the letter is 2.08 units tall; uHalf is pixels per unit
+  const box = L.copy || [0, 0, 0, 0];           // canvas pixels count from the bottom
+  gl.viewport(0, 0, W, H);
+  gl.uniform2f(u('uRes'), W, H);
+  gl.uniform1f(u('uTime'), 2.2);                // the page's own opening still
+  gl.uniformMatrix3fv(u('uRot'), false, pose(YAW, PITCH));
+  gl.uniform1f(u('uDay'), 0);
+  gl.uniform1f(u('uFocal'), 3.6);
+  gl.uniform1f(u('uBob'), 0);
+  gl.uniform1f(u('uLed'), 0.6);
+  gl.uniform2f(u('uCenter'), L.cx, H - L.cy);
+  gl.uniform1f(u('uHalf'), half);
+  gl.uniform4f(u('uCopy'), box[0], H - box[3], box[2], H - box[1]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  return cv;
+}
+
+async function compose() {
+  const out = document.getElementById('out'); out.width = W; out.height = H;
+  const g = out.getContext('2d');
+  if (kind === 'any') {                          // the tile: 22.5% corners, as app tiles are
+    const r = 0.225 * W;
+    g.beginPath(); g.roundRect(0, 0, W, H, r); g.clip();
+  }
+  g.fillStyle = INK; g.fillRect(0, 0, W, H);
+  g.drawImage(letter(), 0, 0);
+  if (kind === 'any') {                          // a lit top edge, as every glass surface on the site has
+    const lw = 0.008 * W, edge = g.createLinearGradient(0, 0, 0, 0.5 * H);
+    edge.addColorStop(0, 'rgba(255,255,255,.22)'); edge.addColorStop(1, 'rgba(255,255,255,0)');
+    g.strokeStyle = edge; g.lineWidth = lw;
+    g.beginPath(); g.roundRect(lw / 2, lw / 2, W - lw, H - lw, 0.225 * W - lw / 2); g.stroke();
+  }
+  if (kind === 'og') await words(g);
+  const save = document.getElementById('save');
+  save.href = out.toDataURL('image/png');
+  save.download = (kind === 'og' ? 'og-image' : 'icon-' + kind + '-' + size) + '.png';
+  save.hidden = false;
+  document.title = 'done';
+}
+
+// The words on the link preview, in the site's own typeface and colours.
+async function words(g) {
+  const face = new FontFace('Hanken Grotesk', 'url(../../assets/fonts/hanken-grotesk.woff2)', { weight: '100 900' });
+  document.fonts.add(await face.load());
+  const x = 0.07 * W, k = SS;                   // k: one preview pixel
+  const font = (w, px) => w + ' ' + px * k + 'px "Hanken Grotesk"';
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = '#F2F1F7';                      // --ink
+  g.font = font(700, 26);
+  g.letterSpacing = 0.5 * k + 'px';
+  g.fillText('HOMCOM COMPUTERS', x, 132 * k);
+  g.letterSpacing = '0px';
+  g.font = font(300, 74);                       // the first screen's own headline, light
+  ['Genuine laptops,', 'phones and', 'repairs.'].forEach((line, i) => g.fillText(line, x - 3 * k, (252 + i * 76) * k));
+  g.fillStyle = '#B4B1C9';                      // --ink-2
+  g.font = font(500, 27);
+  g.fillText('Tom Mboya Street, Nairobi · open 7 days', x, 492 * k);
+  g.fillStyle = '#A99CFF';                      // --ion-text
+  g.font = font(600, 27);
+  g.fillText('WhatsApp 0724 359 797', x, 534 * k);
+}
+
+compose().catch((e) => { document.title = 'failed: ' + e.message; console.error(e); });
+</script>
+</body></html>

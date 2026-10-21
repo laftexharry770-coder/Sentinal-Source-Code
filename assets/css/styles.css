@@ -727,21 +727,14 @@ kbd, .kbd-hint {
 
 /* Before the catalogue arrives: the shelf, filling. */
 .skel {
-  position: relative; overflow: hidden;
   aspect-ratio: 3 / 4; border-radius: 22px;
   border: 1px solid var(--line);
   background: var(--card-bg);
+  /* The empty shelf breathes while it fills: opacity only, on the compositor. */
+  animation: skel-breathe 1.6s var(--ease-in-out) infinite alternate;
 }
 [data-theme="light"] .skel { background: #FFFFFF; }
-/* The sheen crosses on the compositor (a transform), not by repainting. */
-.skel::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .06) 50%, transparent 70%);
-  transform: translateX(-100%);
-  animation: shimmer 1.8s linear infinite;
-}
-[data-theme="light"] .skel::after { background: linear-gradient(100deg, transparent 30%, rgba(123, 107, 255, .08) 50%, transparent 70%); }
-@keyframes shimmer { to { transform: translateX(100%); } }
+@keyframes skel-breathe { from { opacity: 1; } to { opacity: .55; } }
 .grid-wait {
   grid-column: 1 / -1;
   max-width: 60ch; padding-top: 6px;
@@ -1860,7 +1853,7 @@ html.lite .site-header, html.lite .float-tile, html.lite .modal-backdrop, html.l
 }
 html.lite .site-header { background: var(--header-solid); }
 html.lite .float-tile { background: var(--glass-solid); animation: none; }
-html.lite .skel::after { animation: none; }
+html.lite .skel { animation: none; }
 html.lite .card::after { display: none !important; }
 html.lite .hero-canvas { display: none; }
 html.lite .stage .stage-poster, html.lite .stage::before { opacity: 1; }

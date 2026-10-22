@@ -215,7 +215,7 @@ The system was built to be cheap: one self-hosted font file, rasters of 4 to 7 K
 Two palettes share one ion light and one amber: cool ink or lavender ground, violet-to-blue light, and warm amber reserved for offers. Every text pair was measured against WCAG AA in both themes. The ratios sit beside each token in `assets/css/styles.css`.
 
 ### Primary
-- **Ion Violet** (`ion-violet`) and **Ion Blue** (`ion-blue`): the light of the world. Used in the stage glow, section glow pools, the reading-progress line, cursor light on cards, and the WebGL streaks and ribbons. This pair is light, never text.
+- **Ion Violet** (`ion-violet`) and **Ion Blue** (`ion-blue`): the light of the world. Used in the stage glow, the section light (each head's streaks or ribbons, the seams and the shelf's pools), the reading-progress line, cursor light on cards, and the WebGL streaks and ribbons. This pair is light, never text.
 - **Launch Violet to Launch Blue** (`cta-violet` to `cta-blue`, at 135deg): the one action gradient, carrying white text (5.4:1 or better). Used for primary buttons, WhatsApp buttons, the inquiry badge, and pressed compare/add toggles.
 - **Ion Text** (`night-ion-text` / `day-ion-text`): ion light dense enough to read. Used for icons beside contact windows, hovered contact values, and attached-item headings.
 - **Focus Violet** (`night-accent` / `day-accent`): focus rings, the caret, `accent-color`, focused field borders, and the map pin.
@@ -258,17 +258,19 @@ Two palettes share one ion light and one amber: cool ink or lavender ground, vio
 - **Plate lead** (700, `clamp(1.25rem, 13cqi, 3rem)`, .95, -0.04em) with a 400-weight second line at `clamp(.8rem, 7.2cqi, 1.6rem)`, both sized in container units of the plate.
 
 ### Named Rules
-**The Price-First Rule.** On every product surface the price is the first line of the body, above the name. Under it comes what the product was and what that saves, or "incl. VAT". Every figure that lines up (prices, totals, counts, hours, badges) uses `tabular-nums lining-nums`.
+**The Name, Then Price Rule.** On every product surface the name comes first and the price sits directly under it, the largest figure on the card. Under the price comes what the product was and what that saves, or "incl. VAT". Every figure that lines up (prices, totals, counts, hours, badges) uses `tabular-nums lining-nums`.
 
 **The Light Voice, Heavy Hands Rule.** Big type is light (300–350). Anything you act on or compare is 550 or heavier. Never set a display line bold.
 
 ## Layout
 
-A centred column of 1200px with a 24px gutter (16px on phones). The hero is a two-column grid (5fr copy, 6fr stage) that stacks at 960px with the stage first. On phones the stage bleeds to full width, 236–420px tall. Sections are padded `clamp(64px, 9vw, 120px)` (64px on phones) and separated by one hairline. Each section sits in its own radial pool of ion light, painted once with the section.
+A centred column of 1200px with a 24px gutter (16px on phones). The hero is a two-column grid (5fr copy, 6fr stage) that stacks at 960px with the stage first. On phones the stage bleeds to full width, 236–420px tall. Sections are padded `clamp(64px, 9vw, 120px)` (64px on phones) and separated by one hairline. The first screen's light runs on down the page: each section's head is lit from the top right, and the hairline between sections carries a line of the same light (see Section Light).
 
 The catalogue is an `auto-fill` grid of 250px-minimum columns with an 18px gap. On phones it is exactly two columns with a 10px gap, so four products show at a time. Controls sit as search, then chips, then sort. On phones the chips become one swipeable row with scroll-snap. Repairs, contact lines, why-list and specs are **ruled rows**, not boxes. Panels slide in as sheets: the drawer from the right, and the modal from the bottom on phones. Breakpoints are 380, 720, 960 and 1200px. Sticky elements and anchors respect the header height (64px, 60px on phones) and safe-area insets.
 
 ### Named Rules
+**The Light Runs On Rule.** The hero's light does not stop at the first screen. Every section below is lit from the top right, by a still drawing of the hero's streaks at Night and of its glass ribbons by Day. Words placed in that light keep their measured contrast. It is painted once with the section and never moves with the scroll.
+
 **The Photo Earns Width Rule.** A product with a real photo takes two columns, photo beside a short fact list, only in the shop's own (featured) order. Sorted by price or name, every product takes one cell, so the order reads straight. On phones the wide card becomes a full row with the photo on top and no facts.
 
 ## Elevation & Depth
@@ -311,7 +313,7 @@ Confident pills that press in. A button is a single tap that gets you to the sho
 - **Background:** the Card Floor, with a faint top-lit gradient at Night.
 - **Shadow Strategy:** Edge or Lift (see Elevation). On hover the card rises 4px, the media scales 1.04, and a 240px ion spotlight follows the cursor.
 - **Internal Padding:** 16px 18px 18px (10px 11px 12px on phones).
-- **Order:** media, price, name, then a hairline foot with a stock dot and two 40px round toggles (compare, add to inquiry). The media carries at most one tag: the offer percentage or the product's condition.
+- **Order:** media, name, price, then a hairline foot with a stock dot and two 40px round toggles (compare, add to inquiry). The media carries at most one tag: the offer percentage or the product's condition.
 
 ### Inputs / Fields
 - **Style:** fields are 48px, 13px radius, `glass` fill, `line-2` hairline, 16px text on touch so iOS does not zoom. Search and sort are pills with the glass top edge.
@@ -323,17 +325,25 @@ Confident pills that press in. A button is a single tap that gets you to the sho
 - **Mobile:** links fold into an opaque dropdown panel with 12px-radius rows at 1.05rem. The theme switch moves into the menu. Search and inquiry collapse to 44px icon buttons with the count badge pinned on.
 
 ### Status Pill
-A pill holding a dot and a live line. When open, the text is `ok` and a ring breathes out of the dot (scale and opacity only). When closed, the text is ink-2. The hero carries it once, and the header copy steps aside while the hero's line is in view.
+A pill holding a dot and a live line. When open, the text is `ok` and a ring breathes out of the dot (scale and opacity only). When closed, the text is ink-2. The hero carries it once, and the header copy steps aside while the hero's line is in view. In a section's head it sits in that section's light, so there it is solid glass (`glass-solid`).
 
 ### Glass Plate (signature)
-Shown for every product without a photo. The glass is a **rendered raster** (`assets/img/plates/`, one per category per theme, 720px WebP), ray-traced by `tools/plates/render.html` with category tints and documented in `assets/img/README.md`. It is never imitated in CSS.
+Shown for every product without a photo. The glass is a **rendered raster** (`assets/img/plates/`, per category and theme at three angles, 720px WebP), ray-traced by `tools/plates/render.html` with category tints and documented in `assets/img/README.md`. It is never imitated in CSS. Products take the angles in turn down the catalogue, so no two neighbours stand the same way, and a card's glass loads only as the card nears the screen.
 
 **The One-Thing Plate Rule.** A plate says the brand large with the model under it. With no brand, it says only the one spec that defines the product ("65W", "2m", "8-in-1", "Case + Glass"), never the title again and never an icon. Phone cards carry the lead alone.
 
 **The Words on Glass Rule.** The plate's words are laid on the slab's front face in CSS 3D (`.plate-face`), using the renderer's own camera and each plate's turn (`--plate-ry`), so they recede with the glass. If a plate is re-rendered, its `--plate-ry` follows it. Without container-query units the words sit flat in the slab's lower left.
 
 ### The Chrome H (signature)
-A WebGL distance-field H that reflects a studio with hard edges, one studio per theme. By Night the background has light streaks flowing into the letter. By Day it has violet glass ribbons, and the Day chrome's darks are the ribbons' violet, never black or navy. You can drag it with inertia, it tilts toward the pointer on desktop, and it eases back to an idle turn. An inline SVG poster of the same size stands in until the canvas is live, and stays in lite mode, high contrast and forced colours, or when WebGL is missing.
+A WebGL distance-field H that reflects a studio with hard edges, one studio per theme. By Night the background has light streaks flowing into the letter. By Day it has violet glass ribbons, and the Day chrome's darks are the ribbons' violet, never black or navy. You can drag it with inertia, it tilts toward the pointer on desktop, and it eases back to an idle turn. An inline SVG poster of the same size stands in until the canvas is live, and stays in lite mode, high contrast and forced colours, or when WebGL is missing. The app icons and the link preview are this same letter, rendered still by the same shader (`tools/icons/`), so the shop looks the same on a home screen and in a chat as it does on the page.
+
+### Section Light (signature)
+The first screen's light, carried on below it. Each section's head has three parts:
+- **The trails:** a still drawing of the hero's streaks (`assets/img/light/trails-night.svg`), or by Day of its three glass ribbons (`trails-day.svg`). Both are drawn by `tools/light/trails.js` to the shader's own rules, sit at the top right, and fade before the words on the left. The shelf's light fades in from the hero's, because no hairline separates the two.
+- **The seam:** a 1px line of Ion Violet into Ion Blue along the hairline, brightest where the trails come in. The footer's seam is at the left, over its pool.
+- **The pools:** the radial pool is lit from the top right too. Down the long shelf, further pools rise from one side and then the other. Their tiles are rounded to fit a whole number, so none is cut off at the end.
+
+The trails come in as the section's first words rise: 1.6s with `--ease-out`, sliding 56px along the streaks, on opacity and transform only. With reduced motion, no script, or no `:has()`, they are simply there. They are dropped in high contrast, forced colours and print. Every line of text over the light measures the same as it does with the light hidden; the lowest is 4.87:1, for the Day closed-hours line, whose colour is unchanged.
 
 ### Ruled Rows
 Repair services, contact lines, spec lists and card facts are rows divided by hairlines, with no boxes. A contact row shows what it is (an ink-3 label), the number or address (1.05rem 550), and when it is answered. On hover the value turns Ion Text and the arrow nudges 2px.
@@ -360,6 +370,7 @@ Repair services, contact lines, spec lists and card facts are rows divided by ha
 - **Don't** put spec chips on product cards. Facts belong in the wide card's ruled list or in the pop-up.
 - **Don't** colour WhatsApp buttons in WhatsApp green.
 - **Don't** imitate the glass plates with CSS gradients or blur. Plates are rendered rasters with recorded provenance.
+- **Don't** edit the section light's SVGs by hand, or make it move with the scroll. Change `tools/light/trails.js` and run it.
 - **Don't** let black or navy into the Day chrome's reflection. Day darks are ribbon violet.
 - **Don't** use amber for anything but offers and savings.
 - **Don't** give a photo product a wide card outside the shop's own sort.

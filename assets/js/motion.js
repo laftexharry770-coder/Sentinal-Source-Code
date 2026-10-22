@@ -48,12 +48,22 @@
     if (meta) meta.setAttribute('content', THEME_COLOR[root.getAttribute('data-theme')] || THEME_COLOR.dark);
   }
 
+  /* app.js wires the same controls if it gets to them first, which it can
+     on a fast connection; whichever of the two arrives first claims each
+     one, so a tap is never counted twice. */
+  var claim = function (what) {
+    var wired = window.HOMCOM_WIRED = window.HOMCOM_WIRED || {};
+    if (wired[what]) return false;
+    wired[what] = true;
+    return true;
+  };
+
   function earlyControls() {
     var nav = document.getElementById('nav');
     var toggle = document.getElementById('navToggle');
     var early = { nav: false, theme: false, map: false };
 
-    if (nav && toggle) {
+    if (nav && toggle && claim('nav')) {
       toggle.addEventListener('click', function () {
         var open = nav.classList.toggle('open');
         toggle.setAttribute('aria-expanded', String(open));
@@ -68,21 +78,23 @@
     }
 
     var themeButtons = document.querySelectorAll('#themeToggle, #themeToggleMobile');
-    Array.prototype.forEach.call(themeButtons, function (button) {
-      button.addEventListener('click', function () {
-        var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        root.setAttribute('data-theme', next);
-        try { localStorage.setItem('homcom-theme', next); } catch (e) {}
-        paintThemeColor();
+    if (themeButtons.length && claim('theme')) {
+      Array.prototype.forEach.call(themeButtons, function (button) {
+        button.addEventListener('click', function () {
+          var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          root.setAttribute('data-theme', next);
+          try { localStorage.setItem('homcom-theme', next); } catch (e) {}
+          paintThemeColor();
+        });
       });
-    });
-    early.theme = themeButtons.length > 0;
+      early.theme = true;
+    }
 
     // The live map is loaded only when someone asks for it; the sketch under
     // it costs nothing. app.js keeps the address in data-src up to date.
     var mapButton = document.getElementById('mapLoad');
     var mapFrame = document.getElementById('mapFrame');
-    if (mapButton && mapFrame) {
+    if (mapButton && mapFrame && claim('map')) {
       mapButton.addEventListener('click', function () {
         mapFrame.src = mapFrame.getAttribute('data-src');
         mapFrame.hidden = false;
@@ -391,6 +403,10 @@
     '}'
   ].join('\n');
 
+  /* tools/icons/render.html draws the app icons and the link preview with
+     this same shader, so they show the letter the page shows. */
+  window.HOMCOM_SHADER = { vert: VERT, frag: FRAG };
+
   function chromeH() {
     /* The canvas covers the whole first screen, behind the words, so the
        light can run across it; the letter itself is drawn where the stage
@@ -425,30 +441,51 @@
 
     var loc = {};
     var dead = false;
+    var ready = false;     // the shader is built and its uniforms found
 
     function compile(type, source) {
       var shader = gl.createShader(type);
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
-        try { console.warn('HOMCOM motion: shader —', gl.getShaderInfoLog(shader)); } catch (e) {}
-        return null;
-      }
       return shader;
     }
 
-    function build() {
+    /* Compiling the letter's shader is the costliest single thing the page
+       asks of a phone's graphics chip. Asking whether it worked straight
+       away would make the page wait, frozen, until the chip had finished;
+       where the browser can (KHR_parallel_shader_compile) the chip builds it
+       while the page carries on, and the letter starts when it is ready.
+       done(true) once it is; done(false) if it could not be built. */
+    function build(done) {
       var high = gl.getShaderPrecisionFormat &&
         gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
       var precision = high && high.precision > 0 ? 'highp' : 'mediump';
       var vs = compile(gl.VERTEX_SHADER, VERT);
       var fs = compile(gl.FRAGMENT_SHADER, 'precision ' + precision + ' float;\n' + FRAG);
-      if (!vs || !fs) return false;
       var program = gl.createProgram();
       gl.attachShader(program, vs);
       gl.attachShader(program, fs);
       gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+      var parallel = gl.getExtension('KHR_parallel_shader_compile');
+      var finish = function () {
+        if (gl.isContextLost()) return;
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          try { console.warn('HOMCOM motion: shader —', gl.getShaderInfoLog(fs) || gl.getProgramInfoLog(program)); } catch (e) {}
+          done(false);
+          return;
+        }
+        setUp(program);
+        done(true);
+      };
+      if (!parallel) { finish(); return; }
+      (function wait() {
+        if (dead || gl.isContextLost()) return;
+        if (gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)) finish();
+        else requestAnimationFrame(wait);
+      })();
+    }
+
+    function setUp(program) {
       gl.useProgram(program);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -462,9 +499,25 @@
       });
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
-      return true;
     }
-    if (!build()) return;
+    /* The rest is set up at once; the letter starts when both are done, at
+       the top of the next frame, where reading the stage's place costs
+       nothing the browser was not about to do anyway (read now, while the
+       page is still arriving, it would be laid out twice). */
+    var setUpDone = false;
+    function start() {
+      if (!ready || !setUpDone || dead) return;
+      requestAnimationFrame(function () {
+        if (dead) return;
+        measure();
+        if (animating()) schedule(); else redraw();
+      });
+    }
+    build(function (ok) {
+      if (!ok) { dead = true; return; }
+      ready = true;
+      start();
+    });
 
     /* ── size ── */
     var MIN_SCALE = 0.8;
@@ -524,7 +577,7 @@
 
     var live = false;
     function draw() {
-      if (dead || gl.isContextLost()) return;
+      if (dead || !ready || gl.isContextLost()) return;
       var moving = !calm();
       var turn = moving ? Math.min(1, Math.max(0, (window.pageYOffset || 0) / stageBottom)) * 1.1 : 0;
       pose(-0.34 + 0.42 * Math.sin(t * 0.36) + yawUser + tiltX * 0.5 + turn,
@@ -618,14 +671,14 @@
     }
 
     function schedule() {
-      if (raf || dead || !visible || document.hidden || !animating()) return;
+      if (raf || dead || !ready || !visible || document.hidden || !animating()) return;
       raf = requestAnimationFrame(frame);
     }
 
     /* One frame on request: for a drag or a theme change while the letter is
        otherwise standing still. */
     function redraw() {
-      if (raf || dead) return;
+      if (raf || dead || !ready) return;
       raf = requestAnimationFrame(function (now) {
         raf = 0;
         last = now;
@@ -724,14 +777,19 @@
       raf = 0;
       hero.classList.remove('is-live');
       live = false;
+      ready = false;
     });
     canvas.addEventListener('webglcontextrestored', function () {
-      if (dead || !build()) return;
-      redraw();
+      if (dead) return;
+      build(function (ok) {
+        if (!ok) return;
+        ready = true;
+        redraw();
+      });
     });
 
-    measure();
-    if (animating()) schedule(); else redraw();
+    setUpDone = true;
+    start();
   }
 
   part('early controls', earlyControls);

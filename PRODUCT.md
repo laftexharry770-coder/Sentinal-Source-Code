@@ -35,7 +35,7 @@ What a customer should believe about HOMCOM over the shop next door, all confirm
 - Customers are mostly on phones, often on weak mobile data. The previous build measured about 9 KB/s on the connection the shop sees. Every byte shipped is a design decision.
 - Conversations happen on WhatsApp. Every product, the inquiry list, the repair desk and a failed search all end in a pre-filled WhatsApp message (email as the alternative).
 - Two lines of contact: sales (two phone lines, WhatsApp, email) and the repair desk (its own phone, WhatsApp, email). Repair traffic must never land in the sales inbox.
-- Two separate clocks: opening hours (Mon–Fri 07:00–20:00, Sat 08:00–09:00, Sun 10:00–17:00) and contact hours (08:00–20:00 daily), computed live in Africa/Nairobi time.
+- Two separate clocks: opening hours (Mon–Fri 07:00–20:00, Sat 08:00–21:00, Sun 10:00–17:00) and contact hours (08:00–20:00 daily), computed live in Africa/Nairobi time.
 - Currency KSh, locale en-KE. Directions refer to Nairobi CBD landmarks (opposite Imenti House, near Odeon).
 - The owner edits prices, offers, stock, photos and 360° frames from a phone at the counter through a hidden Manage panel, then publishes by uploading `data.js`.
 
@@ -52,6 +52,7 @@ What a customer should believe about HOMCOM over the shop next door, all confirm
 
 - Name: **HOMCOM COMPUTERS**. Tagline on file: "Computers, phones, accessories and repairs — done properly."
 - The H logo (`assets/img/brand/`) and its blue #1f6feb were made on 2026-08-31, but the shop has confirmed both are **open** in a redesign. They may be redrawn or recoloured. If the mark changes, the icons, OG image and brand files must change with it.
+- Since v29 the site's own icons, tab icon and link preview show the H in chrome on Night ink, rendered by the page's own shader (`tools/icons/`). The print and social files in `assets/img/brand/` still carry the blue tile.
 - Voice on the current site: plain, direct, honest, no hype ("we'll tell you honestly what it needs, what it costs, and whether it's worth fixing at all").
 
 ## Evidence on Hand

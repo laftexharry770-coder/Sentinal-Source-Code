@@ -109,10 +109,10 @@
   --media-bg:    #0D0E15;   /* also the floor the glass plates were rendered on */
 
   /* The plates are lit from above; by night the lower body of the glass
-     falls into shadow, and the name is set there. Measured against the
-     brightest 2% of the glass behind each line: the second, smaller line at
-     least 5.69:1, the large lead at least 5.56:1 (8.4:1 on a phone card,
-     where it stands alone). */
+     falls into shadow, and the name is set there. Measured, at all three
+     angles, against the brightest 2% of the glass under the letters: the
+     second, smaller line at least 5.81:1, the large lead at least 6.74:1
+     (8.91:1 on a phone card, where it stands alone). */
   --plate-ink:   #F2F1F7;
   --plate-ink-2: #D2CFE2;
 
@@ -120,6 +120,14 @@
     radial-gradient(1100px 680px at 78% -8%, rgba(123, 107, 255, .17), transparent 62%),
     radial-gradient(900px 620px at -6% 18%, rgba(76, 141, 255, .10), transparent 60%);
   --section-glow: rgba(123, 107, 255, .10);
+  /* Past the first screen the light runs on: in at the top right of each
+     section's head (the streaks, still), along the seam above it, and in
+     slow pools down the sides of the long shelf. */
+  --trails:      url("../img/light/trails-night.svg");
+  --seam-1:      rgba(123, 107, 255, .55);
+  --seam-2:      rgba(76, 141, 255, .45);
+  --shelf-glow-1: rgba(123, 107, 255, .13);
+  --shelf-glow-2: rgba(76, 141, 255, .10);
 
   --chrome-1: #F6F5FC;
   --chrome-2: #A9A5C4;
@@ -184,7 +192,7 @@
 
   /* By day the glass darkens toward its lower edge, where it reflects the
      dark band of the studio: ink, not grey, to hold 5:1 there (measured
-     5.07:1 at worst on the small line, 6.69:1 on the lead). */
+     5.06:1 at worst on the small line, 6.57:1 on the lead). */
   --plate-ink:   #14121F;
   --plate-ink-2: #2E2B40;
 
@@ -192,6 +200,11 @@
     radial-gradient(1100px 680px at 78% -8%, rgba(123, 107, 255, .16), transparent 62%),
     radial-gradient(900px 620px at -6% 18%, rgba(76, 141, 255, .09), transparent 60%);
   --section-glow: rgba(123, 107, 255, .08);
+  --trails:      url("../img/light/trails-day.svg");   /* the glass ribbons */
+  --seam-1:      rgba(123, 107, 255, .42);
+  --seam-2:      rgba(76, 141, 255, .30);
+  --shelf-glow-1: rgba(123, 107, 255, .11);
+  --shelf-glow-2: rgba(76, 141, 255, .07);
 
   --chrome-1: #FFFFFF;
   --chrome-2: #BDB9D0;
@@ -423,6 +436,9 @@ kbd, .kbd-hint {
   80%, 100% { transform: scale(1.5); opacity: 0; }
 }
 .status-pill.is-closed { color: var(--ink-2); }
+/* In a section's head the pill sits in that section's light, so it is solid
+   glass there, like any panel that is read. */
+.section-head .status-pill { background: var(--glass-solid); }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .site-header {
@@ -634,14 +650,51 @@ kbd, .kbd-hint {
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section { position: relative; isolation: isolate; padding: clamp(64px, 9vw, 120px) 0; }
-/* Each section sits in its own pool of ion light, painted once with the
-   section. Nothing fixed, nothing repainting while you scroll. */
+/* The first screen's light runs on down the page. Each section sits in a
+   pool of it, lit from the top right, where a still drawing of the hero's
+   streaks (by day, its glass ribbons) comes in over the head; between
+   sections the hairline carries a line of the same light. All of it is
+   painted once with the section: nothing fixed, nothing repainting while
+   you scroll. */
 .section::before {
   content: ""; position: absolute; z-index: -1; pointer-events: none;
   left: 0; right: 0; top: 0; height: min(520px, 70%);
-  background: radial-gradient(60% 100% at 50% 0%, var(--section-glow), transparent 72%);
+  background: radial-gradient(56% 100% at 76% 0%, var(--section-glow), transparent 72%);
+}
+.section::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  top: 0; right: 0; width: 100%; height: clamp(300px, 40vw, 580px);
+  background: var(--trails) right top / auto 100% no-repeat;
+}
+/* The shelf follows the first screen with no hairline between them, so its
+   light fades in from the hero's own instead of starting on an edge. */
+.catalogue::after {
+  -webkit-mask-image: linear-gradient(transparent, #000 34%);
+  mask-image: linear-gradient(transparent, #000 34%);
 }
 .section + .section { border-top: 1px solid var(--line); }
+.section + .section::before {
+  top: -1px;
+  background:
+    linear-gradient(90deg, transparent 34%, var(--seam-1) 70%, var(--seam-2) 86%, transparent) top / 100% 1px no-repeat,
+    radial-gradient(56% 100% at 76% 0%, var(--section-glow), transparent 72%);
+}
+/* The shelf is long: its light keeps coming, in pools that rise from one
+   side and then the other, sized so a whole number of them fits and none is
+   cut off at the end. Each is drawn only in the side band it lights (it
+   has faded out before the band ends), not across the whole shelf behind
+   the cards. Not on phones: there the shelf is ten thousand pixels of cards
+   with 16px either side, so the pools would show only as a hint in the
+   gutters while still being drawn, at twice the pixels, as you scroll. */
+@media (min-width: 721px) {
+  .catalogue::before {
+    height: auto; bottom: 0;
+    background:
+      radial-gradient(56% 100% at 76% 0%, var(--section-glow), transparent 72%) 0 0 / 100% min(520px, 70%) no-repeat,
+      radial-gradient(110% 30% at 0% 32%, var(--shelf-glow-1), transparent 72%) 0 0 / 40% 1600px no-repeat round,
+      radial-gradient(110% 30% at 100% 80%, var(--shelf-glow-2), transparent 72%) 100% 0 / 40% 1600px no-repeat round;
+  }
+}
 
 .section-head {
   display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
@@ -764,6 +817,28 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 [data-theme="light"] :is(.plate, .plate-mini)[data-cat="phones"]                      { --plate-img: url("../img/plates/phones-day.webp"); }
 [data-theme="light"] :is(.plate, .plate-mini)[data-cat="phone-accessories"]           { --plate-img: url("../img/plates/phone-accessories-day.webp"); }
 [data-theme="light"] :is(.plate, .plate-mini)[data-cat="other-tech"]                  { --plate-img: url("../img/plates/other-tech-day.webp"); }
+/* The two other angles (b: tipped back, nearly square-on; c: turned further
+   aside), for every category and theme. */
+:is(.plate, .plate-mini)[data-pose="b"][data-cat="computers"] { --plate-img: url("../img/plates/computers-night-b.webp"); }
+:is(.plate, .plate-mini)[data-pose="b"][data-cat="computer-accessories"] { --plate-img: url("../img/plates/computer-accessories-night-b.webp"); }
+:is(.plate, .plate-mini)[data-pose="b"][data-cat="phones"] { --plate-img: url("../img/plates/phones-night-b.webp"); }
+:is(.plate, .plate-mini)[data-pose="b"][data-cat="phone-accessories"] { --plate-img: url("../img/plates/phone-accessories-night-b.webp"); }
+:is(.plate, .plate-mini)[data-pose="b"][data-cat="other-tech"] { --plate-img: url("../img/plates/other-tech-night-b.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="b"][data-cat="computers"] { --plate-img: url("../img/plates/computers-day-b.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="b"][data-cat="computer-accessories"] { --plate-img: url("../img/plates/computer-accessories-day-b.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="b"][data-cat="phones"] { --plate-img: url("../img/plates/phones-day-b.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="b"][data-cat="phone-accessories"] { --plate-img: url("../img/plates/phone-accessories-day-b.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="b"][data-cat="other-tech"] { --plate-img: url("../img/plates/other-tech-day-b.webp"); }
+:is(.plate, .plate-mini)[data-pose="c"][data-cat="computers"] { --plate-img: url("../img/plates/computers-night-c.webp"); }
+:is(.plate, .plate-mini)[data-pose="c"][data-cat="computer-accessories"] { --plate-img: url("../img/plates/computer-accessories-night-c.webp"); }
+:is(.plate, .plate-mini)[data-pose="c"][data-cat="phones"] { --plate-img: url("../img/plates/phones-night-c.webp"); }
+:is(.plate, .plate-mini)[data-pose="c"][data-cat="phone-accessories"] { --plate-img: url("../img/plates/phone-accessories-night-c.webp"); }
+:is(.plate, .plate-mini)[data-pose="c"][data-cat="other-tech"] { --plate-img: url("../img/plates/other-tech-night-c.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="c"][data-cat="computers"] { --plate-img: url("../img/plates/computers-day-c.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="c"][data-cat="computer-accessories"] { --plate-img: url("../img/plates/computer-accessories-day-c.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="c"][data-cat="phones"] { --plate-img: url("../img/plates/phones-day-c.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="c"][data-cat="phone-accessories"] { --plate-img: url("../img/plates/phone-accessories-day-c.webp"); }
+[data-theme="light"] :is(.plate, .plate-mini)[data-pose="c"][data-cat="other-tech"] { --plate-img: url("../img/plates/other-tech-day-c.webp"); }
 
 /* The words are set on the glass itself: .plate-face is the slab's front
    face, turned exactly as tools/plates/render.html turned it, so the lettering
@@ -771,7 +846,8 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
    4.6 units from the slab with a focal length of 1.8 / 0.57, which makes one
    unit 34.33% of the image's width (cqi, here) and the perspective 4.6 units;
    the slab is 2.40 × 1.72 units, centred .03 right and .03 up, its face .17
-   in front, turned rotY (per plate, below), then rotX .24, then rotZ .03.
+   in front, turned rotY (per plate, below), then rotX .24, then rotZ .03
+   (angle a; angles b and c set all three).
    Cover cropping keeps the centre, so the same face fits a square pop-up and
    a 4:3 card. */
 .plate {
@@ -790,6 +866,12 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 [data-theme="light"] .plate[data-cat="phones"]               { --plate-ry: .40rad; }
 [data-theme="light"] .plate[data-cat="phone-accessories"]    { --plate-ry: .36rad; }
 [data-theme="light"] .plate[data-cat="other-tech"]           { --plate-ry: .32rad; }
+/* The other two angles turn the same way in both themes (render.html
+   pose=rz,rx,ry: b is .05,.40,−.12; c is −.02,.12,−.55). */
+.plate[data-pose="b"][data-cat] { --plate-ry: .12rad; --plate-rx: .40rad; --plate-rz: .05rad; }
+.plate[data-pose="c"][data-cat] { --plate-ry: .55rad; --plate-rx: .12rad; --plate-rz: -.02rad; }
+/* A card's glass waits until the card is near the screen (app.js adds .near). */
+.card:not(.near) .plate { background-image: none; }
 /* Without container units the words sit flat in the slab's lower left. */
 .plate-face {
   position: absolute; left: 15%; right: 22%; bottom: 24%;
@@ -800,7 +882,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
     left: 50%; top: 50%; right: auto; bottom: auto;
     width: 82.4cqi; height: 59.05cqi; margin: -29.52cqi 0 0 -41.2cqi;
     padding: 0 9cqi 6.5cqi 7cqi;
-    transform: translate3d(1.03cqi, -1.03cqi, 0) rotateY(var(--plate-ry)) rotateX(.24rad) rotateZ(.03rad) translateZ(5.84cqi);
+    transform: translate3d(1.03cqi, -1.03cqi, 0) rotateY(var(--plate-ry)) rotateX(var(--plate-rx, .24rad)) rotateZ(var(--plate-rz, .03rad)) translateZ(5.84cqi);
   }
 }
 .card-media > .plate { transition: transform .6s var(--ease-out); }
@@ -823,6 +905,15 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 .ph.plate-mini { display: block; width: 100%; height: 100%; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
+/* A card off the screen is not laid out or painted until it comes near it.
+   The shelf is forty-odd cards, and drawing them all the moment the
+   catalogue arrives was the longest stall in the page's start on a phone.
+   Until it is first drawn a card counts as the height cards have at that
+   width; after that it keeps its own (auto), so nothing jumps on the way
+   back up. */
+.grid > .card { content-visibility: auto; contain-intrinsic-size: auto 390px; }
+@media (min-width: 721px) and (max-width: 1100px) { .grid > .card { contain-intrinsic-size: auto 450px; } }
+@media (max-width: 720px) { .grid > .card { contain-intrinsic-size: auto 380px; } }
 .card {
   position: relative; display: flex; flex-direction: column; overflow: hidden;
   border: 1px solid var(--card-border); border-radius: 22px;
@@ -881,7 +972,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 }
 .card-tools { display: flex; gap: 8px; flex: none; }
 
-/* Price first: what it costs now, then what it was and what that saves. */
+/* Under the name: what it costs now, then what it was and what that saves. */
 .price {
   display: block; margin: 0;
   font-size: 1.3rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15;
@@ -903,7 +994,7 @@ html:not(.js) .skel, html:not(.js) .grid > .grid-wait { display: none; }
 }
 .grid[data-sort="featured"] .card-feature .card-media { aspect-ratio: auto; margin: 6px 0 6px 6px; }
 .grid[data-sort="featured"] .card-feature .card-media > img { position: absolute; inset: 0; }
-/* The wide card's details column is a short spec sheet: price, name, then
+/* The wide card's details column is a short spec sheet: name, price, then
    up to three facts that fit on a line, ruled like the pop-up's list. */
 .card-facts { display: none; }
 .grid[data-sort="featured"] .card-feature .card-body { gap: 10px; padding: 26px 24px 20px 26px; }
@@ -1147,8 +1238,10 @@ html:not(.js) .map-load { display: none; }
   background: var(--bg-2);
 }
 .site-footer::before {
-  content: ""; position: absolute; inset: 0 0 auto; height: 280px; z-index: -1; pointer-events: none;
-  background: radial-gradient(50% 100% at 20% 0%, var(--section-glow), transparent 70%);
+  content: ""; position: absolute; inset: -1px 0 auto; height: 280px; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 2%, var(--seam-2) 14%, var(--seam-1) 30%, transparent 62%) top / 100% 1px no-repeat,
+    radial-gradient(50% 100% at 20% 0%, var(--section-glow), transparent 70%);
 }
 .footer-inner { display: grid; grid-template-columns: 1.1fr 1.4fr; gap: 40px; padding-bottom: 48px; }
 .footer-brand .brand-name { font-size: 1.05rem; }
@@ -1584,6 +1677,16 @@ html.motion .reveal[data-rv] {
 html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24px, 0); }
 /* Keyboard focus never lands on something invisible. */
 .reveal:focus-within { opacity: 1 !important; transform: none !important; }
+/* A section's light comes in along the streaks as its first words rise, and
+   then stays. Only the arrival is eased; it is held back at once. Where
+   :has() is not understood both rules are dropped, and the light is simply
+   there. */
+html.motion .section:has(.reveal[data-rv]):not(:has(.reveal.in))::after {
+  opacity: 0; transform: translate3d(-56px, 0, 0);
+}
+html.motion .section:has(.reveal.in)::after {
+  transition: opacity 1.6s var(--ease-out), transform 1.6s var(--ease-out);
+}
 
 /* Cursor-lit surfaces: the light follows the pointer (--mx, --my from app.js). */
 @media (hover: hover) and (pointer: fine) {
@@ -1835,13 +1938,13 @@ html.motion .reveal[data-rv]:not(.in) { opacity: 0; transform: translate3d(0, 24
 @media (prefers-contrast: more) {
   :root, [data-theme="dark"] { --ink-2: #D9D7E6; --ink-3: #C2BFD6; --line: rgba(255, 255, 255, .28); --line-2: rgba(255, 255, 255, .5); }
   [data-theme="light"] { --ink-2: #2A2838; --ink-3: #3B394C; --line: rgba(20, 16, 50, .35); --line-2: rgba(20, 16, 50, .6); }
-  .section::before, .site-footer::before, .stage::before { display: none; }
+  .section::before, .section::after, .site-footer::before, .stage::before { display: none; }
   .card { border-width: 2px; }
 }
 @media (forced-colors: active) {
   .card, .chip, .btn, .float-tile, .status-pill { border: 1px solid CanvasText; }
   .tag, .spin-badge, .badge { forced-color-adjust: none; }
-  .section::before, .site-footer::before, .stage::before, .hero-canvas { display: none; }
+  .section::before, .section::after, .site-footer::before, .stage::before, .hero-canvas { display: none; }
   .hero.is-live .stage-poster { opacity: 1; }
 }
 
@@ -1879,7 +1982,7 @@ html.lite .stage .stage-poster, html.lite .stage::before { opacity: 1; }
 /* ── Paper ───────────────────────────────────────────────────────────────── */
 @media print {
   .site-header, .stage, .hero-canvas, .hero-actions, .hero-search, .controls, .contact-form, .toast, .modal, .drawer,
-  .compare-bar, .search-overlay, .map-frame, .section::before, .site-footer::before, .skel, .grid-wait { display: none !important; }
+  .compare-bar, .search-overlay, .map-frame, .section::before, .section::after, .site-footer::before, .skel, .grid-wait { display: none !important; }
   html, body { background: #FFFFFF !important; color: #000000 !important; }
   .card, .repair-contact, .map-block { box-shadow: none !important; background: #FFFFFF !important; border-color: #BBBBBB !important; }
   .card { break-inside: avoid; animation: none; }

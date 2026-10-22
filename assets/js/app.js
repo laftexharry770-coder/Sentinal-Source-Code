@@ -30,10 +30,16 @@
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const digits = (value) => String(value || '').replace(/\D/g, '');
 
+  /* One number formatter for every price, made once per locale:
+     toLocaleString builds a new one on every call, and drawing the shelf
+     calls it for every price on it. */
+  const formats = {};
   const money = (amount) => {
     if (amount == null || amount === '') return 'Price on request';
     try {
-      return SITE.currency + ' ' + Number(amount).toLocaleString(SITE.locale || 'en-US');
+      const locale = SITE.locale || 'en-US';
+      const format = formats[locale] || (formats[locale] = new Intl.NumberFormat(locale));
+      return SITE.currency + ' ' + format.format(Number(amount));
     } catch (e) {
       return SITE.currency + ' ' + amount;
     }
@@ -140,17 +146,22 @@
     return { lead: headline(name).split(/\s+/).slice(-2).join(' '), rest: '' };
   }
 
+  /* Each product's glass stands at one of three angles (see assets/img/plates/),
+     taken in turn down the catalogue: the same on every visit, and no two
+     neighbours alike. Giving a product a photo does not move anyone else's. */
+  const platePose = (product) => 'abc'[Math.max(0, catalogue.indexOf(product)) % 3];
+
   const plate = (product) => {
     const parts = plateParts(product.name);
     const lines = parts.brand ? { lead: parts.brand, rest: parts.model } : plateLead(product);
-    return '<div class="plate" data-cat="' + esc(product.category) + '" aria-hidden="true"><div class="plate-face">' +
+    return '<div class="plate" data-cat="' + esc(product.category) + '" data-pose="' + platePose(product) + '" aria-hidden="true"><div class="plate-face">' +
       '<span class="plate-brand' + (lines.lead.length > 8 ? ' is-long' : '') + '">' + esc(joinHyphens(lines.lead)) + '</span>' +
       (lines.rest ? '<span class="plate-model">' + esc(joinHyphens(lines.rest)) + '</span>' : '') +
     '</div></div>';
   };
 
   const plateMini = (product) =>
-    '<span class="ph plate-mini" data-cat="' + esc(product.category) + '" aria-hidden="true"></span>';
+    '<span class="ph plate-mini" data-cat="' + esc(product.category) + '" data-pose="' + platePose(product) + '" aria-hidden="true"></span>';
 
   /* The turntable frames in assets/img/demo-360/ are a drawing, there to
      show the 360° viewer working. They are not a picture of the product, so
@@ -163,15 +174,44 @@
   const mainImage = (product) => (product.images && product.images[0]) ||
     (product.spin && !isSampleSpin(product.spin) && product.spin[0]) || '';
 
-  /* media(p) is the card's picture; media(p, 'ph') is a small one. */
+  /* media(p) is the card's picture; media(p, 'ph') is a small one. Photos
+     are files, fetched only as they come near the screen and decoded off
+     the main thread, so the shelf scrolls while they arrive. */
   const media = (product, className) => {
     const src = mainImage(product);
     if (!src) return className ? plateMini(product) : plate(product);
     // A frame borrowed from the 360 set is a cut-out, so show it whole.
     const fromSpin = !(product.images && product.images.length);
     return '<img class="' + (fromSpin ? 'is-spin' : '') + '" src="' + esc(src) +
-      '" alt="' + esc(product.name) + '" loading="lazy" />';
+      '" alt="' + esc(product.name) + '" loading="lazy" decoding="async" data-for="' + esc(product.id) + '"' +
+      (className ? ' data-small' : '') + ' />';
   };
+
+  /* A photo that cannot be fetched (offline, for a card never seen while
+     online) gives way to the product's glass plate, not a broken picture.
+     The pop-up's main picture stays in place, hidden, because its
+     thumbnails swap what it shows; a photo that does load brings it back. */
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.dataset.for) return;
+    const product = byId(img.dataset.for);
+    if (!product) return;
+    if (img.hasAttribute('data-viewer')) {
+      img.hidden = true;
+      if (!img.nextElementSibling || !img.nextElementSibling.classList.contains('viewer-fallback')) {
+        img.insertAdjacentHTML('afterend', '<div class="viewer-main viewer-plate viewer-fallback">' + plate(product) + '</div>');
+      }
+      return;
+    }
+    img.outerHTML = img.hasAttribute('data-small') ? plateMini(product) : plate(product);
+  }, true);
+  document.addEventListener('load', (e) => {
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.hasAttribute('data-viewer') || !img.hidden) return;
+    img.hidden = false;
+    const fallback = img.nextElementSibling;
+    if (fallback && fallback.classList.contains('viewer-fallback')) fallback.remove();
+  }, true);
 
   // Services carry an icon in search results, where they sit among products.
   const SERVICE_ICONS = {
@@ -192,7 +232,7 @@
   /* Shown at the bottom of the Manage panel so you can tell at a glance which
      version your phone is actually running. Keep it in step with
      CACHE_VERSION in service-worker.js. */
-  const BUILD = 'v28';
+  const BUILD = 'v29';
 
   /* ── Storage ───────────────────────────────────────────────────────────── */
   const SHOP_KEY    = 'homcom-shop';       // { products, categories }
@@ -397,8 +437,16 @@
     return twelve + (minute ? ':' + String(minute).padStart(2, '0') : '') + suffix;
   };
 
-  /** Today's weekday and the time, in the shop's own timezone. */
+  /** Today's weekday and the time, in the shop's own timezone. Kenya keeps
+      UTC+3 all year, so for Nairobi it is worked out directly: a named zone
+      makes Intl load the browser's time-zone tables, a stall on a slow phone. */
   function shopNow() {
+    if (SITE.timezone === 'Africa/Nairobi') {
+      const eat = new Date(Date.now() + 3 * 3600000);
+      const key = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][eat.getUTCDay()];
+      const index = DAYS.findIndex((d) => d.key === key);
+      return { index: index < 0 ? 0 : index, minutes: eat.getUTCHours() * 60 + eat.getUTCMinutes() };
+    }
     const options = { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false };
     if (SITE.timezone) options.timeZone = SITE.timezone;
     let parts;
@@ -702,11 +750,11 @@
       (original.get(a.id) - original.get(b.id)));
   }
 
-  /* Price first: what it costs now, and under it, what it was and what that
-     saves (or that VAT is in). The percentage is repeated here, next to the
-     price, and not left only to the badge on the photo — that badge can be
-     missed, sits away from the number it refers to, and is the first thing
-     to go if anything paints over the image. */
+  /* Under the product's name: what it costs now, and under that, what it was
+     and what that saves (or that VAT is in). The percentage is repeated here,
+     next to the price, and not left only to the badge on the photo — that
+     badge can be missed, sits away from the number it refers to, and is the
+     first thing to go if anything paints over the image. */
   function priceHTML(p) {
     const off = discount(p);
     return '<p class="price">' +
@@ -754,10 +802,10 @@
           media(p) +
         '</div>' +
         '<div class="card-body">' +
-          priceHTML(p) +
           // Not a heading: the whole card is one button, whose contents a
           // screen reader reads as its label, never as a page outline.
           '<p class="card-title">' + keepWhole(p.name) + '</p>' +
+          priceHTML(p) +
           (feature ? cardFacts(p) : '') +
           '<div class="card-foot">' +
             '<span class="stock ' + stock.cls + '">' + stock.text + '</span>' +
@@ -779,6 +827,21 @@
     );
   }
 
+  /* A card's glass is fetched only as the card comes within a screen or so
+     of view, so a phone on a slow line spends its data on what it shows. */
+  let plateWatch = null;
+  function watchPlates(grid) {
+    const cards = $$('.card', grid);
+    if (!('IntersectionObserver' in window)) { cards.forEach((c) => c.classList.add('near')); return; }
+    if (!plateWatch) {
+      plateWatch = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('near'); plateWatch.unobserve(e.target); }
+      }), { rootMargin: '700px 0px' });
+    }
+    plateWatch.disconnect();
+    cards.forEach((c) => plateWatch.observe(c));
+  }
+
   function paintGrid() {
     const list = visibleProducts();
     const grid = $('#grid');
@@ -786,6 +849,7 @@
 
     grid.innerHTML = list.map(cardHTML).join('');
     grid.dataset.sort = state.sort;   // wide photo cards only in the shop's own order
+    watchPlates(grid);
     empty.hidden = list.length > 0;
     grid.hidden = list.length === 0;
 
@@ -840,7 +904,7 @@
     const startSpin = !photos.length && hasSpin && !sample;
     return '<div class="viewer" data-mode="' + (startSpin ? 'spin' : 'photo') + '">' +
       (photos.length
-        ? '<img class="viewer-main" id="viewerMain" src="' + esc(photos[0]) + '" alt="' + esc(p.name) + '" />'
+        ? '<img class="viewer-main" id="viewerMain" src="' + esc(photos[0]) + '" alt="' + esc(p.name) + '" data-for="' + esc(p.id) + '" data-viewer />'
         : (sample ? '<div class="viewer-main viewer-plate">' + plate(p) + '</div>' : '')) +
       (hasSpin
         ? '<div class="spin-stage" id="spinStage">' +
@@ -862,7 +926,7 @@
       (photos.length > 1
         ? '<div class="thumbs">' + photos.map((src, i) =>
             '<button type="button" class="thumb' + (i === 0 ? ' on' : '') + '" data-photo="' + esc(src) + '" ' +
-              'aria-label="Photo ' + (i + 1) + '"><img src="' + esc(src) + '" alt="" /></button>').join('') +
+              'aria-label="Photo ' + (i + 1) + '"><img src="' + esc(src) + '" alt="" data-for="' + esc(p.id) + '" data-small /></button>').join('') +
           '</div>'
         : '') +
     '</div>';
@@ -2235,17 +2299,24 @@
     if (bar) bar.setAttribute('content', next === 'light' ? '#F3F2F8' : '#07080C');
   }
 
-  /* motion.js arrives long before this file on a slow connection and wires
-     the menu and the theme switch itself; wiring them twice would make every
-     tap undo itself. */
-  const early = (what) => Boolean(window.HOMCOM_EARLY && window.HOMCOM_EARLY[what]);
+  /* motion.js wires the menu, the theme switch and the map button itself, so
+     they work before this file arrives. Which of the two runs first depends
+     on the connection, and wiring a control twice would make every tap undo
+     itself, so whichever gets to a control first claims it and the other
+     leaves it alone (motion.js claims the same way). */
+  const claim = (what) => {
+    const wired = window.HOMCOM_WIRED = window.HOMCOM_WIRED || {};
+    if (wired[what]) return false;
+    wired[what] = true;
+    return true;
+  };
 
   /* The sketch of the street stands in for the map until someone asks for
      the real one; motion.js usually wires this long before this file runs. */
   function initMap() {
     const button = $('#mapLoad');
     const frame = $('#mapFrame');
-    if (early('map') || !button || !frame) return;
+    if (!button || !frame || !claim('map')) return;
     button.addEventListener('click', () => {
       frame.src = frame.dataset.src;
       frame.hidden = false;
@@ -2352,7 +2423,20 @@
       offsets = sections.map((section) => ({ id: section.id, top: section.offsetTop }));
       scrollable = document.documentElement.scrollHeight - window.innerHeight;
     };
-    measure();
+    /* Not measured here and now: the shelf has only just been written, and
+       reading a position would make the browser lay out all of it inside
+       this script, a long stall on a slow phone. Measured instead just after
+       the browser's own next layout, and again whenever the page's height
+       changes (photos arriving, cards drawn for the first time). */
+    const measureSoon = () => requestAnimationFrame(() => setTimeout(() => { measure(); paintScroll(); }, 0));
+    measureSoon();
+    if (window.ResizeObserver) {
+      let lastHeight = 0;
+      new ResizeObserver((entries) => {
+        const height = Math.round(entries[0].contentRect.height);
+        if (height !== lastHeight) { lastHeight = height; measureSoon(); }
+      }).observe(document.body);
+    }
     window.addEventListener('resize', measure);
     // Turning the phone changes whether the comparison still fits.
     window.addEventListener('resize', () => {
@@ -2401,7 +2485,8 @@
       ticking = true;
       requestAnimationFrame(paintScroll);
     }, { passive: true });
-    paintScroll();
+    // The first paint of all this comes with the first measure, above:
+    // reading the scroll position now would lay out the whole new shelf.
 
     /* Scroll reveals belong to motion.js, which is already running by now.
        The sections this file drew itself (the repair services) are handed
@@ -2858,7 +2943,7 @@
 
     // Mobile nav
     const navToggle = $('#navToggle');
-    if (!early('nav')) {
+    if (claim('nav')) {
       navToggle.addEventListener('click', () => {
         const open = $('#nav').classList.toggle('open');
         navToggle.setAttribute('aria-expanded', String(open));
@@ -2876,7 +2961,7 @@
       paintChips(); paintGrid();
     }));
 
-    if (!early('theme')) {
+    if (claim('theme')) {
       $$('#themeToggle, #themeToggleMobile').forEach((btn) => btn.addEventListener('click', toggleTheme));
     }
 

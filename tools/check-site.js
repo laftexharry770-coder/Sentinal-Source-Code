@@ -136,12 +136,29 @@ if (data) {
     // category without plates still works (it borrows the computers plate),
     // but it should get its own: see assets/img/README.md.
     keys.filter((k) => k !== 'all').forEach((k) => {
-      const missing = ['night', 'day'].filter((t) => !exists('assets/img/plates/' + k + '-' + t + '.webp'));
+      // three angles each: <cat>-<theme>.webp, -b.webp and -c.webp
+      const missing = [];
+      ['night', 'day'].forEach((t) => ['', '-b', '-c'].forEach((pose) => {
+        const file = 'assets/img/plates/' + k + '-' + t + pose + '.webp';
+        if (!exists(file)) missing.push(file);
+      }));
       if (missing.length) {
-        notes.push('category "' + k + '" has no ' + missing.join(' or ') +
-          ' glass plate yet (assets/img/plates/' + k + '-' + missing[0] + '.webp); it borrows the computers one');
+        notes.push('category "' + k + '" is missing ' + missing.length + ' of its 6 glass plates (' +
+          missing[0] + (missing.length > 1 ? ', …' : '') + '); those cards borrow the computers ones');
       }
     });
+
+    /* Photos from the Manage panel arrive written inside data.js. The site
+       works either way, but every visitor then downloads every photo before
+       a single price shows, so say how to move them out. */
+    let inside = 0, insideBytes = 0;
+    PRODUCTS.forEach((p) => (p.images || []).concat(p.spin || []).forEach((src) => {
+      if (typeof src === 'string' && /^data:image\//.test(src)) { inside++; insideBytes += src.length; }
+    }));
+    if (inside) {
+      notes.push(inside + ' photo' + (inside === 1 ? ' is' : 's are') + ' written inside data.js (' + Math.round(insideBytes / 1024) +
+        ' KB that every visitor downloads before any price shows). Run node tools/photos/unpack.js, then upload data.js together with assets/img/products/');
+    }
 
     const offers = PRODUCTS.filter((p) => p.wasPrice && p.price && p.wasPrice > p.price).length;
     notes.push(PRODUCTS.length + ' products, ' + offers + ' on offer, ' +
@@ -165,6 +182,13 @@ if (exists('index.html')) {
     const clean = ref.split('?')[0].replace(/^\.?\//, '');
     if (clean && !exists(clean)) fail('index.html', 'refers to a file that is not here: ' + ref);
   });
+
+  // The link preview is named by its full address, which the check above
+  // skips; on this site's own domain it must still be a file that is here.
+  const og = (html.match(/<meta property="og:image" content="([^"]+)"/) || [])[1];
+  if (og && /^https:\/\/homcomtech\.com\//.test(og) && !exists(og.replace(/^https:\/\/homcomtech\.com\//, ''))) {
+    fail('index.html', 'the link preview (og:image) is not in the repository: ' + og);
+  }
 
   // The failsafe that keeps a stale phone from showing a blank page.
   if (html.indexOf('stalePage') === -1) {
@@ -212,6 +236,23 @@ if (exists('index.html')) {
       if (!product) notes.push('first-screen product "' + tile[1] + '" is no longer in data.js; it is hidden once the catalogue loads — pick another in index.html');
       else if (!(product.images && product.images.length)) notes.push('first-screen product "' + tile[1] + '" has no photo in data.js; it is hidden once the catalogue loads');
     }
+  }
+}
+
+/* Every file the stylesheet points at (the typeface, the glass plates, the
+   light behind each section's head) has to be here too, or it silently
+   draws nothing. */
+if (exists('assets/css/styles.css')) {
+  const urlRe = /url\(\s*["']?([^"')]+)["']?\s*\)/g;
+  const css = read('assets/css/styles.css');
+  const seen = new Set();
+  let u;
+  while ((u = urlRe.exec(css))) {
+    const ref = u[1].trim();
+    if (/^(https?:|data:|#)/.test(ref) || seen.has(ref)) continue;
+    seen.add(ref);
+    const file = path.posix.normalize(path.posix.join('assets/css', ref.split(/[?#]/)[0]));
+    if (!exists(file)) fail('assets/css/styles.css', 'refers to a file that is not here: ' + ref);
   }
 }
 
